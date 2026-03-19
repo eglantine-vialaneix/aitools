@@ -17,15 +17,15 @@ type DinoItem = {
 
 const initialDinos: DinoItem[] = [
   { name: "Apatosaurus", state: "selected" },
-  { name: "Utahraptor", state: "left" },
-  { name: "Tyrannosaurus", state: "left" },
-  { name: "Styracosaurus", state: "left" },
-  { name: "Stegosaurus", state: "left" },
-  { name: "Spinosaurus", state: "left" },
-  { name: "Plateosaurus", state: "left" },
-  { name: "Megalosaurus", state: "left" },
-  { name: "Gallimimus", state: "left" },
   { name: "Brachiosaurus", state: "left" },
+  { name: "Gallimimus", state: "left" },
+  { name: "Megalosaurus", state: "left" },
+  { name: "Plateosaurus", state: "left" },
+  { name: "Spinosaurus", state: "left" },
+  { name: "Stegosaurus", state: "left" },
+  { name: "Styracosaurus", state: "left" },
+  { name: "Tyrannosaurus", state: "left" },
+  { name: "Utahraptor", state: "left" },
 ];
 
 export default function WhiteBox() {
@@ -81,8 +81,12 @@ export default function WhiteBox() {
       </div>
       <div className="content-stretch flex flex-[1_0_0] gap-[50px] h-full items-center justify-end min-h-px min-w-px px-[50px] relative" data-node-id="10:189">
         <div className="content-stretch flex items-center py-[191px] relative shrink-0" data-name="left" data-node-id="11:6">
-          <div className="blur-[4.5px] content-center flex flex-wrap gap-y-[49px] items-center justify-center pr-[137px] relative shrink-0" data-name="all cards left" data-node-id="10:175">
-            {remainingDinos.map((dino) => (
+          <div className="content-center flex flex-wrap gap-y-[49px] items-center justify-center pr-[137px] relative shrink-0" data-name="all cards left" data-node-id="10:175" style={{
+            backdropFilter: "blur(4.5px)",
+            maskImage: "linear-gradient(90deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.3) 40%, rgba(0, 0, 0, 1) 100%)",
+            WebkitMaskImage: "linear-gradient(90deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.3) 40%, rgba(0, 0, 0, 1) 100%)"
+          }}>
+            {remainingDinos.reverse().map((dino) => (
               <Dino
                 key={dino}
                 className="content-stretch flex h-[255px] items-center mr-[-137px] relative shrink-0 w-[180px]"

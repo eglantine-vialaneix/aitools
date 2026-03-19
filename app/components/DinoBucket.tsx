@@ -10,7 +10,7 @@ export function DinoBucket({ children, className = "", isActive = false, style, 
     <div
       className={`bg-[#f5f5f5] border border-[#dedee0] border-solid relative w-full min-h-[348px] overflow-hidden ${className}`}
       style={{
-        borderRadius: "var(--dimensions/radius/rounded-3xl, 24px)",
+        borderRadius: "24px",
         backgroundColor: "var(--background/background, #f5f5f5)",
         borderColor: isActive ? "#18181b" : "var(--border, #dedee0)",
         boxShadow: isActive ? "0 0 0 3px rgba(24, 24, 27, 0.12)" : undefined,
