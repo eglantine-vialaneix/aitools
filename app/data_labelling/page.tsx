@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { TextArea } from "@heroui/react";
 import { Dino, type DinoName } from "@/app/components/Dino";
 import { Button } from "@/app/components/Button";
 import { Separator } from "@/app/components/Separator";
@@ -80,8 +81,8 @@ export default function WhiteBox() {
         <div className="absolute inset-0" style={{ backgroundImage: "url('data:image/svg+xml;utf8,<svg viewBox=\\'0 0 1440 1024\\' xmlns=\\'http://www.w3.org/2000/svg\\' preserveAspectRatio=\\'none\\'><rect x=\\'0\\' y=\\'0\\' height=\\'100%\\' width=\\'100%\\' fill=\\'url(%23grad)\\' opacity=\\'0.25\\'/><defs><radialGradient id=\\'grad\\' gradientUnits=\\'userSpaceOnUse\\' cx=\\'0\\' cy=\\'0\\' r=\\'10\\' gradientTransform=\\'matrix(4.4087e-15 51.2 -72 3.1351e-15 720 512)\\'><stop stop-color=\\'rgba(102,102,102,1)\\' offset=\\'0\\'/><stop stop-color=\\'rgba(77,77,77,1)\\' offset=\\'0.25\\'/><stop stop-color=\\'rgba(51,51,51,1)\\' offset=\\'0.5\\'/><stop stop-color=\\'rgba(26,26,26,1)\\' offset=\\'0.75\\'/><stop stop-color=\\'rgba(13,13,13,1)\\' offset=\\'0.875\\'/><stop stop-color=\\'rgba(6,6,6,1)\\' offset=\\'0.9375\\'/><stop stop-color=\\'rgba(0,0,0,1)\\' offset=\\'1\\'/></radialGradient></defs></svg>')" }} />
       </div>
       <div className="content-stretch flex flex-[1_0_0] gap-[50px] h-full w-full items-stretch justify-end min-h-px min-w-px relative" data-node-id="10:189">
-        <div className="content-stretch flex h-full items-center relative shrink-0" data-name="left" data-node-id="11:6">
-          <div className="content-center flex flex-wrap gap-y-[49px] items-center justify-center pr-[137px] relative shrink-0" data-name="all cards left" data-node-id="10:175" style={{
+        <div className="flex flex-1 min-w-[180px] pt-[60px] pl-[50px] flex-col justify-center items-end gap-[60px] self-stretch overflow-visible" data-name="left" data-node-id="11:6">
+          <div className="content-center flex flex-nowrap h-[255px] items-center justify-end pr-[137px] relative shrink-0 self-end" data-name="all cards left" data-node-id="10:175" style={{
             backdropFilter: "blur(4.5px)",
             maskImage: "linear-gradient(90deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.3) 40%, rgba(0, 0, 0, 1) 100%)",
             WebkitMaskImage: "linear-gradient(90deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.3) 40%, rgba(0, 0, 0, 1) 100%)"
@@ -96,13 +97,17 @@ export default function WhiteBox() {
             ))}
             <Dino className="h-[255px] mr-[-137px] relative shrink-0 w-[180px]" dino="Number" size="md" digit={dinoCount} />
           </div>
+          <div className="flex w-full min-w-[180px] flex-col items-start gap-[4px] flex-[1_0_0] self-stretch">
+            <p className="font-medium text-[14px] leading-[1.43] text-[#efefef]">Your notes:</p>
+            <TextArea className="w-full h-full [&>div]:w-full" placeholder="Write your notes here..." />
+          </div>
         </div>
         <div className="content-stretch flex h-full items-center justify-center relative shrink-0 w-[629px]" data-name="Main card" data-node-id="10:187">
           {selectedDino ? (
             <Dino className="aspect-[636.2648315429688/904] content-stretch flex h-full items-center relative shrink-0" dino={selectedDino} size="Main" />
           ) : (
             <div className="bg-[#f5f5f5] border border-dashed border-[#dedee0] flex h-full items-center justify-center rounded-[20px] text-[24px] text-[#71717a] w-full">
-              All dinosaurs have been assigned
+              All dinosaurs have been assigned.
             </div>
           )}
         </div>
