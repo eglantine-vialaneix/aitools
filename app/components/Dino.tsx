@@ -15,6 +15,7 @@ type DinoVariant = DinoName | "Number";
 type DinoProps = {
   className?: string;
   dino?: DinoVariant;
+  labelled1?: boolean;
   size?: "Main" | "md" | "sm";
   digit?: number | string;
 };
@@ -50,17 +51,72 @@ const sizeStyles = {
   },
 } as const;
 
-export function Dino({ className, dino = "Apatosaurus", size = "Main", digit = "9" }: DinoProps) {
+const dinoDiets: Record<DinoName, "herbivore" | "carnivore"> = {
+  Apatosaurus: "herbivore",
+  Brachiosaurus: "herbivore",
+  Gallimimus: "carnivore",
+  Megalosaurus: "carnivore",
+  Plateosaurus: "herbivore",
+  Spinosaurus: "carnivore",
+  Stegosaurus: "herbivore",
+  Styracosaurus: "herbivore",
+  Tyrannosaurus: "carnivore",
+  Utahraptor: "carnivore",
+};
+
+const labelStyles = {
+  Main: {
+    wrapper: "absolute flex items-center justify-center left-[330.74px] size-[306.186px] top-0",
+    ring: "relative flex size-[250px] rotate-[15deg] items-center justify-center rounded-full border-[37.5px]",
+    text: "text-[128px]",
+  },
+  sm: {
+    wrapper: "-translate-x-1/2 -translate-y-1/2 absolute flex items-center justify-center left-[calc(50%+0.15px)] size-[73.485px] top-[calc(50%-0.26px)]",
+    ring: "relative flex size-[60px] rotate-[15deg] items-center justify-center rounded-full border-[9px]",
+    text: "text-[30.72px]",
+  },
+} as const;
+
+function DinoLabel({ diet, size }: { diet: "herbivore" | "carnivore"; size: "Main" | "sm" }) {
+  const label = diet === "herbivore" ? "H" : "C";
+  const colorClass = diet === "herbivore" ? "border-[#17c964] text-[#17c964]" : "border-[#ff383c] text-[#ff383c]";
+  const styles = labelStyles[size];
+
+  return (
+    <div aria-hidden="true" className={styles.wrapper}>
+      <div className={`${styles.ring} ${colorClass}`}>
+        <span
+          className={`font-bold leading-[1.34] ${styles.text}`}
+          style={{ fontFamily: "Inter, sans-serif" }}
+        >
+          {label}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+export function Dino({ className, dino = "Apatosaurus", labelled1 = false, size = "Main", digit = "9" }: DinoProps) {
   const resolvedSize = size === "Main" ? "Main" : size === "sm" ? "sm" : "md";
   const defaultClassNames = dino === "Number" ? "h-[255px] w-[180px]" : sizeStyles[resolvedSize].container;
+  const shouldShowLabel = dino !== "Number" && labelled1 && resolvedSize !== "md";
+  const frameClassName =
+    shouldShowLabel && resolvedSize === "sm"
+      ? sizeStyles[resolvedSize].frame.replaceAll("rounded-[15px]", "rounded-[20px]")
+      : sizeStyles[resolvedSize].frame;
+  const imageClassName =
+    shouldShowLabel && resolvedSize === "sm"
+      ? sizeStyles[resolvedSize].image.replaceAll("rounded-[15px]", "rounded-[20px]")
+      : sizeStyles[resolvedSize].image;
 
   return (
     <div className={className || `relative ${defaultClassNames}`}>
       {dino !== "Number" && (
-        <div className={sizeStyles[resolvedSize].frame}>
-          <img alt={dino} className={sizeStyles[resolvedSize].image} src={dinoImages[dino]} />
+        <div className={frameClassName}>
+          <img alt={dino} className={imageClassName} src={dinoImages[dino]} />
         </div>
       )}
+      {shouldShowLabel && <DinoLabel diet={dinoDiets[dino]} size={resolvedSize} />}
       {dino === "Number" && (
         <div className="relative h-full w-full">
           <div

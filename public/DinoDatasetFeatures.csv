@@ -1,0 +1,53 @@
+NAME;DIET;PERIOD;LOCATION;TYPE;BIPEDAL;LENGTH;WEIGHT;NAMED BY;SPECIES;TAXONOMY SUBORDER;TAXONOMY FAMILY
+tyrannosaurus;carnivorous;Late Cretaceous 68-66 million years ago;USA;large theropod;Yes;12.0m;7000kg;Osborn (1905);rex;Saurischia;Tyrannosaurinae
+allosaurus;carnivorous;Late Jurassic 156-144 million years ago;USA;large theropod;Yes;12.0m;2000kg;Marsh (1877);fragilis;Saurischia;Allosauridae
+velociraptor;carnivorous;Late Cretaceous 74-70 million years ago;Mongolia;small theropod;Yes;1.8m;7kg;Osborn (1924);mongoliensis;Saurischia;Dromaeosauridae
+spinosaurus;carnivorous;Late Cretaceous 95-70 million years ago;Morocco;large theropod;Yes;18.0m;7400kg;Stromer (1915);aegyptiacus;Saurischia;Spinosaurinae
+carnotaurus;carnivorous;Late Cretaceous 70 million years ago;Argentina;large theropod;Yes;7.6m;1 600kg;Bonaparte (1985);sastrei;Saurischia;Abelisauridae
+giganotosaurus;carnivorous;Early Cretaceous 112-90 million years ago;Argentina;large theropod;Yes;12.5m;8000kg;Coria and Salgado (1995);carolinii;Saurischia;Carcharodontosauridae
+ceratosaurus;carnivorous;Late Jurassic 153-148 million years ago;USA;large theropod;Yes;6.0m;970kg;Marsh (1884);nasicornis;Saurischia;Neoceratosauria
+megalosaurus;carnivorous;Mid Jurassic 170-155 million years ago;United Kingdom;large theropod;Yes;9.0m;700kg;Ritgen (1826);bucklandii;Saurischia;Megalosaurinae
+compsognathus;carnivorous;Late Jurassic 145-140 million years ago;Germany;small theropod;Yes;0.65m;3kg;Wagner (1859);longipes;Saurischia;Compsognathidae
+dilophosaurus;carnivorous;Early Jurassic 190 million years ago;USA;large theropod;Yes;6.0m;400kg;wetherilli;;Saurischia;Dilophosauridae
+baryonyx;carnivorous;Early Cretaceous 125 million years ago;United Kingdom;large theropod;Yes;10.0m;2000kg;Charig and Milner (1987);walkeri;Saurischia;Baryonychinae
+utahraptor;carnivorous;Early Cretaceous 112-100 million years ago;USA;large theropod;Yes;6.0m;350kg;Kirkland Gaston and Burge (1993);ostrommaysorum;Saurischia;Dromaeosauridae
+deinonychus;carnivorous;Early Cretaceous 120-110 million years ago;USA;small theropod;Yes;3.0m;13.0m;Ostrom (1969);antirrhopus;Saurischia;Dromaeosauridae
+mapusaurus;carnivorous;Late Cretaceous 99-94 million years ago;Argentina;large theropod;Yes;13.0m;3000kg;Coria and Currie (2006);roseae;Saurischia;Giganotosaurinae
+albertosaurus;carnivorous;Late Cretaceous 76-74 million years ago;Canada;large theropod;Yes;9.0m;1500kg;Lamb (1914);libratus;Saurischia;Albertosaurinae
+dromaeosaurus;carnivorous;Late Cretaceous 76-74 million years ago;USA;small theropod;Yes;1.8m;15kg;Matthew and Brown (1922);albertensis;Saurischia;Dromaeosauridae
+acrocanthosaurus;carnivorous;Early Cretaceous 115-105 million years ago;USA;large theropod;Yes;12.0m;6600kg;Stovall and Langston (1950);atokensis;Saurischia;Carcharodontosauridae
+tarbosaurus;carnivorous;Late Cretaceous 74-70 million years ago;Mongolia;large theropod;Yes;10.0m;5000kg;Maleev (1955);bataar;Saurischia;Tyrannosaurinae
+herrerasaurus;carnivorous;Late Triassic 228 million years ago;Argentina;small theropod;Yes;3.0m;350kg;Reig (1963);ischigualastensis;Saurischia;Herrerasauridae
+carcharodontosaurus;carnivorous;Late Cretaceous 98-94 million years ago;North Africa;large theropod;Yes;15.0m;6200kg;Stromer (1931);saharicus;Saurischia;Carcharodontosauridae
+triceratops;herbivorous;Late Cretaceous 68-66 million years ago;USA;ceratopsian;No;9.0m;5500kg;Marsh (1889);horridus;Ornithischia;Chasmosaurinae
+brachiosaurus;herbivorous;Late Jurassic 155-140 million years ago;USA;sauropod;No;30.0m;50000kg;Riggs (1903);altithorax;Saurischia;Brachiosauridae
+stegosaurus;herbivorous;Late Jurassic 155-145 million years ago;USA;armoured dinosaur;No;9.0m;3000kg;Marsh (1877);armatus;Ornithischia;Stegosaurinae
+ankylosaurus;herbivorous;Late Cretaceous 74-67 million years ago;USA;armoured dinosaur;No;7.0m;8000kg;Brown (1908);magniventris;Ornithischia;Ankylosauridae
+diplodocus;herbivorous;Late Jurassic 155-145 million years ago;USA;sauropod;No;26.0m;15000kg;Marsh (1878);longus;Saurischia;Diplodocidae
+apatosaurus;herbivorous;Late Jurassic 154-145 million years ago;USA;sauropod;No;21.0m;218000kg;Marsh (1877);ajax;Saurischia;Diplodocidae
+iguanodon;herbivorous;Early Cretaceous 140-110 million years ago;United Kingdom;euornithopod;No;10.0m;4000kg;Boulenger and van Beneden (1881);bernissartensis;Ornithischia;Iguanodontoidea
+parasaurolophus;herbivorous;Late Cretaceous 76-74 million years ago;USA;euornithopod;No;11.0m;5000kg;Parks (1922);walkeri;Ornithischia;Lambeosaurinae
+sauropelta;herbivorous;Early Cretaceous 121-94 million years ago;USA;armoured dinosaur;No;6.5m;5000kg;Ostrom (1970);edwardsorum;Ornithischia;Nodosauridae
+kentrosaurus;herbivorous;Late Jurassic 155-150 million years ago;Tanzania;armoured dinosaur;No;5.0m;1500kg;Hennig (1915);aethiopicus;Ornithischia;Stegosaurinae
+camarasaurus;herbivorous;Late Jurassic 150-140 million years ago;USA;sauropod;No;23.0m;20000kg;Cope (1877);supremus;Saurischia;Camarasauridae
+edmontosaurus;herbivorous;Late Cretaceous 76-65 million years ago;Canada;euornithopod;No;13.0m;3400kg;Lambe (1917);regalis;Ornithischia;Hadrosaurinae
+corythosaurus;herbivorous;Late Cretaceous 76-74 million years ago;USA;euornithopod;No;10.0m;4000kg;Brown (1914);casuarius;Ornithischia;Lambeosaurinae
+styracosaurus;herbivorous;Late Cretaceous 76-70 million years ago;USA;ceratopsian;No;5.5m;2700kg;Lambe (1913);albertensis;Ornithischia;Centrosaurinae
+plateosaurus;herbivorous;Late Triassic 210 million years ago;Switzerland;sauropod;Yes;7.0m;4000kg;Meyer (1837);engelhardti;Saurischia;Plateosauridae
+gallimimus;carnivorous;Late Cretaceous 74-70 million years ago;Mongolia;large theropod;Yes;6.0m;200kg;Osm√É¬≥lska Roniewicz and Barsbold (1972);bullatus;Saurischia;Ornithomimidae
+maiasaura;herbivorous;Late Cretaceous 80-75 million years ago;USA;euornithopod;Yes;9.0m;490kg;Horner and Makela (1979);peeblesorum;Ornithischia;Hadrosaurinae
+lambeosaurus;herbivorous;Late Cretaceous 76-74 million years ago;Canada;euornithopod;Yes;9.0m;2500kg;Parks (1923);lambei;Ornithischia;Lambeosaurinae
+pachycephalosaurus;herbivorous;Late Cretaceous 76-65 million years ago;USA;euornithopod;Yes;8.0m;450kg;Brown and Schlaikjer (1943);wyomingensis;Ornithischia;Pachycephalosauridae
+psittacosaurus;herbivorous;Early Cretaceous 120-100 million years ago;Russia;ceratopsian;Yes;2.0m;50kg;Osborn (1923);mongoliensis;Ornithischia;Psittacosauridae
+Archaeopteryx;carnivorous;Late Jurassic, ;Germany;small theropod;flies;0.5m;1kg;Mayer (1861);lithographica;Saurischia,;Archaeopterygidae
+Aardonyx;herbivorous;Early Jurassic,;South Africa;prosauropod;Yes;8.0m;1700kg;Yates, Bonnan, Neveling, Chinsamy and Blackbeard 2010 (2009);"
+celestae";Saurischia,;Anchisauria
+ammosaurus;herbivorous;Early Jurassic 195-180 million years ago;USA;sauropod;Yes;5.0m;290kg;Marsh (1891);major;Saurischia;Anchisauridae
+archaeoceratops;herbivorous;Early Cretaceous 121-99 million years ago;China;ceratopsian;Yes;1.3m;57kg;Dong and Azuma (1987);oshimai;Ornithischia;Neoceratopsia
+atlascopcosaurus;herbivorous;Early Cretaceous 121-97 million years ago;Australia;euornithopod;Yes;3.0m;125kg;Rich and Rich (1989);loadsi;Ornithischia;Euornithopoda
+Agilisaurus;herbivorous;Late Jurassic, ;China;small ornithischian;Yes;1.5m;21kg;Peng (1990);;Ornithischia,;Euornithopoda
+camptosaurus;herbivorous;Late Jurassic 155-145 million years ago;USA;euornithopod;Yes;5.0m;1000kg;Marsh (1885);dispar;Ornithischia;Ankylopollexia
+Dracorez;herbivorous;Late Jurassic 155-145 million years ago;USA;pachycephalosaur;Yes;4.0m;100 kg;Bakker, Sullivan, Porter, Larson and Saulsbury (2006);hogwartsia;Ornithischia,;Pachycephalosauridae
+Gasparinisaura;herbivorous;Late Cretaceous;Argentina;small ornithopod;Yes;0.8m;13kg;Coria and Salgado (1996);cincosaltensis;Ornithischia,;Euornithopoda
+Hypsilophodon;herbivorous;Early Cretaceous;UK;small ornithischian;Yes;2.0m;20kg;Huxley (1869);foxii;Ornithischia,;Neornithischia
+Edmontosaurrus;herbivorous;Late Cretaceous;Canada;large ornithopod;Yes;13.0m;3400kg;Lambe (1917);regalis;Ornithischia,;Hadrosaurinae
