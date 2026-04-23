@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import { Button as HeroUIButton, TextArea } from "@heroui/react";
+import { TextArea } from "@heroui/react";
 import { Dino, type DinoName } from "@/app/components/Dino";
 import { DinoBucket } from "@/app/components/DinoBucket";
 
@@ -46,17 +47,14 @@ function NextControl({ isDisabled, onClick }: { isDisabled: boolean; onClick: ()
       <div className="flex h-[12px] flex-[1_0_0] items-center">
         <hr className="w-full border-0 border-t border-[var(--border,#dedee0)]" />
       </div>
-      <HeroUIButton
-        isIconOnly
-        aria-label="Next dino"
-        className="max-h-[40px] min-h-[40px] min-w-[40px] shrink-0 rounded-[24px] bg-[var(--default/default,#ebebec)] p-[12px] text-[#18181b] transition hover:bg-[#dedee0] disabled:cursor-not-allowed disabled:opacity-45"
-        data-node-id="217:6831"
-        isDisabled={isDisabled}
+      <button
+        type="button"
+        aria-label="arrow-right"
+        className="max-h-[40px] min-h-[40px] min-w-[40px] shrink-0 rounded-[24px] bg-[#ebebec] p-[12px] text-[#18181b] transition hover:bg-[#dedee0] disabled:cursor-not-allowed disabled:opacity-45"
+        disabled={isDisabled}
         onClick={onClick}
-        radius="full"
-        variant="flat"
       >
-        {/* <svg aria-hidden="true" className="size-[16px]" fill="none" viewBox="0 0 16 16">
+        <svg aria-hidden="true" className="size-[16px]" fill="none" viewBox="0 0 16 16">
           <path
             d="M3.75 8h8.5M8.75 3.75 13 8l-4.25 4.25"
             stroke="currentColor"
@@ -64,8 +62,8 @@ function NextControl({ isDisabled, onClick }: { isDisabled: boolean; onClick: ()
             strokeLinejoin="round"
             strokeWidth="1.6"
           />
-        </svg> */}
-      </HeroUIButton>
+        </svg>
+      </button>
       <div className="flex h-[12px] flex-[1_0_0] items-center">
         <hr className="w-full border-0 border-t border-[var(--border,#dedee0)]" />
       </div>
@@ -139,16 +137,22 @@ export default function BlackBox() {
             <Dino className="h-[255px] mr-[-137px] relative shrink-0 w-[180px]" dino="Number" size="md" digit={remainingDinos.length} />
           </div>
           <div className="flex w-full min-w-[180px] flex-col items-start gap-[4px] flex-[1_0_0] self-stretch">
-            <p className="font-medium text-[14px] leading-[1.43] text-[#efefef]">Your notes:</p>
-            <TextArea className="w-full h-full [&>div]:w-full" placeholder="Write your notes here..." />
+            <p className="font-medium text-[14px] leading-[1.43] text-[#efefef]">Tes notes:</p>
+            <TextArea className="w-full h-full [&>div]:w-full" placeholder="Écris tes notes ici..." />
           </div>
         </div>
         <div className="content-stretch flex h-full items-center justify-center relative shrink-0 w-[629px]" data-name="Main card">
           {selectedDino ? (
             <Dino className="aspect-[636.2648315429688/904] content-stretch flex h-full items-center relative shrink-0" dino={selectedDino} labelled1 size="Main" />
           ) : (
-            <div className="bg-[#f5f5f5] border border-dashed border-[#dedee0] flex h-full items-center justify-center rounded-[20px] text-[24px] text-[#71717a] w-full">
-              All dinosaurs have been reviewed.
+            <div className="bg-[#f5f5f5] border border-dashed border-[#dedee0] flex h-full flex-col items-center justify-center gap-[24px] rounded-[20px] text-[24px] text-[#71717a] w-full">
+              <p>Tous les dinosaures ont été assignés.</p>
+              <Link
+                className="inline-flex h-[48px] items-center justify-center rounded-full bg-[#006fee] px-[24px] text-[16px] font-medium text-white transition hover:bg-[#0059c9]"
+                href="/feature_selection"
+              >
+                Suite
+              </Link>
             </div>
           )}
         </div>

@@ -62,8 +62,8 @@ export default function DataLabellingInstructions() {
             </Link>
           </div>
           <Link
+            className="inline-flex h-[48px] items-center justify-center rounded-full bg-[#006fee] px-[24px] text-[16px] font-medium text-white transition hover:bg-[#0059c9]"
             href={`/data_labelling?condition=${assignedCondition}`}
-            className="flex h-[56px] min-w-[140px] items-center justify-center rounded-[28px] bg-[#27272a] px-[28px] text-[24px] font-medium leading-[32px] text-[#fcfcfc] transition hover:bg-[#18181b]"
           >
             Suite
           </Link>

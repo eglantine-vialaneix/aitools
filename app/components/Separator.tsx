@@ -3,7 +3,7 @@ export type SeparatorProps = {
   className?: string;
 };
 
-export function Separator({ label = "OR", className = "" }: SeparatorProps) {
+export function Separator({ label = "OU", className = "" }: SeparatorProps) {
   return (
     <div 
       className={`content-stretch flex h-[12px] items-center justify-center max-h-[12px] relative shrink-0 w-full gap-[8px] ${className}`}

@@ -1,18 +1,19 @@
-import { Button as HeroUIButton, ButtonProps as HeroUIButtonProps } from "@heroui/react";
-import { ReactNode } from "react";
+import { type ButtonHTMLAttributes, type ReactNode } from "react";
 
 type ButtonTone = "herbivore" | "carnivore" | "default";
 
-export type ButtonProps = Omit<HeroUIButtonProps, "variant"> & {
+export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   children?: ReactNode;
   variant?: ButtonTone;
   isActive?: boolean;
+  isDisabled?: boolean;
 };
 
 export function Button({
   children,
   variant = "default",
   isActive = false,
+  isDisabled = false,
   className,
   ...props
 }: ButtonProps) {
@@ -23,8 +24,9 @@ export function Button({
   };
 
   return (
-    <HeroUIButton
-      variant="primary"
+    <button
+      type={props.type ?? "button"}
+      disabled={isDisabled || props.disabled}
       className={`
         content-stretch flex items-center justify-center px-[16px] py-[11px] 
         rounded-[22px] max-h-[40px] min-h-[40px] w-full gap-[8px]
@@ -32,11 +34,12 @@ export function Button({
         transition-all duration-200
         ${variantStyles[variant]}
         ${isActive ? "scale-[1.02] shadow-[0_0_0_3px_rgba(24,24,27,0.14)]" : ""}
+        ${isDisabled || props.disabled ? "cursor-not-allowed opacity-55" : ""}
         ${className || ""}
       `}
       {...props}
     >
       {children}
-    </HeroUIButton>
+    </button>
   );
 }

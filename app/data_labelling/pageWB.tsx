@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { TextArea } from "@heroui/react";
 import { Dino, type DinoName } from "@/app/components/Dino";
-import { Button } from "@/app/components/Button";
+import { Button as DietButton } from "@/app/components/Button";
 import { Separator } from "@/app/components/Separator";
 import { DinoBucket } from "@/app/components/DinoBucket";
 
@@ -98,16 +99,22 @@ export default function WhiteBox() {
             <Dino className="h-[255px] mr-[-137px] relative shrink-0 w-[180px]" dino="Number" size="md" digit={dinoCount} />
           </div>
           <div className="flex w-full min-w-[180px] flex-col items-start gap-[4px] flex-[1_0_0] self-stretch">
-            <p className="font-medium text-[14px] leading-[1.43] text-[#efefef]">Your notes:</p>
-            <TextArea className="w-full h-full [&>div]:w-full" placeholder="Write your notes here..." />
+            <p className="font-medium text-[14px] leading-[1.43] text-[#efefef]">Tes notes:</p>
+            <TextArea className="w-full h-full [&>div]:w-full" placeholder="Écris tes notes ici..." />
           </div>
         </div>
         <div className="content-stretch flex h-full items-center justify-center relative shrink-0 w-[629px]" data-name="Main card" data-node-id="10:187">
           {selectedDino ? (
             <Dino className="aspect-[636.2648315429688/904] content-stretch flex h-full items-center relative shrink-0" dino={selectedDino} size="Main" />
           ) : (
-            <div className="bg-[#f5f5f5] border border-dashed border-[#dedee0] flex h-full items-center justify-center rounded-[20px] text-[24px] text-[#71717a] w-full">
-              All dinosaurs have been assigned.
+            <div className="bg-[#f5f5f5] border border-dashed border-[#dedee0] flex h-full flex-col items-center justify-center gap-[24px] rounded-[20px] text-[24px] text-[#71717a] w-full">
+              <p>Tous les dinosaures ont été assignés.</p>
+              <Link
+                className="inline-flex h-[48px] items-center justify-center rounded-full bg-[#006fee] px-[24px] text-[16px] font-medium text-white transition hover:bg-[#0059c9]"
+                href="/feature_selection"
+              >
+                Suite
+              </Link>
             </div>
           )}
         </div>
@@ -115,13 +122,13 @@ export default function WhiteBox() {
           <DinoBucket className="flex-1 min-h-0" isActive={activeBucket === "herbivore"} data-name="all herbivores" data-node-id="19:12746">
             {renderBucketCards(herbivoreDinos)}
           </DinoBucket>
-          <Button isActive={activeBucket === "herbivore"} isDisabled={!selectedDino} variant="herbivore" onClick={() => assignSelectedDino("herbivore")}>
+          <DietButton isActive={activeBucket === "herbivore"} isDisabled={!selectedDino} variant="herbivore" onClick={() => assignSelectedDino("herbivore")}>
             Herbivore
-          </Button>
-          <Separator label="OR" />
-          <Button isActive={activeBucket === "carnivore"} isDisabled={!selectedDino} variant="carnivore" onClick={() => assignSelectedDino("carnivore")}>
+          </DietButton>
+          <Separator/>
+          <DietButton isActive={activeBucket === "carnivore"} isDisabled={!selectedDino} variant="carnivore" onClick={() => assignSelectedDino("carnivore")}>
             Carnivore
-          </Button>
+          </DietButton>
           <DinoBucket className="flex-1 min-h-0" isActive={activeBucket === "carnivore"} data-name="all carnivores" data-node-id="19:12750">
             {renderBucketCards(carnivoreDinos)}
           </DinoBucket>
