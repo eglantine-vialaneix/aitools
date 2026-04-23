@@ -1,0 +1,50 @@
+,nom,régime_alimentaire,période,habitat,type,bipède,longueur,poids,nommé_par,espèce,sous-ordre_taxonomique,famille_taxonomique
+0,Tyrannosaurus,carnivore,Crétacé supérieur,États-Unis,grand théropode,Oui,12.0m,7000kg,Osborn (1905),rex,Saurischia,Tyrannosaurinae
+1,Allosaurus,carnivore,Jurassique supérieur,États-Unis,grand théropode,Oui,12.0m,2000kg,Marsh (1877),fragilis,Saurischia,Allosauridae
+2,Velociraptor,carnivore,Crétacé supérieur,Mongolie,petit théropode,Oui,1.8m,7kg,Osborn (1924),mongoliensis,Saurischia,Dromaeosauridae
+3,Spinosaurus,carnivore,Crétacé supérieur,Maroc,grand théropode,Oui,18.0m,7400kg,Stromer (1915),aegyptiacus,Saurischia,Spinosaurinae
+4,Carnotaurus,carnivore,Crétacé supérieur,Argentine,grand théropode,Oui,7.6m,1 600kg,Bonaparte (1985),sastrei,Saurischia,Abelisauridae
+5,Giganotosaurus,carnivore,Crétacé inférieur,Argentine,grand théropode,Oui,12.5m,8000kg,Coria and Salgado (1995),carolinii,Saurischia,Carcharodontosauridae
+6,Ceratosaurus,carnivore,Jurassique supérieur,États-Unis,grand théropode,Oui,6.0m,970kg,Marsh (1884),nasicornis,Saurischia,Neoceratosauria
+7,Megalosaurus,carnivore,Jurassique moyen,Royaume-Uni,grand théropode,Oui,9.0m,700kg,Ritgen (1826),bucklandii,Saurischia,Megalosaurinae
+8,Compsognathus,carnivore,Jurassique supérieur,Allemagne,petit théropode,Oui,0.65m,3kg,Wagner (1859),longipes,Saurischia,Compsognathidae
+10,Baryonyx,carnivore,Crétacé inférieur,Royaume-Uni,grand théropode,Oui,10.0m,2000kg,Charig and Milner (1987),walkeri,Saurischia,Baryonychinae
+11,Utahraptor,carnivore,Crétacé inférieur,États-Unis,grand théropode,Oui,6.0m,350kg,Kirkland Gaston and Burge (1993),ostrommaysorum,Saurischia,Dromaeosauridae
+12,Deinonychus,carnivore,Crétacé inférieur,États-Unis,petit théropode,Oui,3.0m,13.0m,Ostrom (1969),antirrhopus,Saurischia,Dromaeosauridae
+13,Mapusaurus,carnivore,Crétacé supérieur,Argentine,grand théropode,Oui,13.0m,3000kg,Coria and Currie (2006),roseae,Saurischia,Giganotosaurinae
+14,Albertosaurus,carnivore,Crétacé supérieur,Canada,grand théropode,Oui,9.0m,1500kg,Lamb (1914),libratus,Saurischia,Albertosaurinae
+15,Dromaeosaurus,carnivore,Crétacé supérieur,États-Unis,petit théropode,Oui,1.8m,15kg,Matthew and Brown (1922),albertensis,Saurischia,Dromaeosauridae
+16,Acrocanthosaurus,carnivore,Crétacé inférieur,États-Unis,grand théropode,Oui,12.0m,6600kg,Stovall and Langston (1950),atokensis,Saurischia,Carcharodontosauridae
+17,Tarbosaurus,carnivore,Crétacé supérieur,Mongolie,grand théropode,Oui,10.0m,5000kg,Maleev (1955),bataar,Saurischia,Tyrannosaurinae
+18,Herrerasaurus,carnivore,Trias supérieur,Argentine,petit théropode,Oui,3.0m,350kg,Reig (1963),ischigualastensis,Saurischia,Herrerasauridae
+19,Carcharodontosaurus,carnivore,Crétacé supérieur,Afrique du Nord,grand théropode,Oui,15.0m,6200kg,Stromer (1931),saharicus,Saurischia,Carcharodontosauridae
+20,Triceratops,herbivore,Crétacé supérieur,États-Unis,cératopsien,Non,9.0m,5500kg,Marsh (1889),horridus,Ornithischia,Chasmosaurinae
+21,Brachiosaurus,herbivore,Jurassique supérieur,États-Unis,sauropode,Non,30.0m,50000kg,Riggs (1903),altithorax,Saurischia,Brachiosauridae
+22,Stegosaurus,herbivore,Jurassique supérieur,États-Unis,dinosaure cuirassé,Non,9.0m,3000kg,Marsh (1877),armatus,Ornithischia,Stegosaurinae
+23,Ankylosaurus,herbivore,Crétacé supérieur,États-Unis,dinosaure cuirassé,Non,7.0m,8000kg,Brown (1908),magniventris,Ornithischia,Ankylosauridae
+24,Diplodocus,herbivore,Jurassique supérieur,États-Unis,sauropode,Non,26.0m,15000kg,Marsh (1878),longus,Saurischia,Diplodocidae
+25,Apatosaurus,herbivore,Jurassique supérieur,États-Unis,sauropode,Non,21.0m,218000kg,Marsh (1877),ajax,Saurischia,Diplodocidae
+26,Iguanodon,herbivore,Crétacé inférieur,Royaume-Uni,euornithopode,Non,10.0m,4000kg,Boulenger and van Beneden (1881),bernissartensis,Ornithischia,Iguanodontoidea
+27,Parasaurolophus,herbivore,Crétacé supérieur,États-Unis,euornithopode,Non,11.0m,5000kg,Parks (1922),walkeri,Ornithischia,Lambeosaurinae
+28,Sauropelta,herbivore,Crétacé inférieur,États-Unis,dinosaure cuirassé,Non,6.5m,5000kg,Ostrom (1970),edwardsorum,Ornithischia,Nodosauridae
+29,Kentrosaurus,herbivore,Jurassique supérieur,Tanzanie,dinosaure cuirassé,Non,5.0m,1500kg,Hennig (1915),aethiopicus,Ornithischia,Stegosaurinae
+30,Camarasaurus,herbivore,Jurassique supérieur,États-Unis,sauropode,Non,23.0m,20000kg,Cope (1877),supremus,Saurischia,Camarasauridae
+31,Edmontosaurus,herbivore,Crétacé supérieur,Canada,euornithopode,Non,13.0m,3400kg,Lambe (1917),regalis,Ornithischia,Hadrosaurinae
+32,Corythosaurus,herbivore,Crétacé supérieur,États-Unis,euornithopode,Non,10.0m,4000kg,Brown (1914),casuarius,Ornithischia,Lambeosaurinae
+33,Styracosaurus,herbivore,Crétacé supérieur,États-Unis,cératopsien,Non,5.5m,2700kg,Lambe (1913),albertensis,Ornithischia,Centrosaurinae
+34,Plateosaurus,herbivore,Trias supérieur,Suisse,sauropode,Oui,7.0m,4000kg,Meyer (1837),engelhardti,Saurischia,Plateosauridae
+35,Gallimimus,carnivore,Crétacé supérieur,Mongolie,grand théropode,Oui,6.0m,200kg,Osm√É¬≥lska Roniewicz and Barsbold (1972),bullatus,Saurischia,Ornithomimidae
+36,Maiasaura,herbivore,Crétacé supérieur,États-Unis,euornithopode,Oui,9.0m,490kg,Horner and Makela (1979),peeblesorum,Ornithischia,Hadrosaurinae
+37,Lambeosaurus,herbivore,Crétacé supérieur,Canada,euornithopode,Oui,9.0m,2500kg,Parks (1923),lambei,Ornithischia,Lambeosaurinae
+38,Pachycephalosaurus,herbivore,Crétacé supérieur,États-Unis,euornithopode,Oui,8.0m,450kg,Brown and Schlaikjer (1943),wyomingensis,Ornithischia,Pachycephalosauridae
+39,Psittacosaurus,herbivore,Crétacé inférieur,Russie,cératopsien,Oui,2.0m,50kg,Osborn (1923),mongoliensis,Ornithischia,Psittacosauridae
+40,Archaeopteryx,carnivore,Jurassique supérieur,Allemagne,petit théropode,vole,0.5m,1kg,Mayer (1861),lithographica,"Saurischia,",Archaeopterygidae
+41,Aardonyx,herbivore,Jurassique inférieur,Afrique du Sud,prosauropode,Oui,8.0m,1700kg,"Yates, Bonnan, Neveling, Chinsamy and Blackbeard 2010 (2009)",celestae,"Saurischia,",Anchisauria
+42,Ammosaurus,herbivore,Jurassique inférieur,États-Unis,sauropode,Oui,5.0m,290kg,Marsh (1891),major,Saurischia,Anchisauridae
+43,Archaeoceratops,herbivore,Crétacé inférieur,Chine,cératopsien,Oui,1.3m,57kg,Dong and Azuma (1987),oshimai,Ornithischia,Neoceratopsia
+44,Atlascopcosaurus,herbivore,Crétacé inférieur,Australie,euornithopode,Oui,3.0m,125kg,Rich and Rich (1989),loadsi,Ornithischia,Euornithopoda
+46,Camptosaurus,herbivore,Jurassique supérieur,États-Unis,euornithopode,Oui,5.0m,1000kg,Marsh (1885),dispar,Ornithischia,Ankylopollexia
+47,Dracorez,herbivore,Jurassique supérieur,États-Unis,pachycéphalosaure,Oui,4.0m,100 kg,"Bakker, Sullivan, Porter, Larson and Saulsbury (2006)",hogwartsia,"Ornithischia,",Pachycephalosauridae
+48,Gasparinisaura,herbivore,Crétacé supérieur,Argentine,petit ornithopode,Oui,0.8m,13kg,Coria and Salgado (1996),cincosaltensis,"Ornithischia,",Euornithopoda
+49,Hypsilophodon,herbivore,Crétacé inférieur,Royaume-Uni,petit ornithischien,Oui,2.0m,20kg,Huxley (1869),foxii,"Ornithischia,",Neornithischia
+50,Edmontosaurrus,herbivore,Crétacé supérieur,Canada,grand ornithopode,Oui,13.0m,3400kg,Lambe (1917),regalis,"Ornithischia,",Hadrosaurinae
