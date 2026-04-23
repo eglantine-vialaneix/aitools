@@ -1,40 +1,118 @@
 "use client";
 
 import { useState } from "react";
-import { TextArea } from "@heroui/react";
+import { Button as HeroUIButton, TextArea } from "@heroui/react";
 import { Dino, type DinoName } from "@/app/components/Dino";
-import { Button } from "@/app/components/Button";
+import { DinoBucket } from "@/app/components/DinoBucket";
 
 const imgBlackBox1 = "/background.png";
 
-const dinos: DinoName[] = [
-  "Apatosaurus",
-  "Brachiosaurus",
-  "Gallimimus",
-  "Megalosaurus",
-  "Plateosaurus",
-  "Spinosaurus",
-  "Stegosaurus",
-  "Styracosaurus",
-  "Tyrannosaurus",
-  "Utahraptor",
+type DinoState = "left" | "selected" | "herbivore" | "carnivore";
+
+type DinoItem = {
+  name: DinoName;
+  state: DinoState;
+};
+
+const dinoDiets: Record<DinoName, "herbivore" | "carnivore"> = {
+  Apatosaurus: "herbivore",
+  Brachiosaurus: "herbivore",
+  Gallimimus: "carnivore",
+  Megalosaurus: "carnivore",
+  Plateosaurus: "herbivore",
+  Spinosaurus: "carnivore",
+  Stegosaurus: "herbivore",
+  Styracosaurus: "herbivore",
+  Tyrannosaurus: "carnivore",
+  Utahraptor: "carnivore",
+};
+
+const initialDinos: DinoItem[] = [
+  { name: "Apatosaurus", state: "selected" },
+  { name: "Brachiosaurus", state: "left" },
+  { name: "Gallimimus", state: "left" },
+  { name: "Megalosaurus", state: "left" },
+  { name: "Plateosaurus", state: "left" },
+  { name: "Spinosaurus", state: "left" },
+  { name: "Stegosaurus", state: "left" },
+  { name: "Styracosaurus", state: "left" },
+  { name: "Tyrannosaurus", state: "left" },
+  { name: "Utahraptor", state: "left" },
 ];
 
+function NextControl({ isDisabled, onClick }: { isDisabled: boolean; onClick: () => void }) {
+  return (
+    <div className="content-stretch flex h-[40px] w-full items-center gap-[10px]" data-node-id="217:6804">
+      <div className="flex h-[12px] flex-[1_0_0] items-center">
+        <hr className="w-full border-0 border-t border-[var(--border,#dedee0)]" />
+      </div>
+      <HeroUIButton
+        isIconOnly
+        aria-label="Next dino"
+        className="max-h-[40px] min-h-[40px] min-w-[40px] shrink-0 rounded-[24px] bg-[var(--default/default,#ebebec)] p-[12px] text-[#18181b] transition hover:bg-[#dedee0] disabled:cursor-not-allowed disabled:opacity-45"
+        data-node-id="217:6831"
+        isDisabled={isDisabled}
+        onClick={onClick}
+        radius="full"
+        variant="flat"
+      >
+        {/* <svg aria-hidden="true" className="size-[16px]" fill="none" viewBox="0 0 16 16">
+          <path
+            d="M3.75 8h8.5M8.75 3.75 13 8l-4.25 4.25"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="1.6"
+          />
+        </svg> */}
+      </HeroUIButton>
+      <div className="flex h-[12px] flex-[1_0_0] items-center">
+        <hr className="w-full border-0 border-t border-[var(--border,#dedee0)]" />
+      </div>
+    </div>
+  );
+}
+
 export default function BlackBox() {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [dinos, setDinos] = useState<DinoItem[]>(initialDinos);
 
-  const selectedDino = dinos[currentIndex];
-  const previousDinos = dinos.slice(0, currentIndex);
-  const upcomingDinos = dinos.slice(currentIndex + 1);
-  const hasPreviousDino = currentIndex > 0;
-  const hasNextDino = currentIndex < dinos.length - 1;
+  const remainingDinos = dinos.filter((dino) => dino.state === "left").map((dino) => dino.name);
+  const selectedDino = dinos.find((dino) => dino.state === "selected")?.name ?? null;
+  const herbivoreDinos = dinos.filter((dino) => dino.state === "herbivore").map((dino) => dino.name);
+  const carnivoreDinos = dinos.filter((dino) => dino.state === "carnivore").map((dino) => dino.name);
+  const hasNextDino = selectedDino !== null;
 
-  const goToPreviousDino = () => {
-    setCurrentIndex((index) => Math.max(index - 1, 0));
+  const renderBucketCards = (bucketDinos: DinoName[]) => {
+    return bucketDinos.map((dino) => <Dino key={dino} dino={dino} labelled1 size="sm" />);
   };
 
   const goToNextDino = () => {
-    setCurrentIndex((index) => Math.min(index + 1, dinos.length - 1));
+    if (!selectedDino) {
+      return;
+    }
+
+    setDinos((currentDinos) => {
+      const currentSelectedIndex = currentDinos.findIndex((dino) => dino.state === "selected");
+
+      if (currentSelectedIndex === -1) {
+        return currentDinos;
+      }
+
+      let promotedNextDino = false;
+
+      return currentDinos.map((dino, index) => {
+        if (index === currentSelectedIndex) {
+          return { ...dino, state: dinoDiets[dino.name] };
+        }
+
+        if (!promotedNextDino && dino.state === "left") {
+          promotedNextDino = true;
+          return { ...dino, state: "selected" };
+        }
+
+        return dino;
+      });
+    });
   };
 
   return (
@@ -50,7 +128,7 @@ export default function BlackBox() {
             maskImage: "linear-gradient(90deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.3) 40%, rgba(0, 0, 0, 1) 100%)",
             WebkitMaskImage: "linear-gradient(90deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.3) 40%, rgba(0, 0, 0, 1) 100%)"
           }}>
-            {upcomingDinos.toReversed().map((dino) => (
+            {[...remainingDinos].reverse().map((dino) => (
               <Dino
                 key={dino}
                 className="content-stretch flex h-[255px] items-center mr-[-137px] relative shrink-0 w-[180px]"
@@ -58,7 +136,7 @@ export default function BlackBox() {
                 size="md"
               />
             ))}
-            <Dino className="h-[255px] mr-[-137px] relative shrink-0 w-[180px]" dino="Number" size="md" digit={upcomingDinos.length} />
+            <Dino className="h-[255px] mr-[-137px] relative shrink-0 w-[180px]" dino="Number" size="md" digit={remainingDinos.length} />
           </div>
           <div className="flex w-full min-w-[180px] flex-col items-start gap-[4px] flex-[1_0_0] self-stretch">
             <p className="font-medium text-[14px] leading-[1.43] text-[#efefef]">Your notes:</p>
@@ -66,34 +144,22 @@ export default function BlackBox() {
           </div>
         </div>
         <div className="content-stretch flex h-full items-center justify-center relative shrink-0 w-[629px]" data-name="Main card">
-          <Dino className="aspect-[636.2648315429688/904] content-stretch flex h-full items-center relative shrink-0" dino={selectedDino} labelled1 size="Main" />
+          {selectedDino ? (
+            <Dino className="aspect-[636.2648315429688/904] content-stretch flex h-full items-center relative shrink-0" dino={selectedDino} labelled1 size="Main" />
+          ) : (
+            <div className="bg-[#f5f5f5] border border-dashed border-[#dedee0] flex h-full items-center justify-center rounded-[20px] text-[24px] text-[#71717a] w-full">
+              All dinosaurs have been reviewed.
+            </div>
+          )}
         </div>
         <div className="content-stretch flex flex-col gap-[36px] h-full min-h-[600px] items-center justify-center relative shrink-0 w-[333px]" data-name="right">
-          <div className="bg-[#f5f5f5] border border-[#dedee0] border-solid relative w-full flex-1 min-h-0 overflow-hidden rounded-[24px]">
-            <div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_-7px_7px_4px_0px_rgba(0,0,0,0.25)]" />
-            <div className="relative z-10 grid h-full w-full grid-cols-3 auto-rows-min content-start gap-x-[10px] gap-y-[10px] overflow-hidden p-[20px]">
-              {previousDinos.map((dino) => (
-                <Dino key={dino} dino={dino} labelled1 size="sm" />
-              ))}
-            </div>
-          </div>
-          <Button isDisabled={!hasPreviousDino} variant="default" onClick={goToPreviousDino}>
-            Previous
-          </Button>
-          <div className="flex h-[50px] w-full items-center justify-center rounded-[25px] border-2 border-[#efefef] text-[24px] font-medium leading-[32px] text-[#efefef]">
-            {currentIndex + 1} / {dinos.length}
-          </div>
-          <Button isDisabled={!hasNextDino} variant="default" onClick={goToNextDino}>
-            Next
-          </Button>
-          <div className="bg-[#f5f5f5] border border-[#dedee0] border-solid relative w-full flex-1 min-h-0 overflow-hidden rounded-[24px]">
-            <div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_-7px_7px_4px_0px_rgba(0,0,0,0.25)]" />
-            <div className="relative z-10 grid h-full w-full grid-cols-3 auto-rows-min content-start gap-x-[10px] gap-y-[10px] overflow-hidden p-[20px]">
-              {upcomingDinos.map((dino) => (
-                <Dino key={dino} dino={dino} labelled1 size="sm" />
-              ))}
-            </div>
-          </div>
+          <DinoBucket className="flex-1 min-h-0" data-name="all herbivores">
+            {renderBucketCards(herbivoreDinos)}
+          </DinoBucket>
+          <NextControl isDisabled={!hasNextDino} onClick={goToNextDino} />
+          <DinoBucket className="flex-1 min-h-0" data-name="all carnivores">
+            {renderBucketCards(carnivoreDinos)}
+          </DinoBucket>
         </div>
       </div>
     </div>

@@ -40,7 +40,7 @@ export default function WhiteBox() {
   const dinoCount = remainingDinos.length;
 
   const renderBucketCards = (bucketDinos: DinoName[]) => {
-    return bucketDinos.map((dino) => <Dino key={dino} dino={dino} size="sm" />);
+    return bucketDinos.map((dino) => <Dino key={dino} dino={dino} labelled1 size="sm" />);
   };
 
   const assignSelectedDino = (diet: "herbivore" | "carnivore") => {
@@ -130,4 +130,3 @@ export default function WhiteBox() {
     </div>
   );
 }
-
