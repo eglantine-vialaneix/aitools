@@ -1,31 +1,31 @@
 nom,régime_alimentaire,période,habitat,type,bipède,longueur (m),poids (kg),nommé_par,espèce,sous-ordre_taxonomique,famille_taxonomique
-Utahraptor,carnivore,Crétacé inférieur,États-Unis,grand théropode,True,6.0,350,Kirkland Gaston and Burge (1993),ostrommaysorum,Saurischia,Dromaeosauridae
-Albertosaurus,carnivore,Crétacé supérieur,Canada,grand théropode,True,9.0,1500,Lamb (1914),libratus,Saurischia,Albertosaurinae
-Velociraptor,carnivore,Crétacé supérieur,Mongolie,petit théropode,True,1.8,7,Osborn (1924),mongoliensis,Saurischia,Dromaeosauridae
-Gallimimus,carnivore,Crétacé supérieur,Mongolie,grand théropode,True,6.0,200,Osmòlska Roniewicz and Barsbold (1972),bullatus,Saurischia,Ornithomimidae
-Archaeopteryx,carnivore,Jurassique supérieur,Allemagne,petit théropode,True,0.5,1,Mayer (1861),lithographica,Saurischia,Archaeopterygidae
-Baryonyx,carnivore,Crétacé inférieur,Royaume-Uni,grand théropode,True,10.0,2000,Charig and Milner (1987),walkeri,Saurischia,Baryonychinae
+Tyrannosaurus,carnivore,Crétacé supérieur,États-Unis,grand théropode,True,12.0,7000,Osborn (1905),rex,Saurischia,Tyrannosaurinae
 Spinosaurus,carnivore,Crétacé supérieur,Maroc,grand théropode,True,18.0,7400,Stromer (1915),aegyptiacus,Saurischia,Spinosaurinae
-Dromaeosaurus,carnivore,Crétacé supérieur,États-Unis,petit théropode,True,1.8,15,Matthew and Brown (1922),albertensis,Saurischia,Dromaeosauridae
-Acrocanthosaurus,carnivore,Crétacé inférieur,États-Unis,grand théropode,True,12.0,6600,Stovall and Langston (1950),atokensis,Saurischia,Carcharodontosauridae
-Carnotaurus,carnivore,Crétacé supérieur,Argentine,grand théropode,True,7.6,1600,Bonaparte (1985),sastrei,Saurischia,Abelisauridae
-Herrerasaurus,carnivore,Trias supérieur,Argentine,petit théropode,True,3.0,350,Reig (1963),ischigualastensis,Saurischia,Herrerasauridae
-Tarbosaurus,carnivore,Crétacé supérieur,Mongolie,grand théropode,True,10.0,5000,Maleev (1955),bataar,Saurischia,Tyrannosaurinae
-Allosaurus,carnivore,Jurassique supérieur,États-Unis,grand théropode,True,12.0,2000,Marsh (1877),fragilis,Saurischia,Allosauridae
-Ceratosaurus,carnivore,Jurassique supérieur,États-Unis,grand théropode,True,6.0,970,Marsh (1884),nasicornis,Saurischia,Neoceratosauria
-Carcharodontosaurus,carnivore,Crétacé supérieur,Afrique du Nord,grand théropode,True,15.0,6200,Stromer (1931),saharicus,Saurischia,Carcharodontosauridae
-Aardonyx,herbivore,Jurassique inférieur,Afrique du Sud,prosauropode,True,8.0,1700,"Yates, Bonnan, Neveling, Chinsamy and Blackbeard 2010 (2009)",celestae,Saurischia,Anchisauria
-Gasparinisaura,herbivore,Crétacé supérieur,Argentine,petit ornithopode,True,0.8,13,Coria and Salgado (1996),cincosaltensis,Ornithischia,Euornithopoda
-Edmontosaurrus,herbivore,Crétacé supérieur,Canada,grand ornithopode,True,13.0,3400,Lambe (1917),regalis,Ornithischia,Hadrosaurinae
-Psittacosaurus,herbivore,Crétacé inférieur,Russie,cératopsien,True,2.0,50,Osborn (1923),mongoliensis,Ornithischia,Psittacosauridae
+Megalosaurus,carnivore,Jurassique moyen,Royaume-Uni,grand théropode,True,9.0,700,Ritgen (1826),bucklandii,Saurischia,Megalosaurinae
+Utahraptor,carnivore,Crétacé inférieur,États-Unis,grand théropode,True,6.0,350,Kirkland Gaston and Burge (1993),ostrommaysorum,Saurischia,Dromaeosauridae
 Brachiosaurus,herbivore,Jurassique supérieur,États-Unis,sauropode,False,30.0,50000,Riggs (1903),altithorax,Saurischia,Brachiosauridae
 Stegosaurus,herbivore,Jurassique supérieur,États-Unis,dinosaure cuirassé,False,9.0,3000,Marsh (1877),armatus,Ornithischia,Stegosaurinae
-Lambeosaurus,herbivore,Crétacé supérieur,Canada,euornithopode,True,9.0,2500,Parks (1923),lambei,Ornithischia,Lambeosaurinae
-Ammosaurus,herbivore,Jurassique inférieur,États-Unis,sauropode,True,5.0,290,Marsh (1891),major,Saurischia,Anchisauridae
-Iguanodon,herbivore,Crétacé inférieur,Royaume-Uni,euornithopode,False,10.0,4000,Boulenger and van Beneden (1881),bernissartensis,Ornithischia,Iguanodontoidea
-Ankylosaurus,herbivore,Crétacé supérieur,États-Unis,dinosaure cuirassé,False,7.0,8000,Brown (1908),magniventris,Ornithischia,Ankylosauridae
-Dracorez,herbivore,Jurassique supérieur,États-Unis,pachycéphalosaure,True,4.0,100,"Bakker, Sullivan, Porter, Larson and Saulsbury (2006)",hogwartsia,Ornithischia,Pachycephalosauridae
-Hypsilophodon,herbivore,Crétacé inférieur,Royaume-Uni,petit ornithischien,True,2.0,20,Huxley (1869),foxii,Ornithischia,Neornithischia
-Kentrosaurus,herbivore,Jurassique supérieur,Tanzanie,dinosaure cuirassé,False,5.0,1500,Hennig (1915),aethiopicus,Ornithischia,Stegosaurinae
+Apatosaurus,herbivore,Jurassique supérieur,États-Unis,sauropode,False,21.0,218000,Marsh (1877),ajax,Saurischia,Diplodocidae
+Styracosaurus,herbivore,Crétacé supérieur,États-Unis,cératopsien,False,5.5,2700,Lambe (1913),albertensis,Ornithischia,Centrosaurinae
+Plateosaurus,herbivore,Trias supérieur,Suisse,sauropode,True,7.0,4000,Meyer (1837),engelhardti,Saurischia,Plateosauridae
+Gallimimus,carnivore,Crétacé supérieur,Mongolie,grand théropode,True,6.0,200,Osmòlska Roniewicz and Barsbold (1972),bullatus,Saurischia,Ornithomimidae
+Ceratosaurus,carnivore,Jurassique supérieur,États-Unis,grand théropode,True,6.0,970,Marsh (1884),nasicornis,Saurischia,Neoceratosauria
+Albertosaurus,carnivore,Crétacé supérieur,Canada,grand théropode,True,9.0,1500,Lamb (1914),libratus,Saurischia,Albertosaurinae
+Giganotosaurus,carnivore,Crétacé inférieur,Argentine,grand théropode,True,12.5,8000,Coria and Salgado (1995),carolinii,Saurischia,Carcharodontosauridae
+Carnotaurus,carnivore,Crétacé supérieur,Argentine,grand théropode,True,7.6,1600,Bonaparte (1985),sastrei,Saurischia,Abelisauridae
+Dromaeosaurus,carnivore,Crétacé supérieur,États-Unis,petit théropode,True,1.8,15,Matthew and Brown (1922),albertensis,Saurischia,Dromaeosauridae
+Velociraptor,carnivore,Crétacé supérieur,Mongolie,petit théropode,True,1.8,7,Osborn (1924),mongoliensis,Saurischia,Dromaeosauridae
+Archaeopteryx,carnivore,Jurassique supérieur,Allemagne,petit théropode,True,0.5,1,Mayer (1861),lithographica,Saurischia,Archaeopterygidae
+Baryonyx,carnivore,Crétacé inférieur,Royaume-Uni,grand théropode,True,10.0,2000,Charig and Milner (1987),walkeri,Saurischia,Baryonychinae
+Herrerasaurus,carnivore,Trias supérieur,Argentine,petit théropode,True,3.0,350,Reig (1963),ischigualastensis,Saurischia,Herrerasauridae
+Acrocanthosaurus,carnivore,Crétacé inférieur,États-Unis,grand théropode,True,12.0,6600,Stovall and Langston (1950),atokensis,Saurischia,Carcharodontosauridae
+Maiasaura,herbivore,Crétacé supérieur,États-Unis,euornithopode,True,9.0,490,Horner and Makela (1979),peeblesorum,Ornithischia,Hadrosaurinae
+Aardonyx,herbivore,Jurassique inférieur,Afrique du Sud,prosauropode,True,8.0,1700,"Yates, Bonnan, Neveling, Chinsamy and Blackbeard 2010 (2009)",celestae,Saurischia,Anchisauria
 Diplodocus,herbivore,Jurassique supérieur,États-Unis,sauropode,False,26.0,15000,Marsh (1878),longus,Saurischia,Diplodocidae
-Camarasaurus,herbivore,Jurassique supérieur,États-Unis,sauropode,False,23.0,20000,Cope (1877),supremus,Saurischia,Camarasauridae
+Gasparinisaura,herbivore,Crétacé supérieur,Argentine,petit ornithopode,True,0.8,13,Coria and Salgado (1996),cincosaltensis,Ornithischia,Euornithopoda
+Edmontosaurrus,herbivore,Crétacé supérieur,Canada,grand ornithopode,True,13.0,3400,Lambe (1917),regalis,Ornithischia,Hadrosaurinae
+Corythosaurus,herbivore,Crétacé supérieur,États-Unis,euornithopode,False,10.0,4000,Brown (1914),casuarius,Ornithischia,Lambeosaurinae
+Iguanodon,herbivore,Crétacé inférieur,Royaume-Uni,euornithopode,False,10.0,4000,Boulenger and van Beneden (1881),bernissartensis,Ornithischia,Iguanodontoidea
+Ammosaurus,herbivore,Jurassique inférieur,États-Unis,sauropode,True,5.0,290,Marsh (1891),major,Saurischia,Anchisauridae
+Archaeoceratops,herbivore,Crétacé inférieur,Chine,cératopsien,True,1.3,57,Dong and Azuma (1987),oshimai,Ornithischia,Neoceratopsia
+Parasaurolophus,herbivore,Crétacé supérieur,États-Unis,euornithopode,False,11.0,5000,Parks (1922),walkeri,Ornithischia,Lambeosaurinae
