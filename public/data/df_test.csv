@@ -1,0 +1,11 @@
+nom,régime_alimentaire,période,habitat,type,bipède,longueur (m),poids (kg),nommé_par,espèce,sous-ordre_taxonomique,famille_taxonomique
+Corythosaurus,herbivore,Crétacé supérieur,États-Unis,euornithopode,False,10.0,4000,Brown (1914),casuarius,Ornithischia,Lambeosaurinae
+Camptosaurus,herbivore,Jurassique supérieur,États-Unis,euornithopode,True,5.0,1000,Marsh (1885),dispar,Ornithischia,Ankylopollexia
+Styracosaurus,herbivore,Crétacé supérieur,États-Unis,cératopsien,False,5.5,2700,Lambe (1913),albertensis,Ornithischia,Centrosaurinae
+Maiasaura,herbivore,Crétacé supérieur,États-Unis,euornithopode,True,9.0,490,Horner and Makela (1979),peeblesorum,Ornithischia,Hadrosaurinae
+Atlascopcosaurus,herbivore,Crétacé inférieur,Australie,euornithopode,True,3.0,125,Rich and Rich (1989),loadsi,Ornithischia,Euornithopoda
+Deinonychus,carnivore,Crétacé inférieur,États-Unis,petit théropode,True,3.0,75,Ostrom (1969),antirrhopus,Saurischia,Dromaeosauridae
+Compsognathus,carnivore,Jurassique supérieur,Allemagne,petit théropode,True,0.65,3,Wagner (1859),longipes,Saurischia,Compsognathidae
+Mapusaurus,carnivore,Crétacé supérieur,Argentine,grand théropode,True,13.0,3000,Coria and Currie (2006),roseae,Saurischia,Giganotosaurinae
+Megalosaurus,carnivore,Jurassique moyen,Royaume-Uni,grand théropode,True,9.0,700,Ritgen (1826),bucklandii,Saurischia,Megalosaurinae
+Tyrannosaurus,carnivore,Crétacé supérieur,États-Unis,grand théropode,True,12.0,7000,Osborn (1905),rex,Saurischia,Tyrannosaurinae
