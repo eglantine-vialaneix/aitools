@@ -1,11 +1,34 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type Key } from "react";
+import { useRouter } from "next/navigation";
+import { Button, ListBox, Select } from "@heroui/react";
 import { readDinoLabels } from "@/app/lib/dinoLabels";
 
 type TableRow = Record<string, string>;
+type FeatureType = "Numérique" | "Booléen" | "Catégorique";
+type SortDirection = "ascending" | "descending";
+type SortConfig = {
+  column: string;
+  direction: SortDirection;
+} | null;
 
 const LABEL_COLUMN = "régime_alimentaire";
+
+const FEATURE_TYPES: FeatureType[] = ["Numérique", "Booléen", "Catégorique"];
+
+const CORRECT_FEATURE_TYPES: Record<string, FeatureType> = {
+  période: "Catégorique",
+  habitat: "Catégorique",
+  type: "Catégorique",
+  bipède: "Booléen",
+  "longueur (m)": "Numérique",
+  "poids (kg)": "Numérique",
+  nommé_par: "Catégorique",
+  espèce: "Catégorique",
+  "sous-ordre_taxonomique": "Catégorique",
+  famille_taxonomique: "Catégorique",
+};
 
 function parseCsvLine(line: string) {
   const values: string[] = [];
@@ -52,11 +75,29 @@ function parseCsv(csvText: string) {
   return { headers, rows };
 }
 
-export default function FeatureSelectionBlackBox() {
+function compareCellValues(firstValue: string, secondValue: string) {
+  const firstNumber = Number(firstValue);
+  const secondNumber = Number(secondValue);
+  const canCompareAsNumbers = firstValue.trim() !== "" && secondValue.trim() !== "" && !Number.isNaN(firstNumber) && !Number.isNaN(secondNumber);
+
+  if (canCompareAsNumbers) {
+    return firstNumber - secondNumber;
+  }
+
+  return firstValue.localeCompare(secondValue, "fr", {
+    numeric: true,
+    sensitivity: "base",
+  });
+}
+
+export default function FeatureSelectionWhiteBox() {
+  const router = useRouter();
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<TableRow[]>([]);
   const [changedCells, setChangedCells] = useState<Set<string>>(new Set());
-  const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
+  const [selectedTypes, setSelectedTypes] = useState<Record<string, FeatureType | undefined>>({});
+  const [hasCheckedAnswers, setHasCheckedAnswers] = useState(false);
+  const [sortConfig, setSortConfig] = useState<SortConfig>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -116,17 +157,58 @@ export default function FeatureSelectionBlackBox() {
     [headers],
   );
 
-  const toggleFeature = (feature: string) => {
-    setSelectedFeatures((currentFeatures) => {
-      if (currentFeatures.includes(feature)) {
-        return currentFeatures.filter((currentFeature) => currentFeature !== feature);
+  const sortedRows = useMemo(() => {
+    if (!sortConfig) {
+      return rows;
+    }
+
+    return [...rows].sort((firstRow, secondRow) => {
+      const comparison = compareCellValues(firstRow[sortConfig.column] ?? "", secondRow[sortConfig.column] ?? "");
+
+      return sortConfig.direction === "ascending" ? comparison : -comparison;
+    });
+  }, [rows, sortConfig]);
+
+  const hasSelectedAllTypes =
+    featureHeaders.length > 0 && featureHeaders.every((feature) => selectedTypes[feature]);
+
+  const incorrectFeatures = useMemo(
+    () =>
+      featureHeaders.filter(
+        (feature) => selectedTypes[feature] && selectedTypes[feature] !== CORRECT_FEATURE_TYPES[feature],
+      ),
+    [featureHeaders, selectedTypes],
+  );
+
+  const hasAllCorrectTypes = hasSelectedAllTypes && incorrectFeatures.length === 0;
+
+  const updateFeatureType = (feature: string, key: Key | null) => {
+    const featureType = typeof key === "string" ? key : null;
+
+    setSelectedTypes((currentTypes) => ({
+      ...currentTypes,
+      [feature]: FEATURE_TYPES.includes(featureType as FeatureType) ? (featureType as FeatureType) : undefined,
+    }));
+  };
+
+  const goToNextStep = () => {
+    setHasCheckedAnswers(true);
+
+    if (hasAllCorrectTypes) {
+      router.push("/modelling?condition=BB");
+    }
+  };
+
+  const updateSort = (column: string) => {
+    setSortConfig((currentSort) => {
+      if (currentSort?.column !== column) {
+        return { column, direction: "ascending" };
       }
 
-      if (currentFeatures.length >= 4) {
-        return currentFeatures;
-      }
-
-      return [...currentFeatures, feature];
+      return {
+        column,
+        direction: currentSort.direction === "ascending" ? "descending" : "ascending",
+      };
     });
   };
 
@@ -139,32 +221,87 @@ export default function FeatureSelectionBlackBox() {
       <main className="relative flex max-h-[calc(100dvh-120px)] w-full max-w-[1280px] flex-col gap-[24px] overflow-hidden rounded-[24px] border border-[#dedee0] bg-[#f5f5f5] p-[32px] shadow-[-7px_7px_4px_0px_rgba(0,0,0,0.25)]">
         <div className="flex flex-col gap-[8px]">
           <p className="text-[16px] font-medium text-[#52525b]">Étape 2</p>
-          <h1 className="text-[40px] font-bold leading-[1.1]">Sélection des caractéristiques</h1>
+          <h1 className="text-[40px] font-bold leading-[1.1]">Type des caractéristiques</h1>
           <p className="max-w-[900px] text-[18px] leading-[1.45] text-[#3f3f46]">
-            Choisis 4 caractéristiques parmi les colonnes disponibles. Le tableau ci-dessous est une copie de df_train avec tes étiquettes.
+            Indique le type de chaque caractéristique. Le tableau ci-dessous est une copie de df_train avec tes étiquettes.
           </p>
         </div>
 
-        <section className="flex flex-wrap gap-[10px]" aria-label="Caractéristiques disponibles">
-          {featureHeaders.map((feature) => (
-            <button
-              key={feature}
-              type="button"
-              aria-pressed={selectedFeatures.includes(feature)}
-              className={`rounded-full border px-[14px] py-[8px] text-[14px] font-medium transition ${
-                selectedFeatures.includes(feature)
-                  ? "border-[#18181b] bg-[#18181b] text-white"
-                  : "border-[#c9c9cf] bg-white text-[#27272a] hover:border-[#71717a]"
-              }`}
-              onClick={() => toggleFeature(feature)}
-            >
-              {feature}
-            </button>
-          ))}
-          <span className="flex items-center px-[4px] text-[14px] font-medium text-[#52525b]">
-            {selectedFeatures.length}/4
-          </span>
+        <section className="flex h-fit flex-col gap-[10px]" aria-label="Types des caractéristiques">
+          <div className="grid h-fit w-full grid-cols-5 gap-[12px]">
+            {featureHeaders.map((feature) => {
+              const selectedType = selectedTypes[feature];
+              const isIncorrect = hasCheckedAnswers && selectedType !== CORRECT_FEATURE_TYPES[feature];
+              const isCorrect = hasCheckedAnswers && selectedType === CORRECT_FEATURE_TYPES[feature];
+
+              return (
+                <div key={feature} className="flex flex-col gap-[6px]">
+                  <span className="text-[13px] font-medium text-[#3f3f46]">{feature}</span>
+                  <Select
+                    aria-label={`Type de ${feature}`}
+                    placeholder="Choisir..."
+                    selectedKey={selectedType ?? null}
+                    className="w-full"
+                    onSelectionChange={(key) => updateFeatureType(feature, key)}
+                  >
+                    <Select.Trigger
+                      className={`min-h-[44px] rounded-[8px] border bg-white text-[14px] ${
+                        isIncorrect
+                          ? "border-[#ff383c]"
+                          : isCorrect
+                            ? "border-[#17c964]"
+                            : "border-[#c9c9cf]"
+                      }`}
+                    >
+                      <Select.Value />
+                      <Select.Indicator />
+                    </Select.Trigger>
+                    <Select.Popover>
+                      <ListBox>
+                        {FEATURE_TYPES.map((featureType) => (
+                          <ListBox.Item key={featureType} id={featureType} textValue={featureType}>
+                            {featureType}
+                          </ListBox.Item>
+                        ))}
+                      </ListBox>
+                    </Select.Popover>
+                  </Select>
+                </div>
+              );
+            })}
+          </div>
+
+          {hasCheckedAnswers && !hasAllCorrectTypes && (
+            <p className="text-[14px] leading-[1.35] text-[#b42318]">
+              Corrige les types indiqués en rouge.
+            </p>
+          )}
         </section>
+
+        <div className="flex items-center justify-between gap-[16px]">
+          <p className="text-[14px] font-medium text-[#52525b]">
+            {sortConfig
+              ? `Tri: ${sortConfig.column} (${sortConfig.direction === "ascending" ? "croissant" : "décroissant"})`
+              : "Tri: dataframe initial"}
+          </p>
+          <div className="flex items-center gap-[10px]">
+            <button
+              type="button"
+              className="rounded-full border border-[#c9c9cf] bg-white px-[14px] py-[8px] text-[14px] font-medium text-[#27272a] transition hover:border-[#71717a] disabled:cursor-not-allowed disabled:opacity-45"
+              disabled={!sortConfig}
+              onClick={() => setSortConfig(null)}
+            >
+              Réinitialiser le tri
+            </button>
+            <Button
+              className="min-h-[40px] rounded-[22px] bg-[#006fee] px-[18px] text-[15px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-45"
+              isDisabled={!hasSelectedAllTypes}
+              onPress={goToNextStep}
+            >
+              Suite
+            </Button>
+          </div>
+        </div>
 
         <div className="min-h-0 overflow-auto rounded-[8px] border border-[#dedee0] bg-white">
           {errorMessage ? (
@@ -175,13 +312,24 @@ export default function FeatureSelectionBlackBox() {
                 <tr>
                   {headers.map((header) => (
                     <th key={header} className="whitespace-nowrap border-b border-[#dedee0] px-[12px] py-[10px] font-semibold">
-                      {header}
+                      <button
+                        type="button"
+                        className="flex w-full items-center gap-[6px] text-left font-semibold"
+                        onClick={() => updateSort(header)}
+                      >
+                        <span>{header}</span>
+                        {sortConfig?.column === header && (
+                          <span className="text-[11px] uppercase text-[#71717a]" aria-hidden="true">
+                            {sortConfig.direction === "ascending" ? "asc" : "desc"}
+                          </span>
+                        )}
+                      </button>
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => (
+                {sortedRows.map((row) => (
                   <tr key={row.nom} className="odd:bg-white even:bg-[#fafafa]">
                     {headers.map((header) => {
                       const wasOverwritten = changedCells.has(`${row.nom}:${header}`);
