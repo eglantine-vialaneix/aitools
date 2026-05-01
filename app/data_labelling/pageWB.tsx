@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { TextArea } from "@heroui/react";
 import { Dino, type DinoName } from "@/app/components/Dino";
 import { Button as DietButton } from "@/app/components/Button";
 import { Separator } from "@/app/components/Separator";
 import { DinoBucket } from "@/app/components/DinoBucket";
+import { clearDinoLabels, saveDinoLabels, type DinoDiet } from "@/app/lib/dinoLabels";
 
 const imgWhiteBox1 = "/background.png";
 
@@ -34,11 +35,26 @@ export default function WhiteBox() {
   const [dinos, setDinos] = useState<DinoItem[]>(initialDinos);
   const [activeBucket, setActiveBucket] = useState<"herbivore" | "carnivore" | null>(null);
 
+  useEffect(() => {
+    clearDinoLabels();
+  }, []);
+
   const remainingDinos = dinos.filter((dino) => dino.state === "left").map((dino) => dino.name);
   const selectedDino = dinos.find((dino) => dino.state === "selected")?.name ?? null;
   const herbivoreDinos = dinos.filter((dino) => dino.state === "herbivore").map((dino) => dino.name);
   const carnivoreDinos = dinos.filter((dino) => dino.state === "carnivore").map((dino) => dino.name);
   const dinoCount = remainingDinos.length;
+  const hasLabelledAllDinos = dinos.every((dino) => dino.state === "herbivore" || dino.state === "carnivore");
+
+  useEffect(() => {
+    if (!hasLabelledAllDinos) {
+      return;
+    }
+
+    saveDinoLabels(
+      Object.fromEntries(dinos.map((dino) => [dino.name, dino.state as DinoDiet])),
+    );
+  }, [dinos, hasLabelledAllDinos]);
 
   const renderBucketCards = (bucketDinos: DinoName[]) => {
     return bucketDinos.map((dino) => <Dino key={dino} dino={dino} labelled1 size="sm" />);
@@ -111,7 +127,7 @@ export default function WhiteBox() {
               <p>Tous les dinosaures ont été assignés.</p>
               <Link
                 className="inline-flex h-[48px] items-center justify-center rounded-full bg-[#006fee] px-[24px] text-[16px] font-medium text-white transition hover:bg-[#0059c9]"
-                href="/feature_selection"
+                href="/feature_selection?condition=WB"
               >
                 Suite
               </Link>
