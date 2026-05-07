@@ -1,9 +1,5 @@
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
-
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.tree import DecisionTreeClassifier
 
 RANDOM_STATE = 15
 
@@ -26,12 +22,17 @@ def _compute_all_ginis(df:pd.DataFrame, feature:str):
     x = df[feature].sort_values().unique()
     y = []
     
-    if df[feature].dtype == 'float64' or df[feature].dtype == 'int':
+    if pd.api.types.is_numeric_dtype(df[feature]) and not pd.api.types.is_bool_dtype(df[feature]):
         for l in x:
             mask = df[feature] >= l
             y.append(gini_impurity(df[mask], df[~mask]))
         return x, y
-    elif df[feature].dtype == 'bool' or df[feature].dtype == 'str':
+    elif (
+        pd.api.types.is_bool_dtype(df[feature])
+        or pd.api.types.is_string_dtype(df[feature])
+        or pd.api.types.is_object_dtype(df[feature])
+        or pd.api.types.is_categorical_dtype(df[feature])
+    ):
         for cat in x:
             mask = df[feature] == cat
             y.append(gini_impurity(df[mask], df[~mask]))
@@ -46,6 +47,7 @@ def plot_gini_all_features(df,
                                        'longueur (m)', 'poids (kg)', 'nommé_par', 'espèce',
                                        'sous-ordre_taxonomique', 'famille_taxonomique'],
                            sharey = True):
+    import matplotlib.pyplot as plt
     
     _, axes = plt.subplots(1, len(features), figsize=(30, 3), sharey=sharey, width_ratios=[1, 1, 1, 0.5, 1, 1, 1.5, 1.5, 0.5, 1.5])
 
@@ -94,6 +96,8 @@ def branch(df:pd.DataFrame, feature:str, criteria:str):
 
 
 def train_BB_tree(df_train:pd.DataFrame, features:list):
+    from sklearn.preprocessing import OneHotEncoder
+    from sklearn.tree import DecisionTreeClassifier
     
     X = df_train.drop(columns="régime_alimentaire")
     y = df_train["régime_alimentaire"]
