@@ -7,6 +7,15 @@ export const runtime = "nodejs";
 type GiniRequest = {
   features?: unknown;
   labels?: unknown;
+  filters?: unknown;
+  dataFile?: unknown;
+};
+
+type SplitFilter = {
+  feature: string;
+  operator: "eq" | "gte";
+  value: string | number | boolean;
+  branch: "yes" | "no";
 };
 
 const PYTHON_CANDIDATES = [
@@ -16,7 +25,29 @@ const PYTHON_CANDIDATES = [
   "python",
 ].filter((candidate): candidate is string => Boolean(candidate));
 
-function runPythonGini(payload: { features: string[]; labels: Record<string, string> }) {
+function isSplitFilter(value: unknown): value is SplitFilter {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+
+  return (
+    typeof candidate.feature === "string" &&
+    (candidate.operator === "eq" || candidate.operator === "gte") &&
+    (typeof candidate.value === "string" ||
+      typeof candidate.value === "number" ||
+      typeof candidate.value === "boolean") &&
+    (candidate.branch === "yes" || candidate.branch === "no")
+  );
+}
+
+function runPythonGini(payload: {
+  features: string[];
+  labels: Record<string, string>;
+  filters: SplitFilter[];
+  dataFile: "df_train.csv" | "df_train_partial.csv";
+}) {
   const scriptPath = path.join(process.cwd(), "app", "backend", "compute_gini.py");
 
   return new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
@@ -93,13 +124,15 @@ export async function POST(request: Request) {
           ),
         )
       : {};
+  const filters = Array.isArray(body.filters) ? body.filters.filter(isSplitFilter) : [];
+  const dataFile = body.dataFile === "df_train_partial.csv" ? "df_train_partial.csv" : "df_train.csv";
 
   if (features.length === 0) {
     return NextResponse.json({ results: [] });
   }
 
   try {
-    const { stdout } = await runPythonGini({ features, labels });
+    const { stdout } = await runPythonGini({ features, labels, filters, dataFile });
     return NextResponse.json(JSON.parse(stdout));
   } catch (error) {
     return NextResponse.json(

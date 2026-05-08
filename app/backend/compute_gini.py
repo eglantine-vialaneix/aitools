@@ -12,7 +12,8 @@ from tree_helpers import _compute_all_ginis
 
 
 LABEL_COLUMN = "régime_alimentaire"
-DATA_PATH = Path(__file__).resolve().parents[2] / "public" / "data" / "df_train.csv"
+DATA_ROOT = Path(__file__).resolve().parents[2] / "public" / "data"
+DATA_FILES = {"df_train.csv", "df_train_partial.csv"}
 
 
 def _json_value(value):
@@ -31,17 +32,65 @@ def _format_criterion(value, is_numeric):
     return f">= {value}" if is_numeric else f"= {value}"
 
 
+def _mask_for_split(df, feature, operator, value):
+    if operator == "gte":
+        return df[feature] >= value
+
+    if operator == "eq":
+        return df[feature] == value
+
+    raise ValueError(f"Unsupported operator: {operator}")
+
+
+def _apply_filters(df, filters):
+    filtered = df
+
+    for condition in filters:
+        feature = condition.get("feature")
+        operator = condition.get("operator")
+        value = condition.get("value")
+        branch = condition.get("branch")
+
+        if feature not in filtered.columns or branch not in {"yes", "no"}:
+            continue
+
+        mask = _mask_for_split(filtered, feature, operator, value)
+        filtered = filtered[mask] if branch == "yes" else filtered[~mask]
+
+    return filtered
+
+
+def _counts(df):
+    carnivores = int((df[LABEL_COLUMN] == "carnivore").sum())
+    herbivores = int((df[LABEL_COLUMN] == "herbivore").sum())
+    majority = "carnivore" if carnivores >= herbivores else "herbivore"
+
+    return {
+        "total": int(df.shape[0]),
+        "carnivores": carnivores,
+        "herbivores": herbivores,
+        "majority": majority,
+        "isPure": carnivores == 0 or herbivores == 0,
+    }
+
+
 def main():
     payload = json.loads(sys.stdin.read() or "{}")
     features = payload.get("features", [])
     labels = payload.get("labels", {})
+    filters = payload.get("filters", [])
+    data_file = payload.get("dataFile", "df_train.csv")
 
-    df = pd.read_csv(DATA_PATH)
+    if data_file not in DATA_FILES:
+        data_file = "df_train.csv"
+
+    df = pd.read_csv(DATA_ROOT / data_file)
 
     for name, diet in labels.items():
         if diet in {"herbivore", "carnivore"}:
             df.loc[df["nom"] == name, LABEL_COLUMN] = diet
 
+    df = _apply_filters(df, filters)
     results = []
 
     for feature in features:
@@ -60,16 +109,25 @@ def main():
 
         best_value, best_gini = min(finite_pairs, key=lambda pair: pair[1])
         is_numeric = pd.api.types.is_numeric_dtype(df[feature]) and not pd.api.types.is_bool_dtype(df[feature])
+        operator = "gte" if is_numeric else "eq"
+        split_mask = _mask_for_split(df, feature, operator, best_value)
+        yes_df = df[split_mask]
+        no_df = df[~split_mask]
+        json_value = _json_value(best_value)
 
         results.append(
             {
                 "feature": feature,
                 "gini": best_gini,
                 "criterion": _format_criterion(best_value, is_numeric),
+                "operator": operator,
+                "value": json_value,
+                "yes": _counts(yes_df),
+                "no": _counts(no_df),
             }
         )
 
-    print(json.dumps({"results": results}, ensure_ascii=False))
+    print(json.dumps({"counts": _counts(df), "results": results}, ensure_ascii=False))
 
 
 if __name__ == "__main__":

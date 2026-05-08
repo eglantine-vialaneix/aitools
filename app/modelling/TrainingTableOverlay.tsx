@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@heroui/react";
 import { readDinoLabels } from "@/app/lib/dinoLabels";
-import { writeSelectedFeatures } from "@/app/lib/featureSelectionState";
+import { type ModelDataFile } from "./modelConfig";
 
 type TableRow = Record<string, string>;
 type SortDirection = "ascending" | "descending";
@@ -75,12 +74,16 @@ function compareCellValues(firstValue: string, secondValue: string) {
   });
 }
 
-export default function FeatureSelectionBlackBox() {
-  const router = useRouter();
+export function TrainingTableOverlay({
+  dataFile,
+  onClose,
+}: {
+  dataFile: ModelDataFile;
+  onClose: () => void;
+}) {
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<TableRow[]>([]);
   const [changedCells, setChangedCells] = useState<Set<string>>(new Set());
-  const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
   const [sortConfig, setSortConfig] = useState<SortConfig>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -89,10 +92,10 @@ export default function FeatureSelectionBlackBox() {
 
     async function loadTrainingTable() {
       try {
-        const response = await fetch("/data/df_train.csv");
+        const response = await fetch(`/data/${dataFile}`);
 
         if (!response.ok) {
-          throw new Error("Impossible de charger df_train.csv.");
+          throw new Error(`Impossible de charger ${dataFile}.`);
         }
 
         const csvText = await response.text();
@@ -121,6 +124,7 @@ export default function FeatureSelectionBlackBox() {
           setHeaders(parsedTable.headers);
           setRows(labelledRows);
           setChangedCells(overwrittenCells);
+          setErrorMessage(null);
         }
       } catch (error) {
         if (isActive) {
@@ -134,12 +138,7 @@ export default function FeatureSelectionBlackBox() {
     return () => {
       isActive = false;
     };
-  }, []);
-
-  const featureHeaders = useMemo(
-    () => headers.filter((header) => header !== "nom" && header !== LABEL_COLUMN),
-    [headers],
-  );
+  }, [dataFile]);
 
   const sortedRows = useMemo(() => {
     if (!sortConfig) {
@@ -152,27 +151,6 @@ export default function FeatureSelectionBlackBox() {
       return sortConfig.direction === "ascending" ? comparison : -comparison;
     });
   }, [rows, sortConfig]);
-
-  const toggleFeature = (feature: string) => {
-    setSelectedFeatures((currentFeatures) => {
-      if (currentFeatures.includes(feature)) {
-        return currentFeatures.filter((currentFeature) => currentFeature !== feature);
-      }
-
-      if (currentFeatures.length >= 4) {
-        return currentFeatures;
-      }
-
-      return [...currentFeatures, feature];
-    });
-  };
-
-  const goToNextStep = () => {
-    if (selectedFeatures.length === 4) {
-      writeSelectedFeatures(selectedFeatures);
-      router.push("/modelling?condition=WB");
-    }
-  };
 
   const updateSort = (column: string) => {
     setSortConfig((currentSort) => {
@@ -188,46 +166,24 @@ export default function FeatureSelectionBlackBox() {
   };
 
   return (
-    <div
-      className="relative flex min-h-dvh w-full items-center justify-center overflow-hidden bg-cover bg-center bg-no-repeat px-[50px] py-[60px] text-[#18181b]"
-      style={{ backgroundImage: "url('/background.png')" }}
-    >
-      <div aria-hidden="true" className="absolute inset-0 bg-black/35" />
-      <main className="relative flex max-h-[calc(100dvh-120px)] w-full max-w-[1280px] flex-col gap-[24px] overflow-hidden rounded-[24px] border border-[#dedee0] bg-[#f5f5f5] p-[32px] shadow-[-7px_7px_4px_0px_rgba(0,0,0,0.25)]">
-        <div className="flex flex-col gap-[8px]">
-          <p className="text-[16px] font-medium text-[#52525b]">Étape 2</p>
-          <h1 className="text-[40px] font-bold leading-[1.1]">Sélection des caractéristiques</h1>
-          <p className="max-w-[900px] text-[18px] leading-[1.45] text-[#3f3f46]">
-            Choisis 4 caractéristiques parmi les colonnes disponibles.
-          </p>
-        </div>
-
-        <section className="flex flex-wrap gap-[10px]" aria-label="Caractéristiques disponibles">
-          {featureHeaders.map((feature) => (
-            <Button
-              key={feature}
-              aria-pressed={selectedFeatures.includes(feature)}
-              className={`min-h-[38px] rounded-full border px-[14px] py-[8px] text-[14px] font-medium transition ${
-                selectedFeatures.includes(feature)
-                  ? "border-[#18181b] bg-[#18181b] text-white"
-                  : "border-[#c9c9cf] bg-white text-[#27272a] hover:border-[#71717a]"
-              }`}
-              onPress={() => toggleFeature(feature)}
-            >
-              {feature}
-            </Button>
-          ))}
-          <span className="flex items-center px-[4px] text-[14px] font-medium text-[#52525b]">
-            {selectedFeatures.length}/4
-          </span>
-        </section>
-
-        <div className="flex items-center justify-between gap-[16px]">
-          <p className="text-[14px] font-medium text-[#52525b]">
-            {sortConfig
-              ? `Tri: ${sortConfig.column} (${sortConfig.direction === "ascending" ? "croissant" : "décroissant"})`
-              : "Tri: dataframe initial"}
-          </p>
+    <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/45 px-[32px] py-[32px] backdrop-blur-[2px]">
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="training-table-title"
+        className="flex max-h-full w-full max-w-[1280px] flex-col gap-[18px] overflow-hidden rounded-[24px] border border-[#dedee0] bg-[#f5f5f5] p-[32px] text-[#18181b] shadow-[0_2px_8px_rgba(0,0,0,0.06),0_14px_28px_rgba(0,0,0,0.08)]"
+      >
+        <div className="flex items-start justify-between gap-[18px]">
+          <div>
+            <h2 id="training-table-title" className="text-[28px] font-bold leading-[1.16]">
+              Données d&apos;entraînement
+            </h2>
+            <p className="mt-[6px] text-[14px] font-medium text-[#52525b]">
+              {sortConfig
+                ? `Tri: ${sortConfig.column} (${sortConfig.direction === "ascending" ? "croissant" : "décroissant"})`
+                : "Tri: dataframe initial"}
+            </p>
+          </div>
           <div className="flex items-center gap-[10px]">
             <Button
               className="rounded-full border border-[#c9c9cf] bg-white px-[14px] py-[8px] text-[14px] font-medium text-[#27272a] transition hover:border-[#71717a] disabled:cursor-not-allowed disabled:opacity-45"
@@ -237,11 +193,10 @@ export default function FeatureSelectionBlackBox() {
               Réinitialiser le tri
             </Button>
             <Button
-              className="min-h-[40px] rounded-[22px] bg-[#006fee] px-[18px] text-[15px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-45"
-              isDisabled={selectedFeatures.length !== 4}
-              onPress={goToNextStep}
+              className="min-h-[40px] rounded-full bg-[#18181b] px-[16px] text-[14px] font-medium text-white"
+              onPress={onClose}
             >
-              Suite
+              Fermer
             </Button>
           </div>
         </div>
@@ -255,9 +210,10 @@ export default function FeatureSelectionBlackBox() {
                 <tr>
                   {headers.map((header) => (
                     <th key={header} className="whitespace-nowrap border-b border-[#dedee0] px-[12px] py-[10px] font-semibold">
-                      <Button
-                        className="min-h-0 justify-start bg-transparent p-0 text-left font-semibold text-[#3f3f46]"
-                        onPress={() => updateSort(header)}
+                      <button
+                        type="button"
+                        className="flex w-full items-center gap-[6px] text-left font-semibold"
+                        onClick={() => updateSort(header)}
                       >
                         <span>{header}</span>
                         {sortConfig?.column === header && (
@@ -265,7 +221,7 @@ export default function FeatureSelectionBlackBox() {
                             {sortConfig.direction === "ascending" ? "asc" : "desc"}
                           </span>
                         )}
-                      </Button>
+                      </button>
                     </th>
                   ))}
                 </tr>
@@ -288,7 +244,7 @@ export default function FeatureSelectionBlackBox() {
             </table>
           )}
         </div>
-      </main>
+      </section>
     </div>
   );
 }

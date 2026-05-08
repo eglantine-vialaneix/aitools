@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { MODEL_CONFIGS, type ModelId, type ModellingCondition } from "./modelConfig";
+import { markModelAsTrained } from "./trainingState";
 
 type ModellingBlackBoxProps = {
   model?: ModelId;
@@ -52,9 +53,10 @@ export default function ModellingBlackBox({
 
           <Link
             href={`/modelling?condition=${condition}`}
+            onClick={() => markModelAsTrained(model)}
             className="mt-[28px] inline-flex min-h-[44px] items-center justify-center rounded-full border border-[#dedee0] bg-white px-[18px] text-[15px] font-medium text-[#18181b] transition hover:border-[#b8b8bf]"
           >
-            Retour aux modèles
+            Terminer l&apos;entraînement
           </Link>
         </section>
 
@@ -62,7 +64,7 @@ export default function ModellingBlackBox({
           <div>
             <h2 className="text-[24px] font-bold leading-[1.2]">Sorties du modèle</h2>
             <p className="mt-[8px] text-[16px] leading-[1.45] text-[#52525b]">
-              L’activité de ce modèle utilise: {modelConfig.features.join(", ")}.
+              Observe les sorties produites par le modèle sans accéder à ses caractéristiques internes.
             </p>
           </div>
 
@@ -96,7 +98,7 @@ export default function ModellingBlackBox({
           <div className="mt-auto rounded-[12px] bg-[#eaeaea] p-[18px]">
             <p className="text-[14px] font-medium text-[#52525b]">Indice de layout</p>
             <p className="mt-[4px] text-[18px] font-bold text-[#18181b]">
-              {modelConfig.data === "full" ? "Données complètes" : "Sous-ensemble de données"}
+              {modelConfig.data === "df_train.csv" ? "Données complètes" : "Sous-ensemble de données"}
             </p>
           </div>
         </section>
