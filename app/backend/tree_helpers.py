@@ -55,11 +55,11 @@ def compute_all_ginis(df: pd.DataFrame, feature: str):
 
 def plot_gini_all_features(df, 
                            features = ['période', 'habitat', 'type', 'bipède',
-                                       'longueur (m)', 'poids (kg)', 'nommé_par', 'espèce',
+                                       'longueur (m)', 'poids (kg)', 'espèce',
                                        'sous-ordre_taxonomique', 'famille_taxonomique'],
                            sharey = True):
     
-    _, axes = plt.subplots(1, len(features), figsize=(30, 3), sharey=sharey, width_ratios=[1, 1, 1, 0.5, 1, 1, 1.5, 1.5, 0.5, 1.5])
+    _, axes = plt.subplots(1, len(features), figsize=(30, 3), sharey=sharey, width_ratios=[1, 1, 1, 0.5, 1, 1, 1.5, 0.5, 1.5])
 
     all_ginis = {}
     best_ginis = {}

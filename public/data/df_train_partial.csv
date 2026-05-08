@@ -1,11 +1,11 @@
-nom,régime_alimentaire,période,habitat,type,bipède,longueur (m),poids (kg),nommé_par,espèce,sous-ordre_taxonomique,famille_taxonomique
-Apatosaurus,herbivore,Jurassique supérieur,États-Unis,sauropode,False,21.0,218000,Marsh (1877),ajax,Saurischia,Diplodocidae
-Brachiosaurus,herbivore,Jurassique supérieur,États-Unis,sauropode,False,30.0,50000,Riggs (1903),altithorax,Saurischia,Brachiosauridae
-Gallimimus,carnivore,Crétacé supérieur,Mongolie,grand théropode,True,6.0,200,Osmòlska Roniewicz and Barsbold (1972),bullatus,Saurischia,Ornithomimidae
-Megalosaurus,carnivore,Jurassique moyen,Royaume-Uni,grand théropode,True,9.0,700,Ritgen (1826),bucklandii,Saurischia,Megalosaurinae
-Plateosaurus,herbivore,Trias supérieur,Suisse,sauropode,True,7.0,4000,Meyer (1837),engelhardti,Saurischia,Plateosauridae
-Spinosaurus,carnivore,Crétacé supérieur,Maroc,grand théropode,True,18.0,7400,Stromer (1915),aegyptiacus,Saurischia,Spinosaurinae
-Stegosaurus,herbivore,Jurassique supérieur,États-Unis,dinosaure cuirassé,False,9.0,3000,Marsh (1877),armatus,Ornithischia,Stegosaurinae
-Styracosaurus,herbivore,Crétacé supérieur,États-Unis,cératopsien,False,5.5,2700,Lambe (1913),albertensis,Ornithischia,Centrosaurinae
-Tyrannosaurus,carnivore,Crétacé supérieur,États-Unis,grand théropode,True,12.0,7000,Osborn (1905),rex,Saurischia,Tyrannosaurinae
-Utahraptor,carnivore,Crétacé inférieur,États-Unis,grand théropode,True,6.0,350,Kirkland Gaston and Burge (1993),ostrommaysorum,Saurischia,Dromaeosauridae
+nom,régime_alimentaire,période,habitat,type,bipède,longueur (m),poids (kg),espèce,sous-ordre_taxonomique,famille_taxonomique
+Apatosaurus,herbivore,Jurassique supérieur,États-Unis,sauropode,False,21.0,218000,ajax,Saurischia,Diplodocidae
+Brachiosaurus,herbivore,Jurassique supérieur,États-Unis,sauropode,False,30.0,50000,altithorax,Saurischia,Brachiosauridae
+Gallimimus,carnivore,Crétacé supérieur,Mongolie,grand théropode,True,6.0,200,bullatus,Saurischia,Ornithomimidae
+Megalosaurus,carnivore,Jurassique moyen,Royaume-Uni,grand théropode,True,9.0,700,bucklandii,Saurischia,Megalosaurinae
+Plateosaurus,herbivore,Trias supérieur,Suisse,sauropode,True,7.0,4000,engelhardti,Saurischia,Plateosauridae
+Spinosaurus,carnivore,Crétacé supérieur,Maroc,grand théropode,True,18.0,7400,aegyptiacus,Saurischia,Spinosaurinae
+Stegosaurus,herbivore,Jurassique supérieur,États-Unis,dinosaure cuirassé,False,9.0,3000,armatus,Ornithischia,Stegosaurinae
+Styracosaurus,herbivore,Crétacé supérieur,États-Unis,cératopsien,False,5.5,2700,albertensis,Ornithischia,Centrosaurinae
+Tyrannosaurus,carnivore,Crétacé supérieur,États-Unis,grand théropode,True,12.0,7000,rex,Saurischia,Tyrannosaurinae
+Utahraptor,carnivore,Crétacé inférieur,États-Unis,grand théropode,True,6.0,350,ostrommaysorum,Saurischia,Dromaeosauridae

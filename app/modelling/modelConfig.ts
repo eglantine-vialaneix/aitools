@@ -43,7 +43,7 @@ export const MODEL_CONFIGS: Record<ModelId, ModelConfig> = {
     id: "C",
     title: "Modèle C",
     dev_descr: "Full features, partial data",
-    features: ["sous-ordre_taxonomique", "bipède", "poids (kg)", "nommé_par"],
+    features: ["sous-ordre_taxonomique", "bipède", "poids (kg)"],
     data: "df_train_partial.csv",
     init_carnivores: 5,
     init_herbivores: 5,

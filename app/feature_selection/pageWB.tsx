@@ -14,6 +14,20 @@ type SortConfig = {
 } | null;
 
 const LABEL_COLUMN = "régime_alimentaire";
+const NAME_COLUMN_WIDTH_CLASS = "w-[150px] min-w-[150px]";
+const LABEL_COLUMN_WIDTH_CLASS = "w-[150px] min-w-[150px]";
+
+function getStickyColumnClass(header: string) {
+  if (header === "nom") {
+    return `sticky left-0 ${NAME_COLUMN_WIDTH_CLASS}`;
+  }
+
+  if (header === LABEL_COLUMN) {
+    return `sticky left-[150px] ${LABEL_COLUMN_WIDTH_CLASS}`;
+  }
+
+  return "";
+}
 
 function parseCsvLine(line: string) {
   const values: string[] = [];
@@ -251,33 +265,51 @@ export default function FeatureSelectionBlackBox() {
             <p className="p-[20px] text-[16px] text-[#b42318]">{errorMessage}</p>
           ) : (
             <table className="min-w-full border-collapse text-left text-[14px] leading-[1.35]">
-              <thead className="sticky top-0 z-10 bg-[#f4f4f5] text-[#3f3f46]">
+              <thead className="bg-[#f4f4f5] text-[#3f3f46]">
                 <tr>
-                  {headers.map((header) => (
-                    <th key={header} className="whitespace-nowrap border-b border-[#dedee0] px-[12px] py-[10px] font-semibold">
-                      <Button
-                        className="min-h-0 justify-start bg-transparent p-0 text-left font-semibold text-[#3f3f46]"
-                        onPress={() => updateSort(header)}
+                  {headers.map((header) => {
+                    const isSelectedFeature = selectedFeatures.includes(header);
+
+                    return (
+                      <th
+                        key={header}
+                        className={`sticky top-0 whitespace-nowrap border-b border-[#dedee0] px-[12px] py-[10px] font-semibold ${
+                          isSelectedFeature ? "bg-[#d9ecff] text-[#005bc4]" : "bg-[#f4f4f5]"
+                        } ${getStickyColumnClass(header)} ${header === "nom" || header === LABEL_COLUMN ? "z-30" : ""}`}
                       >
-                        <span>{header}</span>
-                        {sortConfig?.column === header && (
-                          <span className="text-[11px] uppercase text-[#71717a]" aria-hidden="true">
-                            {sortConfig.direction === "ascending" ? "asc" : "desc"}
-                          </span>
-                        )}
-                      </Button>
-                    </th>
-                  ))}
+                        <Button
+                          className={`min-h-0 justify-start bg-transparent p-0 text-left font-semibold ${
+                            isSelectedFeature ? "text-[#005bc4]" : "text-[#3f3f46]"
+                          }`}
+                          onPress={() => updateSort(header)}
+                        >
+                          <span>{header}</span>
+                          {sortConfig?.column === header && (
+                            <span className="text-[11px] uppercase text-[#71717a]" aria-hidden="true">
+                              {sortConfig.direction === "ascending" ? "asc" : "desc"}
+                            </span>
+                          )}
+                        </Button>
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
-                {sortedRows.map((row) => (
+                {sortedRows.map((row, rowIndex) => (
                   <tr key={row.nom} className="odd:bg-white even:bg-[#fafafa]">
                     {headers.map((header) => {
                       const wasOverwritten = changedCells.has(`${row.nom}:${header}`);
+                      const isSelectedFeature = selectedFeatures.includes(header);
+                      const rowBackgroundClass = rowIndex % 2 === 0 ? "bg-white" : "bg-[#fafafa]";
 
                       return (
-                        <td key={header} className="whitespace-nowrap border-b border-[#ededf0] px-[12px] py-[9px] text-[#27272a]">
+                        <td
+                          key={header}
+                          className={`whitespace-nowrap border-b border-[#ededf0] px-[12px] py-[9px] text-[#27272a] ${
+                            isSelectedFeature ? "bg-[#edf6ff]" : rowBackgroundClass
+                          } ${getStickyColumnClass(header)} ${header === "nom" || header === LABEL_COLUMN ? "z-20" : ""}`}
+                        >
                           {wasOverwritten ? <em>{row[header]}</em> : row[header]}
                         </td>
                       );
