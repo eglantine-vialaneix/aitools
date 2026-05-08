@@ -8,7 +8,7 @@ import pandas as pd
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
 
-from tree_helpers import _compute_all_ginis
+from tree_helpers import compute_all_ginis
 
 
 LABEL_COLUMN = "régime_alimentaire"
@@ -97,7 +97,7 @@ def main():
         if feature not in df.columns:
             continue
 
-        values, ginis = _compute_all_ginis(df, feature)
+        values, ginis = compute_all_ginis(df, feature)
         finite_pairs = [
             (value, float(gini))
             for value, gini in zip(values, ginis)

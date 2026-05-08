@@ -21,7 +21,7 @@ def gini_impurity(df_yes:pd.DataFrame, df_no:pd.DataFrame):
 
 
 
-def _compute_all_ginis(df: pd.DataFrame, feature: str):
+def compute_all_ginis(df: pd.DataFrame, feature: str):
     x = df[feature].sort_values().unique()
     y = []
 
@@ -65,7 +65,7 @@ def plot_gini_all_features(df,
     best_ginis = {}
     worst_ginis = {}
     for i, feature in enumerate(features):
-        x, y = _compute_all_ginis(df, feature)
+        x, y = compute_all_ginis(df, feature)
         axes[i].scatter(x, y)
         axes[i].set_title(feature)
         axes[i].set_ylabel("")
