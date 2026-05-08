@@ -1,5 +1,8 @@
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.tree import DecisionTreeClassifier
 
 RANDOM_STATE = 15
 
@@ -18,28 +21,36 @@ def gini_impurity(df_yes:pd.DataFrame, df_no:pd.DataFrame):
 
 
 
-def _compute_all_ginis(df:pd.DataFrame, feature:str):
+def _compute_all_ginis(df: pd.DataFrame, feature: str):
     x = df[feature].sort_values().unique()
     y = []
-    
-    if pd.api.types.is_numeric_dtype(df[feature]) and not pd.api.types.is_bool_dtype(df[feature]):
+
+    dtype = df[feature].dtype
+
+    if (
+        pd.api.types.is_numeric_dtype(dtype)
+        and not pd.api.types.is_bool_dtype(dtype)
+    ):
         for l in x:
             mask = df[feature] >= l
             y.append(gini_impurity(df[mask], df[~mask]))
         return x, y
+
     elif (
-        pd.api.types.is_bool_dtype(df[feature])
-        or pd.api.types.is_string_dtype(df[feature])
-        or pd.api.types.is_object_dtype(df[feature])
-        or pd.api.types.is_categorical_dtype(df[feature])
+        pd.api.types.is_bool_dtype(dtype)
+        or pd.api.types.is_string_dtype(dtype)
+        or pd.api.types.is_object_dtype(dtype)
+        or isinstance(dtype, pd.CategoricalDtype)
     ):
         for cat in x:
             mask = df[feature] == cat
             y.append(gini_impurity(df[mask], df[~mask]))
         return x, y
-    else:
-        raise TypeError(f"The type {df[feature].dtype} of the feature {feature} is not supported.")
 
+    else:
+        raise TypeError(
+            f"The type {dtype} of the feature {feature} is not supported."
+        )
 
 
 def plot_gini_all_features(df, 
@@ -47,7 +58,6 @@ def plot_gini_all_features(df,
                                        'longueur (m)', 'poids (kg)', 'nommé_par', 'espèce',
                                        'sous-ordre_taxonomique', 'famille_taxonomique'],
                            sharey = True):
-    import matplotlib.pyplot as plt
     
     _, axes = plt.subplots(1, len(features), figsize=(30, 3), sharey=sharey, width_ratios=[1, 1, 1, 0.5, 1, 1, 1.5, 1.5, 0.5, 1.5])
 
@@ -96,8 +106,6 @@ def branch(df:pd.DataFrame, feature:str, criteria:str):
 
 
 def train_BB_tree(df_train:pd.DataFrame, features:list):
-    from sklearn.preprocessing import OneHotEncoder
-    from sklearn.tree import DecisionTreeClassifier
     
     X = df_train.drop(columns="régime_alimentaire")
     y = df_train["régime_alimentaire"]
