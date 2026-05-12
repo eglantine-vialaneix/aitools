@@ -301,7 +301,7 @@ export default function ModellingPage() {
             <Button
               className="min-h-[40px] rounded-[22px] bg-[#006fee] px-[18px] text-[15px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-45"
               isDisabled={!areAllModelsTrained}
-              onPress={() => router.push("/evaluation")}
+              onPress={() => router.push(`/evaluation?condition=${condition}`)}
             >
               Suite
             </Button>
