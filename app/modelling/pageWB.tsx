@@ -392,7 +392,7 @@ function TreeCanvas({
   }
 
   return (
-    <section className="relative z-10 flex w-full min-w-[900px] flex-col items-center">
+    <section className="relative z-10 flex w-max min-w-full flex-col items-center">
       {rootNode && <TreeBranch node={rootNode} />}
     </section>
   );
@@ -693,11 +693,11 @@ export default function ModellingWhiteBox({
 
   return (
     <div
-      className="relative flex min-h-dvh w-full justify-center overflow-auto bg-cover bg-center bg-no-repeat px-[24px] py-[50px] text-[#18181b]"
+      className="relative min-h-dvh w-full overflow-auto bg-cover bg-center bg-no-repeat px-[24px] py-[50px] text-[#18181b]"
       style={{ backgroundImage: "url('/background.png')" }}
     >
       <div aria-hidden="true" className="fixed inset-0 bg-black/35" />
-      <main className="relative flex min-h-[calc(100dvh-100px)] w-full min-w-[980px] flex-col items-center">
+      <main className="relative mx-auto flex min-h-[calc(100dvh-100px)] w-max min-w-full flex-col items-center">
         <TrainingDataCard
           features={modelInput.features}
           carnivores={modelInput.init_carnivores}
