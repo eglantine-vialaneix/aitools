@@ -8,6 +8,7 @@ type PredictionRequest = {
   features?: unknown;
   labels?: unknown;
   dataFile?: unknown;
+  targetFile?: unknown;
 };
 
 const PYTHON_CANDIDATES = [
@@ -21,6 +22,7 @@ function runPythonPrediction(payload: {
   features: string[];
   labels: Record<string, string>;
   dataFile: "df_train.csv" | "df_train_partial.csv";
+  targetFile: "df_train.csv" | "df_train_partial.csv" | "df_test.csv";
 }) {
   const scriptPath = path.join(process.cwd(), "app", "backend", "predict_test.py");
 
@@ -99,9 +101,13 @@ export async function POST(request: Request) {
         )
       : {};
   const dataFile = body.dataFile === "df_train_partial.csv" ? "df_train_partial.csv" : "df_train.csv";
+  const targetFile =
+    body.targetFile === "df_train.csv" || body.targetFile === "df_train_partial.csv"
+      ? body.targetFile
+      : "df_test.csv";
 
   try {
-    const { stdout } = await runPythonPrediction({ features, labels, dataFile });
+    const { stdout } = await runPythonPrediction({ features, labels, dataFile, targetFile });
     return NextResponse.json(JSON.parse(stdout));
   } catch (error) {
     return NextResponse.json(

@@ -687,7 +687,7 @@ export default function ModellingWhiteBox({
       return;
     }
 
-    markModelAsTrained(model, countTreePredictions(nodes));
+    markModelAsTrained(model, countTreePredictions(nodes), condition);
     router.push(`/modelling?condition=${condition}`);
   };
 

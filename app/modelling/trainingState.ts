@@ -1,21 +1,34 @@
 "use client";
 
-import { type ModelId, isModelId } from "./modelConfig";
+import { type ModelId, type ModellingCondition, isCondition, isModelId } from "./modelConfig";
 
 export type ModelTrainingResult = {
   pred_carnivores: number;
   pred_herbivores: number;
 };
 
-const TRAINED_MODELS_STORAGE_KEY = "modelling:trained-models:v4";
+const TRAINED_MODELS_STORAGE_KEY = "modelling:trained-models:v5";
+const LEGACY_SESSION_TRAINED_MODELS_STORAGE_KEY = "modelling:trained-models:v4";
 const LEGACY_TRAINED_MODELS_STORAGE_KEY = "modelling:trained-models:v3";
 
-function readStoredTrainingResults() {
+type StoredTrainingResults = Partial<Record<ModellingCondition, Partial<Record<ModelId, ModelTrainingResult>>>>;
+
+function isModelTrainingResult(value: unknown): value is ModelTrainingResult {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.pred_carnivores === "number" && typeof candidate.pred_herbivores === "number";
+}
+
+function readStoredTrainingResults(): StoredTrainingResults {
   if (typeof window === "undefined") {
     return {};
   }
 
   window.localStorage.removeItem(LEGACY_TRAINED_MODELS_STORAGE_KEY);
+  window.sessionStorage.removeItem(LEGACY_SESSION_TRAINED_MODELS_STORAGE_KEY);
 
   try {
     const storedResults = JSON.parse(window.sessionStorage.getItem(TRAINED_MODELS_STORAGE_KEY) ?? "{}");
@@ -25,38 +38,46 @@ function readStoredTrainingResults() {
     }
 
     return Object.fromEntries(
-      Object.entries(storedResults).filter(([modelId, result]) => {
-        if (!isModelId(modelId) || !result || typeof result !== "object" || Array.isArray(result)) {
+      Object.entries(storedResults).filter(([condition, modelResults]) => {
+        if (!isCondition(condition) || !modelResults || typeof modelResults !== "object" || Array.isArray(modelResults)) {
           return false;
         }
-
-        const candidate = result as Record<string, unknown>;
-        return typeof candidate.pred_carnivores === "number" && typeof candidate.pred_herbivores === "number";
-      }),
-    ) as Partial<Record<ModelId, ModelTrainingResult>>;
+        return Object.entries(modelResults).some(([modelId, result]) => isModelId(modelId) && isModelTrainingResult(result));
+      }).map(([condition, modelResults]) => [
+        condition,
+        Object.fromEntries(
+          Object.entries(modelResults as Record<string, unknown>).filter(([modelId, result]) => isModelId(modelId) && isModelTrainingResult(result)),
+        ),
+      ]),
+    ) as StoredTrainingResults;
   } catch {
     return {};
   }
 }
 
-export function readTrainedModels() {
+export function readTrainedModels(condition: ModellingCondition) {
   if (typeof window === "undefined") {
     return new Set<ModelId>();
   }
 
-  return new Set<ModelId>(Object.keys(readStoredTrainingResults()).filter(isModelId));
+  return new Set<ModelId>(Object.keys(readStoredTrainingResults()[condition] ?? {}).filter(isModelId));
 }
 
-export function readModelTrainingResults() {
-  return readStoredTrainingResults();
+export function readModelTrainingResults(condition: ModellingCondition) {
+  return readStoredTrainingResults()[condition] ?? {};
 }
 
-export function markModelAsTrained(modelId: ModelId, result: ModelTrainingResult) {
+export function markModelAsTrained(modelId: ModelId, result: ModelTrainingResult, condition: ModellingCondition) {
+  const storedResults = readStoredTrainingResults();
+
   window.sessionStorage.setItem(
     TRAINED_MODELS_STORAGE_KEY,
     JSON.stringify({
-      ...readStoredTrainingResults(),
-      [modelId]: result,
+      ...storedResults,
+      [condition]: {
+        ...(storedResults[condition] ?? {}),
+        [modelId]: result,
+      },
     }),
   );
 }

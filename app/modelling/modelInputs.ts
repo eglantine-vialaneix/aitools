@@ -19,6 +19,12 @@ export type GiniFeatureScore = {
   gini: number;
 };
 
+const BLACK_BOX_FEATURES: Record<ModelId, string[]> = {
+  A: ["longueur (m)", "poids (kg)", "espèce", "sous-ordre_taxonomique"],
+  B: ["sous-ordre_taxonomique", "espèce"],
+  C: ["longueur (m)", "poids (kg)", "espèce", "sous-ordre_taxonomique"],
+};
+
 function fallbackFeatures(modelId: ModelId) {
   return MODEL_CONFIGS[modelId].features;
 }
@@ -46,7 +52,7 @@ export function resolveModelInput({
     const config = MODEL_CONFIGS[modelId];
 
     return {
-      features: config.features,
+      features: BLACK_BOX_FEATURES[modelId],
       data: config.data,
       init_carnivores: config.init_carnivores,
       init_herbivores: config.init_herbivores,

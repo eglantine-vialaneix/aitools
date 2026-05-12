@@ -2,7 +2,7 @@
 
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Button, Surface as HeroSurface } from "@heroui/react";
+import { Button, Surface as HeroSurface, TextArea } from "@heroui/react";
 import { GoGear } from "react-icons/go";
 import { readDinoLabels } from "@/app/lib/dinoLabels";
 import { readSelectedFeatures } from "@/app/lib/featureSelectionState";
@@ -170,11 +170,12 @@ export default function ModellingPage() {
   const modelParam = searchParams.get("model");
   const condition: ModellingCondition = isCondition(conditionParam) ? conditionParam : DEFAULT_CONDITION;
   const selectedModel: ModelId | null = isModelId(modelParam) ? modelParam : null;
-  const trainedModels = readTrainedModels();
-  const trainingResults = readModelTrainingResults();
+  const trainedModels = readTrainedModels(condition);
+  const trainingResults = readModelTrainingResults(condition);
   const selectedFeatures = useMemo(() => readSelectedFeatures(), []);
   const [modelBFeatures, setModelBFeatures] = useState<string[] | null>(null);
   const [tableOverlay, setTableOverlay] = useState<TableOverlayState>(null);
+  const [blackBoxReflection, setBlackBoxReflection] = useState("");
 
   useEffect(() => {
     let isActive = true;
@@ -253,6 +254,7 @@ export default function ModellingPage() {
     router.push(`/modelling?condition=${condition}&model=${modelId}${condition === "WB" && isFirstTraining ? "&intro=1" : ""}`);
   };
   const areAllModelsTrained = MODEL_IDS.every((modelId) => trainedModels.has(modelId));
+  const canGoToEvaluation = areAllModelsTrained && (condition !== "BB" || blackBoxReflection.trim().length > 0);
 
   return (
     <div
@@ -297,10 +299,24 @@ export default function ModellingPage() {
             ))}
           </section>
 
+          {condition === "BB" && areAllModelsTrained && (
+            <label className="flex min-h-[140px] w-full flex-col gap-[6px]">
+              <span className="text-[16px] font-medium leading-[1.43] text-[#18181b]">
+                Comment penses-tu que chaque modèle fait la distinction entre carnivore et herbivore ?
+              </span>
+              <TextArea
+                className="h-full w-full flex-1 [&>div]:h-full [&>div]:w-full [&_textarea]:min-h-[96px] [&_textarea]:resize-none [&_textarea]:text-[14px]"
+                onChange={(event) => setBlackBoxReflection(event.target.value)}
+                placeholder="Ta réponse ici..."
+                value={blackBoxReflection}
+              />
+            </label>
+          )}
+
           <div className="flex justify-end">
             <Button
               className="min-h-[40px] rounded-[22px] bg-[#006fee] px-[18px] text-[15px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-45"
-              isDisabled={!areAllModelsTrained}
+              isDisabled={!canGoToEvaluation}
               onPress={() => router.push(`/evaluation?condition=${condition}`)}
             >
               Suite
