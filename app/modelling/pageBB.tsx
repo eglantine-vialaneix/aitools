@@ -53,7 +53,12 @@ export default function ModellingBlackBox({
 
           <Link
             href={`/modelling?condition=${condition}`}
-            onClick={() => markModelAsTrained(model)}
+            onClick={() =>
+              markModelAsTrained(model, {
+                pred_carnivores: modelConfig.pred_carnivores,
+                pred_herbivores: modelConfig.pred_herbivores,
+              })
+            }
             className="mt-[28px] inline-flex min-h-[44px] items-center justify-center rounded-full border border-[#dedee0] bg-white px-[18px] text-[15px] font-medium text-[#18181b] transition hover:border-[#b8b8bf]"
           >
             Terminer l&apos;entraînement

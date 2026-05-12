@@ -74,6 +74,18 @@ def _counts(df):
     }
 
 
+def _node_impurity_score(df):
+    counts = _counts(df)
+    carnivores = counts["carnivores"]
+    herbivores = counts["herbivores"]
+    total = counts["total"]
+
+    if total == 0:
+        return 0.0
+
+    return (carnivores * herbivores) / total
+
+
 def main():
     payload = json.loads(sys.stdin.read() or "{}")
     features = payload.get("features", [])
@@ -103,12 +115,25 @@ def main():
             for value, gini in zip(values, ginis)
             if math.isfinite(float(gini))
         ]
+        is_numeric = pd.api.types.is_numeric_dtype(df[feature]) and not pd.api.types.is_bool_dtype(df[feature])
 
         if not finite_pairs:
+            fallback_value = _json_value(values[0]) if len(values) else ""
+            results.append(
+                {
+                    "feature": feature,
+                    "gini": _node_impurity_score(df),
+                    "criterion": _format_criterion(fallback_value, is_numeric),
+                    "operator": "gte" if is_numeric else "eq",
+                    "value": fallback_value,
+                    "yes": _counts(df),
+                    "no": _counts(df.iloc[0:0]),
+                    "isSplittable": False,
+                }
+            )
             continue
 
         best_value, best_gini = min(finite_pairs, key=lambda pair: pair[1])
-        is_numeric = pd.api.types.is_numeric_dtype(df[feature]) and not pd.api.types.is_bool_dtype(df[feature])
         operator = "gte" if is_numeric else "eq"
         split_mask = _mask_for_split(df, feature, operator, best_value)
         yes_df = df[split_mask]
@@ -124,6 +149,7 @@ def main():
                 "value": json_value,
                 "yes": _counts(yes_df),
                 "no": _counts(no_df),
+                "isSplittable": True,
             }
         )
 

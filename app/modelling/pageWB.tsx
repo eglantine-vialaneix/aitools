@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@heroui/react";
+import { GoGear } from "react-icons/go";
+import { Separator } from "@/app/components";
 import { readDinoLabels } from "@/app/lib/dinoLabels";
 import { readSelectedFeatures } from "@/app/lib/featureSelectionState";
 import { type ModelId, type ModellingCondition } from "./modelConfig";
@@ -13,7 +15,7 @@ import {
   type ModelInput,
 } from "./modelInputs";
 import { TrainingTableOverlay } from "./TrainingTableOverlay";
-import { markModelAsTrained } from "./trainingState";
+import { markModelAsTrained, type ModelTrainingResult } from "./trainingState";
 
 type ModellingWhiteBoxProps = {
   model?: ModelId;
@@ -44,12 +46,13 @@ type GiniResult = {
   value: string | number | boolean;
   yes: NodeCounts;
   no: NodeCounts;
+  isSplittable?: boolean;
 };
 
 type TreeNodeData = {
   id: string;
   depth: number;
-  branchLabel?: "NO" | "YES";
+  branchLabel?: "NON" | "OUI";
   pathLabels: string[];
   filters: SplitFilter[];
   availableFeatures: string[];
@@ -76,14 +79,39 @@ type TreeNodeProps = {
   onDefineLeaf: (nodeId: string) => void;
 };
 
+const SURFACE_SHADOW =
+  "shadow-[0_2px_8px_rgba(0,0,0,0.06),0_-6px_12px_rgba(0,0,0,0.03),0_14px_28px_rgba(0,0,0,0.08)]";
+
 function formatGini(value: number | undefined) {
   return value === undefined ? "…" : value.toFixed(2);
 }
 
-function formatBranchCondition(split: GiniResult, branch: "yes" | "no") {
-  const condition = `${split.feature} ${split.criterion}`;
+function formatCondition(split: GiniResult) {
+  if (split.operator === "eq") {
+    return `${split.feature} = ${split.value}`;
+  }
 
-  return branch === "yes" ? condition : `pas (${condition})`;
+  if (split.operator === "gte") {
+    return `${split.feature} ≥ ${split.value}`;
+  }
+
+  return `${split.feature} ${split.criterion.replaceAll(">=", "≥").replaceAll("<=", "≤")}`;
+}
+
+function formatBranchCondition(split: GiniResult, branch: "oui" | "non") {
+  if (branch === "oui") {
+    return formatCondition(split);
+  }
+
+  if (split.operator === "eq") {
+    return `${split.feature} ≠ ${split.value}`;
+  }
+
+  if (split.operator === "gte") {
+    return `${split.feature} < ${split.value}`;
+  }
+
+  return formatCondition(split);
 }
 
 function TrainingDataCard({
@@ -142,15 +170,25 @@ function TrainingDataCard({
 
 function LeafNode({ node }: { node: TreeNodeData }) {
   const prediction = node.counts?.majority ?? "herbivore";
+  const carnivores = node.counts?.carnivores ?? 0;
+  const herbivores = node.counts?.herbivores ?? 0;
 
   return (
-    <article className="relative flex min-h-[190px] w-[196px] flex-col gap-[14px] rounded-[24px] bg-white p-[24px] shadow-[0_2px_8px_rgba(0,0,0,0.06),0_-6px_12px_rgba(0,0,0,0.03),0_14px_28px_rgba(0,0,0,0.08)] backdrop-blur-[20px]">
-      <p className="text-[16px] font-medium leading-[1.5] text-[#18181b]">Leaf Node</p>
+    <article className={`relative flex min-h-[220px] w-[196px] flex-col gap-[14px] rounded-[24px] bg-white p-[24px] ${SURFACE_SHADOW} backdrop-blur-[20px]`}>
+      <p className="text-[16px] font-medium leading-[1.5] text-[#18181b]">{prediction === "carnivore" ? "Carnivore" : "Herbivore"}</p>
       <ul className="list-disc pl-[20px] text-[14px] leading-[1.43] text-[#71717a]">
         {node.pathLabels.slice(-2).map((label) => (
           <li key={label}>{label}</li>
         ))}
       </ul>
+      <div className="flex flex-col gap-[8px]">
+        <span className="flex min-h-[32px] items-center justify-center rounded-full bg-[#ff383c] px-[10px] text-[14px] font-medium text-white">
+          Carnivores: {carnivores}
+        </span>
+        <span className="flex min-h-[32px] items-center justify-center rounded-full bg-[#17c964] px-[10px] text-[14px] font-medium text-white">
+          Herbivores: {herbivores}
+        </span>
+      </div>
       <span
         className={`mt-auto flex min-h-[36px] items-center justify-center rounded-full px-[14px] text-[14px] font-medium text-white ${
           prediction === "carnivore" ? "bg-[#ff383c]" : "bg-[#17c964]"
@@ -172,6 +210,7 @@ function TreeNode({
   onDefineLeaf,
 }: TreeNodeProps) {
   const isChooserOpen = Boolean(giniState);
+  const isSplitConfirmed = Boolean(node.leftId && node.rightId);
   const selectedFeature = node.selectedSplit?.feature ?? null;
   const splitByFeature = useMemo(
     () => new Map((giniState?.results ?? []).map((result) => [result.feature, result])),
@@ -183,27 +222,27 @@ function TreeNode({
   }
 
   return (
-    <article className="relative flex w-[393px] flex-col gap-[14px] rounded-[24px] bg-white p-[24px] shadow-[0_2px_8px_rgba(0,0,0,0.06),0_-6px_12px_rgba(0,0,0,0.03),0_14px_28px_rgba(0,0,0,0.08)] backdrop-blur-[20px]">
+    <article className={`relative flex w-[393px] flex-col gap-[20px] rounded-[24px] bg-white p-[24px] ${SURFACE_SHADOW} backdrop-blur-[20px]`}>
       <div className="flex flex-col gap-[8px]">
         <p className="text-[16px] font-medium leading-[1.5] text-[#18181b]">
-          {node.selectedSplit
-            ? `Feature ${nodeIndex}: ${node.selectedSplit.feature}`
-            : `Feature ${nodeIndex}:`}
+          {isSplitConfirmed && node.selectedSplit
+            ? `${formatCondition(node.selectedSplit)} ?`
+            : `Caractéristique ${nodeIndex}:`}
         </p>
         <p className="text-[14px] leading-[1.43] text-[#71717a]">
-          {node.selectedSplit
-            ? `Is the Dinosaur ${node.selectedSplit.criterion} ?`
-            : "Choosing the feature to split the data…"}
+          {isSplitConfirmed && node.selectedSplit
+            ? `Le dinosaure respecte-t-il : ${formatCondition(node.selectedSplit)} ?`
+            : "Choisis la caractéristique selon laquelle séparer les données :"}
         </p>
       </div>
 
-      {node.selectedSplit ? (
+      {isSplitConfirmed ? (
         <div className="grid grid-cols-2 gap-[8px]">
           <span className="flex min-h-[36px] items-center justify-center rounded-full bg-[#ebebec] px-[14px] text-[14px] font-medium text-[#18181b]">
-            NO
+            NON
           </span>
           <span className="flex min-h-[36px] items-center justify-center rounded-full bg-[#ebebec] px-[14px] text-[14px] font-medium text-[#18181b]">
-            YES
+            OUI
           </span>
         </div>
       ) : (
@@ -211,18 +250,22 @@ function TreeNode({
           {!isChooserOpen && (
             <>
               <Button
-                className="min-h-[36px] rounded-full bg-[#0485f7] px-[14px] text-[14px] font-medium text-white disabled:opacity-60"
+                className="flex min-h-[36px] w-full items-center justify-center gap-[8px] rounded-full bg-[#0485f7] px-[14px] text-[14px] font-medium text-white disabled:opacity-60"
                 isDisabled={node.availableFeatures.length === 0}
                 onPress={() => onOpen(node.id)}
               >
-                Compute Gini Impurity
+                <GoGear aria-hidden="true" className="size-[16px] shrink-0" />
+                <span>Calculer l&apos;impureté de Gini</span>
+                <GoGear aria-hidden="true" className="size-[16px] shrink-0" />
               </Button>
-              <Button
-                className="min-h-[36px] rounded-full bg-[#ebebec] px-[14px] text-[14px] font-medium text-[#0485f7]"
-                onPress={() => onDefineLeaf(node.id)}
-              >
-                Define as Leaf Node
-              </Button>
+              {node.depth > 0 && (
+                <Button
+                  className="min-h-[36px] w-full rounded-full bg-[#ebebec] px-[14px] text-[14px] font-medium text-[#0485f7]"
+                  onPress={() => onDefineLeaf(node.id)}
+                >
+                  Définir comme Feuille
+                </Button>
+              )}
             </>
           )}
 
@@ -232,6 +275,7 @@ function TreeNode({
                 {node.availableFeatures.map((feature) => {
                   const split = splitByFeature.get(feature);
                   const isSelected = selectedFeature === feature;
+                  const canSplit = Boolean(split?.isSplittable ?? split);
 
                   return (
                     <button
@@ -240,14 +284,17 @@ function TreeNode({
                       className={`flex min-h-[36px] w-full items-center gap-[12px] rounded-[20px] px-[12px] py-[6px] text-left transition ${
                         isSelected ? "bg-[#ebebec]" : "hover:bg-[#f5f5f5]"
                       }`}
-                      disabled={!split}
-                      onClick={() => split && onSelectFeature(node.id, split)}
+                      disabled={!canSplit}
+                      onClick={() => canSplit && split && onSelectFeature(node.id, split)}
                     >
-                      <span className="size-[16px] shrink-0 rounded-[4px] border border-[#71717a]" />
+                      <span
+                        className={`size-[16px] shrink-0 rounded-[4px] border ${
+                          isSelected ? "border-[#0485f7] bg-[#0485f7]" : "border-[#71717a]"
+                        }`}
+                      />
                       <span className="min-w-0 flex-1 text-[14px] font-medium leading-[1.43] text-[#18181b]">
-                        {feature}: Gini Impurity {formatGini(split?.gini)}
+                        {feature}: impureté de Gini = {formatGini(split?.gini)}
                       </span>
-                      <span className="size-[14px] shrink-0 rounded-full border border-[#71717a]" />
                     </button>
                   );
                 })}
@@ -261,11 +308,11 @@ function TreeNode({
               )}
 
               <Button
-                className="min-h-[36px] rounded-full bg-[#ebebec] px-[14px] text-[14px] font-medium text-[#18181b] disabled:cursor-not-allowed disabled:opacity-50"
+                className="min-h-[36px] w-full rounded-full bg-[#ebebec] px-[14px] text-[14px] font-medium text-[#18181b] disabled:cursor-not-allowed disabled:opacity-50"
                 isDisabled={!node.selectedSplit}
                 onPress={() => onConfirm(node.id)}
               >
-                Confirm choice
+                Confirmer mon choix
               </Button>
             </>
           )}
@@ -292,40 +339,61 @@ function TreeCanvas({
   onConfirm: (nodeId: string) => void;
   onDefineLeaf: (nodeId: string) => void;
 }) {
-  const levels = useMemo(() => {
-    const grouped = new Map<number, TreeNodeData[]>();
-
-    nodes.forEach((node) => {
-      grouped.set(node.depth, [...(grouped.get(node.depth) ?? []), node]);
-    });
-
-    return [...grouped.entries()].sort(([firstDepth], [secondDepth]) => firstDepth - secondDepth);
+  const nodesById = useMemo(() => {
+    return new Map(nodes.map((node) => [node.id, node]));
   }, [nodes]);
+  const rootNode = nodesById.get("root") ?? nodes[0];
 
-  return (
-    <section className="relative z-10 flex w-full min-w-[900px] flex-col items-center gap-[70px] pt-[50px]">
-      {levels.map(([depth, levelNodes]) => (
-        <div key={depth} className="relative flex w-full justify-center gap-[120px]">
-          {levelNodes.map((node, index) => (
-            <div key={node.id} className="relative flex flex-col items-center">
-              {node.branchLabel && (
-                <span className="mb-[10px] rounded-full bg-white/85 px-[12px] py-[4px] text-[12px] font-medium text-[#18181b] shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
-                  {node.branchLabel}
-                </span>
-              )}
-              <TreeNode
-                node={node}
-                nodeIndex={index + 1}
-                giniState={openNodeId === node.id ? giniByNode[node.id] : undefined}
-                onOpen={onOpen}
-                onSelectFeature={onSelectFeature}
-                onConfirm={onConfirm}
-                onDefineLeaf={onDefineLeaf}
+  function TreeBranch({ node }: { node: TreeNodeData }) {
+    const leftNode = node.leftId ? nodesById.get(node.leftId) : undefined;
+    const rightNode = node.rightId ? nodesById.get(node.rightId) : undefined;
+    const hasChildren = Boolean(leftNode && rightNode);
+
+    return (
+      <div className="relative flex flex-col items-center">
+        <TreeNode
+          node={node}
+          nodeIndex={node.depth + 1}
+          giniState={openNodeId === node.id ? giniByNode[node.id] : undefined}
+          onOpen={onOpen}
+          onSelectFeature={onSelectFeature}
+          onConfirm={onConfirm}
+          onDefineLeaf={onDefineLeaf}
+        />
+
+        {hasChildren && leftNode && rightNode && (
+          <>
+            <div className="relative h-[70px] w-full min-w-[620px]" aria-hidden="true">
+              <Separator
+                orientation="vertical"
+                className="absolute left-[calc(50%-1.5px)] top-0 h-[32px] w-[3px]"
+              />
+              <Separator
+                label=""
+                className="absolute left-[25%] top-[30px] w-1/2"
+              />
+              <Separator
+                orientation="vertical"
+                className="absolute left-[calc(25%-1.5px)] top-[30px] h-[40px] w-[3px]"
+              />
+              <Separator
+                orientation="vertical"
+                className="absolute left-[calc(75%-1.5px)] top-[30px] h-[40px] w-[3px]"
               />
             </div>
-          ))}
-        </div>
-      ))}
+            <div className="flex items-start justify-center gap-[120px]">
+              <TreeBranch node={leftNode} />
+              <TreeBranch node={rightNode} />
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <section className="relative z-10 flex w-full min-w-[900px] flex-col items-center">
+      {rootNode && <TreeBranch node={rootNode} />}
     </section>
   );
 }
@@ -344,6 +412,29 @@ function shouldCreateLeaf(counts: NodeCounts, availableFeatures: string[]) {
   return counts.isPure || availableFeatures.length === 0 || counts.total <= 1;
 }
 
+function countTreePredictions(nodes: TreeNodeData[]): ModelTrainingResult {
+  return nodes.reduce<ModelTrainingResult>(
+    (totals, node) => {
+      if (node.leftId || node.rightId || !node.isLeaf || !node.counts) {
+        return totals;
+      }
+
+      if (node.counts.majority === "carnivore") {
+        return {
+          ...totals,
+          pred_carnivores: totals.pred_carnivores + node.counts.total,
+        };
+      }
+
+      return {
+        ...totals,
+        pred_herbivores: totals.pred_herbivores + node.counts.total,
+      };
+    },
+    { pred_carnivores: 0, pred_herbivores: 0 },
+  );
+}
+
 function childNode({
   id,
   parent,
@@ -355,24 +446,24 @@ function childNode({
   id: string;
   parent: TreeNodeData;
   split: GiniResult;
-  branch: "yes" | "no";
+  branch: "oui" | "non";
   counts: NodeCounts;
   availableFeatures: string[];
 }): TreeNodeData {
-  const branchLabel = branch === "yes" ? "YES" : "NO";
+  const branchLabel = branch === "oui" ? "OUI" : "NON";
 
   return {
     id,
     depth: parent.depth + 1,
     branchLabel,
-    pathLabels: [...parent.pathLabels, `${branchLabel}: ${formatBranchCondition(split, branch)}`],
+    pathLabels: [...parent.pathLabels, `${formatBranchCondition(split, branch)}`],
     filters: [
       ...parent.filters,
       {
         feature: split.feature,
         operator: split.operator,
         value: split.value,
-        branch,
+        branch: branch === "oui" ? "yes" : "no",
       },
     ],
     availableFeatures,
@@ -544,7 +635,7 @@ export default function ModellingWhiteBox({
       id: `${node.id}-no`,
       parent: node,
       split,
-      branch: "no",
+      branch: "non",
       counts: split.no,
       availableFeatures: nextFeatures,
     });
@@ -552,20 +643,26 @@ export default function ModellingWhiteBox({
       id: `${node.id}-yes`,
       parent: node,
       split,
-      branch: "yes",
+      branch: "oui",
       counts: split.yes,
       availableFeatures: nextFeatures,
     });
 
-    setNodes((currentNodes) => [
-      ...currentNodes.map((currentNode) =>
-        currentNode.id === nodeId
-          ? { ...currentNode, leftId: noNode.id, rightId: yesNode.id }
-          : currentNode,
-      ),
-      noNode,
-      yesNode,
-    ]);
+    setNodes((currentNodes) => {
+      const withoutPreviousChildren = currentNodes.filter(
+        (currentNode) => currentNode.id !== noNode.id && currentNode.id !== yesNode.id,
+      );
+
+      return [
+        ...withoutPreviousChildren.map((currentNode) =>
+          currentNode.id === nodeId
+            ? { ...currentNode, leftId: noNode.id, rightId: yesNode.id }
+            : currentNode,
+        ),
+        noNode,
+        yesNode,
+      ];
+    });
     setOpenNodeId(null);
   };
 
@@ -590,7 +687,7 @@ export default function ModellingWhiteBox({
       return;
     }
 
-    markModelAsTrained(model);
+    markModelAsTrained(model, countTreePredictions(nodes));
     router.push(`/modelling?condition=${condition}`);
   };
 
@@ -607,7 +704,7 @@ export default function ModellingWhiteBox({
           herbivores={modelInput.init_herbivores}
           onInspectTable={() => setIsTableOpen(true)}
         />
-        <div aria-hidden="true" className="h-[42px] w-[5px] bg-[#dedee0]" />
+        <Separator orientation="vertical" className="h-[12px] w-[5px]" />
         <TreeCanvas
           nodes={nodes}
           openNodeId={openNodeId}

@@ -22,7 +22,7 @@ import {
   type ModelInput,
 } from "./modelInputs";
 import { TrainingTableOverlay } from "./TrainingTableOverlay";
-import { readTrainedModels } from "./trainingState";
+import { readModelTrainingResults, readTrainedModels, type ModelTrainingResult } from "./trainingState";
 
 const DEFAULT_CONDITION: ModellingCondition = "WB";
 
@@ -136,19 +136,17 @@ function BlackBoxedModel({ modelId, isTrained, onTrain }: ModelCardProps) {
   );
 }
 
-function ModelSummary({ modelId }: { modelId: ModelId }) {
-  const model = MODEL_CONFIGS[modelId];
-
+function ModelSummary({ result }: { result: ModelTrainingResult }) {
   return (
     <div className="flex w-[220px] flex-col items-center">
       <div aria-hidden="true" className="h-[75px] w-[3px] bg-[#dedee0]" />
       <Surface variant="tertiary" className="flex h-[111px] w-[220px] items-center justify-center px-[22px] py-[16px]">
         <div className="flex w-[177px] flex-col items-center justify-center gap-[8px]">
           <span className="flex h-[36px] min-h-[36px] w-full items-center justify-center rounded-[24px] bg-[#ff383c] px-[14px] py-[8px] text-[14px] font-medium leading-[20px] text-white">
-            Carnivores: {model.pred_carnivores}
+            Carnivores: {result.pred_carnivores}
           </span>
           <span className="flex h-[36px] min-h-[36px] w-full items-center justify-center rounded-[24px] bg-[#17c964] px-[14px] py-[8px] text-[14px] font-medium leading-[20px] text-white">
-            Herbivores: {model.pred_herbivores}
+            Herbivores: {result.pred_herbivores}
           </span>
         </div>
       </Surface>
@@ -173,6 +171,7 @@ export default function ModellingPage() {
   const condition: ModellingCondition = isCondition(conditionParam) ? conditionParam : DEFAULT_CONDITION;
   const selectedModel: ModelId | null = isModelId(modelParam) ? modelParam : null;
   const trainedModels = readTrainedModels();
+  const trainingResults = readModelTrainingResults();
   const selectedFeatures = useMemo(() => readSelectedFeatures(), []);
   const [modelBFeatures, setModelBFeatures] = useState<string[] | null>(null);
   const [tableOverlay, setTableOverlay] = useState<TableOverlayState>(null);
@@ -253,6 +252,7 @@ export default function ModellingPage() {
     const isFirstTraining = trainedModels.size === 0;
     router.push(`/modelling?condition=${condition}&model=${modelId}${condition === "WB" && isFirstTraining ? "&intro=1" : ""}`);
   };
+  const areAllModelsTrained = MODEL_IDS.every((modelId) => trainedModels.has(modelId));
 
   return (
     <div
@@ -290,12 +290,22 @@ export default function ModellingPage() {
                   isTrained={trainedModels.has(modelId)}
                   onTrain={trainModel}
                 />
-                {trainedModels.has(modelId) && (
-                  <ModelSummary modelId={modelId} />
+                {trainedModels.has(modelId) && trainingResults[modelId] && (
+                  <ModelSummary result={trainingResults[modelId]} />
                 )}
               </div>
             ))}
           </section>
+
+          <div className="flex justify-end">
+            <Button
+              className="min-h-[40px] rounded-[22px] bg-[#006fee] px-[18px] text-[15px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-45"
+              isDisabled={!areAllModelsTrained}
+              onPress={() => router.push("/evaluation")}
+            >
+              Suite
+            </Button>
+          </div>
         </main>
       </Surface>
       {tableOverlay && (
