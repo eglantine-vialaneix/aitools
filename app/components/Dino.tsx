@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 export type DinoName =
   | "Apatosaurus"
   | "Brachiosaurus"
@@ -108,12 +110,13 @@ export function Dino({ className, dino = "Apatosaurus", labelled1 = false, size 
     shouldShowLabel && resolvedSize === "sm"
       ? sizeStyles[resolvedSize].image.replaceAll("rounded-[15px]", "rounded-[20px]")
       : sizeStyles[resolvedSize].image;
+  const imageSizes = resolvedSize === "Main" ? "636px" : resolvedSize === "md" ? "180px" : "90px";
 
   return (
     <div className={className || `relative ${defaultClassNames}`}>
       {dino !== "Number" && (
         <div className={frameClassName}>
-          <img alt={dino} className={imageClassName} src={dinoImages[dino]} />
+          <Image fill alt={dino} className={imageClassName} sizes={imageSizes} src={dinoImages[dino]} />
         </div>
       )}
       {shouldShowLabel && <DinoLabel diet={dinoDiets[dino]} size={resolvedSize} />}

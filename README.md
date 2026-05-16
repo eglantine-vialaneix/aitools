@@ -2,16 +2,24 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+Install the JavaScript dependencies:
+
+```bash
+npm install
+```
+
+Set up the Python backend virtual environment:
+
+```bash
+npm run setup:backend
+```
+
+This creates `app/backend/.venv` and installs the backend packages from `app/backend/requirements.txt`.
+
+Then run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.

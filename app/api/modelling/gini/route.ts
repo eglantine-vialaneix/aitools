@@ -50,7 +50,7 @@ function runPythonGini(payload: {
   filters: SplitFilter[];
   dataFile: "df_train.csv" | "df_train_partial.csv";
 }) {
-  const scriptPath = path.join(process.cwd(), "app", "backend", "compute_gini.py");
+  const scriptPath = path.join(BACKEND_DIR, "compute_gini.py");
 
   return new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
     let candidateIndex = 0;

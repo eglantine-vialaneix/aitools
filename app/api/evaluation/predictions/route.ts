@@ -26,7 +26,7 @@ function runPythonPrediction(payload: {
   dataFile: "df_train.csv" | "df_train_partial.csv";
   targetFile: "df_train.csv" | "df_train_partial.csv" | "df_test.csv";
 }) {
-  const scriptPath = path.join(process.cwd(), "app", "backend", "predict_test.py");
+  const scriptPath = path.join(BACKEND_DIR, "predict_test.py");
 
   return new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
     let candidateIndex = 0;
