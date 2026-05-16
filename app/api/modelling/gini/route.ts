@@ -18,9 +18,11 @@ type SplitFilter = {
   branch: "yes" | "no";
 };
 
+const BACKEND_DIR = path.join(process.cwd(), "app", "backend");
+
 const PYTHON_CANDIDATES = [
   process.env.PYTHON_PATH,
-  path.join(process.cwd(), ".venv", "bin", "python"),
+  path.join(BACKEND_DIR, ".venv", "bin", "python"),
   "python3",
   "python",
 ].filter((candidate): candidate is string => Boolean(candidate));
