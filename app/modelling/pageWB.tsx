@@ -7,7 +7,7 @@ import { Button } from "@heroui/react";
 import { GoGear } from "react-icons/go";
 import { Separator } from "@/app/components";
 import { readDinoLabels } from "@/app/lib/dinoLabels";
-import { readSelectedFeatures } from "@/app/lib/featureSelectionState";
+import { useSelectedFeatures } from "@/app/lib/featureSelectionState";
 import { type ModelId, type ModellingCondition } from "./modelConfig";
 import {
   bestAndWorstGiniFeatures,
@@ -501,7 +501,7 @@ export default function ModellingWhiteBox({
   showIntro = false,
 }: ModellingWhiteBoxProps) {
   const router = useRouter();
-  const selectedFeatures = useMemo(() => readSelectedFeatures(), []);
+  const selectedFeatures = useSelectedFeatures();
   const [modelBFeatures, setModelBFeatures] = useState<string[] | null>(null);
   const modelInput = useMemo(
     () =>

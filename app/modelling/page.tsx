@@ -9,7 +9,7 @@ import {
   conditionForStep,
   useExperimentCondition,
 } from "@/app/lib/experimentCondition";
-import { readSelectedFeatures } from "@/app/lib/featureSelectionState";
+import { useSelectedFeatures } from "@/app/lib/featureSelectionState";
 import BlackBox from "./pageBB";
 import WhiteBox from "./pageWB";
 import {
@@ -175,7 +175,7 @@ function ModellingPageContent() {
 
   const trainedModels = readTrainedModels(condition);
   const trainingResults = readModelTrainingResults(condition);
-  const selectedFeatures = useMemo(() => readSelectedFeatures(), []);
+  const selectedFeatures = useSelectedFeatures();
   const [modelBFeatures, setModelBFeatures] = useState<string[] | null>(null);
   const [tableOverlay, setTableOverlay] = useState<TableOverlayState>(null);
   const [blackBoxReflection, setBlackBoxReflection] = useState("");
