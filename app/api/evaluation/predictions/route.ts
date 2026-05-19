@@ -13,12 +13,17 @@ type PredictionRequest = {
 
 const BACKEND_DIR = path.join(process.cwd(), "app", "backend");
 
-const PYTHON_CANDIDATES = [
-  process.env.PYTHON_PATH,
-  path.join(BACKEND_DIR, ".venv", "bin", "python"),
-  "python3",
-  "python",
-].filter((candidate): candidate is string => Boolean(candidate));
+function getPythonCandidates() {
+  const venvPythonParts =
+    process.platform === "win32" ? [".venv", "Scripts", "python.exe"] : [".venv", "bin", "python"];
+
+  return [
+    process.env.PYTHON_PATH,
+    path.join(BACKEND_DIR, ...venvPythonParts),
+    "python3",
+    "python",
+  ].filter((candidate): candidate is string => Boolean(candidate));
+}
 
 function runPythonPrediction(payload: {
   features: string[];
@@ -27,12 +32,13 @@ function runPythonPrediction(payload: {
   targetFile: "df_train.csv" | "df_train_partial.csv" | "df_test.csv";
 }) {
   const scriptPath = path.join(BACKEND_DIR, "predict_test.py");
+  const pythonCandidates = getPythonCandidates();
 
   return new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
     let candidateIndex = 0;
 
     const tryCandidate = () => {
-      const command = PYTHON_CANDIDATES[candidateIndex];
+      const command = pythonCandidates[candidateIndex];
 
       if (!command) {
         reject(new Error("No Python interpreter could run the test prediction."));
@@ -71,7 +77,7 @@ function runPythonPrediction(payload: {
 
         candidateIndex += 1;
 
-        if (candidateIndex < PYTHON_CANDIDATES.length) {
+        if (candidateIndex < pythonCandidates.length) {
           tryCandidate();
           return;
         }

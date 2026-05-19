@@ -68,14 +68,14 @@ const dinoDiets: Record<DinoName, "herbivore" | "carnivore"> = {
 
 const labelStyles = {
   Main: {
-    wrapper: "absolute flex items-center justify-center left-[330.74px] size-[306.186px] top-0",
-    ring: "relative flex size-[250px] rotate-[15deg] items-center justify-center rounded-full border-[37.5px]",
-    text: "text-[128px]",
+    wrapper: "absolute right-[-1%] top-[1%] flex aspect-square w-[48%] items-center justify-center",
+    ring: "relative flex aspect-square w-[82%] rotate-[15deg] items-center justify-center rounded-full border-[clamp(10px,5.8cqw,37.5px)]",
+    text: "text-[clamp(40px,20cqw,128px)]",
   },
   sm: {
-    wrapper: "-translate-x-1/2 -translate-y-1/2 absolute flex items-center justify-center left-[calc(50%+0.15px)] size-[73.485px] top-[calc(50%-0.26px)]",
-    ring: "relative flex size-[60px] rotate-[15deg] items-center justify-center rounded-full border-[9px]",
-    text: "text-[30.72px]",
+    wrapper: "-translate-x-1/2 -translate-y-1/2 absolute left-1/2 top-1/2 flex aspect-square w-[82%] items-center justify-center",
+    ring: "relative flex aspect-square w-[82%] rotate-[15deg] items-center justify-center rounded-full border-[clamp(4px,10cqw,9px)]",
+    text: "text-[clamp(18px,34cqw,30.72px)]",
   },
 } as const;
 
@@ -113,7 +113,7 @@ export function Dino({ className, dino = "Apatosaurus", labelled1 = false, size 
   const imageSizes = resolvedSize === "Main" ? "636px" : resolvedSize === "md" ? "180px" : "90px";
 
   return (
-    <div className={className || `relative ${defaultClassNames}`}>
+    <div className={className || `relative ${defaultClassNames}`} style={{ containerType: "inline-size" }}>
       {dino !== "Number" && (
         <div className={frameClassName}>
           <Image fill alt={dino} className={imageClassName} sizes={imageSizes} src={dinoImages[dino]} />

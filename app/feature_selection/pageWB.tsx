@@ -184,7 +184,7 @@ export default function FeatureSelectionBlackBox() {
   const goToNextStep = () => {
     if (selectedFeatures.length === 4) {
       writeSelectedFeatures(selectedFeatures);
-      router.push("/modelling?condition=WB");
+      router.push("/modelling");
     }
   };
 

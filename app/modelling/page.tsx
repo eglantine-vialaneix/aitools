@@ -1,10 +1,14 @@
 "use client";
 
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { Suspense, type ReactNode, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Surface as HeroSurface, TextArea } from "@heroui/react";
 import { GoGear } from "react-icons/go";
 import { readDinoLabels } from "@/app/lib/dinoLabels";
+import {
+  conditionForStep,
+  useExperimentCondition,
+} from "@/app/lib/experimentCondition";
 import { readSelectedFeatures } from "@/app/lib/featureSelectionState";
 import BlackBox from "./pageBB";
 import WhiteBox from "./pageWB";
@@ -13,7 +17,6 @@ import {
   MODEL_IDS,
   type ModelId,
   type ModellingCondition,
-  isCondition,
   isModelId,
 } from "./modelConfig";
 import {
@@ -23,8 +26,6 @@ import {
 } from "./modelInputs";
 import { TrainingTableOverlay } from "./TrainingTableOverlay";
 import { readModelTrainingResults, readTrainedModels, type ModelTrainingResult } from "./trainingState";
-
-const DEFAULT_CONDITION: ModellingCondition = "WB";
 
 type ModelCardProps = {
   modelId: ModelId;
@@ -163,13 +164,15 @@ function VerticalSeparator({ className = "" }: { className?: string }) {
   );
 }
 
-export default function ModellingPage() {
+function ModellingPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const conditionParam = searchParams.get("condition");
   const modelParam = searchParams.get("model");
-  const condition: ModellingCondition = isCondition(conditionParam) ? conditionParam : DEFAULT_CONDITION;
+  const experimentCondition = useExperimentCondition();
+  const resolvedCondition = conditionForStep(experimentCondition, "modelling");
+  const condition: ModellingCondition = resolvedCondition ?? "WB";
   const selectedModel: ModelId | null = isModelId(modelParam) ? modelParam : null;
+
   const trainedModels = readTrainedModels(condition);
   const trainingResults = readModelTrainingResults(condition);
   const selectedFeatures = useMemo(() => readSelectedFeatures(), []);
@@ -251,10 +254,20 @@ export default function ModellingPage() {
 
   const trainModel = (modelId: ModelId) => {
     const isFirstTraining = trainedModels.size === 0;
-    router.push(`/modelling?condition=${condition}&model=${modelId}${condition === "WB" && isFirstTraining ? "&intro=1" : ""}`);
+    router.push(`/modelling?model=${modelId}${condition === "WB" && isFirstTraining ? "&intro=1" : ""}`);
   };
   const areAllModelsTrained = MODEL_IDS.every((modelId) => trainedModels.has(modelId));
   const canGoToEvaluation = areAllModelsTrained && (condition !== "BB" || blackBoxReflection.trim().length > 0);
+
+  if (!resolvedCondition) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-zinc-50 text-zinc-900">
+        <p className="rounded-3xl bg-white p-8 text-lg shadow-lg">
+          Choisis d&apos;abord une condition sur la page d&apos;accueil.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -317,7 +330,7 @@ export default function ModellingPage() {
             <Button
               className="min-h-[40px] rounded-[22px] bg-[#006fee] px-[18px] text-[15px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-45"
               isDisabled={!canGoToEvaluation}
-              onPress={() => router.push(`/evaluation?condition=${condition}`)}
+              onPress={() => router.push("/evaluation")}
             >
               Suite
             </Button>
@@ -331,5 +344,13 @@ export default function ModellingPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function ModellingPage() {
+  return (
+    <Suspense fallback={null}>
+      <ModellingPageContent />
+    </Suspense>
   );
 }

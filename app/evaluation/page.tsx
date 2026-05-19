@@ -1,17 +1,19 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { Button, Input, TextArea } from "@heroui/react";
 import { GoGear } from "react-icons/go";
 import { Separator } from "@/app/components";
 import { readDinoLabels } from "@/app/lib/dinoLabels";
+import {
+  conditionForStep,
+  useExperimentCondition,
+} from "@/app/lib/experimentCondition";
 import { readSelectedFeatures } from "@/app/lib/featureSelectionState";
 import {
   MODEL_IDS,
   type ModelId,
   type ModellingCondition,
-  isCondition,
 } from "@/app/modelling/modelConfig";
 import {
   bestAndWorstGiniFeatures,
@@ -39,7 +41,6 @@ type ExpectedModelAnswers = {
 };
 
 const BACKGROUND_IMAGE = "/background.png";
-const DEFAULT_CONDITION: ModellingCondition = "WB";
 const LABEL_COLUMN = "régime_alimentaire";
 const PREDICTION_COLUMN = "régime_alimentaire_prédit";
 const TEST_FEATURE_COLUMNS = [
@@ -531,9 +532,9 @@ function TestTableOverlay({
 }
 
 export default function EvaluationPage() {
-  const searchParams = useSearchParams();
-  const conditionParam = searchParams.get("condition");
-  const condition: ModellingCondition = isCondition(conditionParam) ? conditionParam : DEFAULT_CONDITION;
+  const experimentCondition = useExperimentCondition();
+  const resolvedCondition = conditionForStep(experimentCondition, "evaluation");
+  const condition: ModellingCondition = resolvedCondition ?? "WB";
   const selectedFeatures = useMemo(() => readSelectedFeatures(), []);
   const [modelBFeatures, setModelBFeatures] = useState<string[] | null>(null);
   const [tableOverlay, setTableOverlay] = useState<TableOverlayState>(null);
@@ -542,6 +543,7 @@ export default function EvaluationPage() {
   const [invalidFields, setInvalidFields] = useState<Set<string>>(new Set());
   const [verificationMessage, setVerificationMessage] = useState<string | null>(null);
   const [isCheckingAnswers, setIsCheckingAnswers] = useState(false);
+
   const modelInputs = useMemo(
     () =>
       Object.fromEntries(
@@ -671,6 +673,16 @@ export default function EvaluationPage() {
       setIsCheckingAnswers(false);
     }
   };
+
+  if (!resolvedCondition) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-zinc-50 text-zinc-900">
+        <p className="rounded-3xl bg-white p-8 text-lg shadow-lg">
+          Choisis d&apos;abord une condition sur la page d&apos;accueil.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="relative flex min-h-dvh w-full items-center justify-center overflow-auto bg-cover bg-center bg-no-repeat p-[40px] text-[#18181b]" style={{ backgroundImage: `url('${BACKGROUND_IMAGE}')` }}>

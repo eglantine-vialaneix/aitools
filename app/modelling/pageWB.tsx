@@ -688,7 +688,7 @@ export default function ModellingWhiteBox({
     }
 
     markModelAsTrained(model, countTreePredictions(nodes), condition);
-    router.push(`/modelling?condition=${condition}`);
+    router.push("/modelling");
   };
 
   return (
@@ -717,7 +717,7 @@ export default function ModellingWhiteBox({
 
         <div className="fixed bottom-[20px] right-[20px] flex items-center gap-[10px]">
           <Link
-            href={`/modelling?condition=${condition}`}
+            href="/modelling"
             className="inline-flex min-h-[40px] items-center justify-center rounded-full border border-white/50 bg-white/85 px-[16px] text-[14px] font-medium text-[#18181b] shadow-[0_2px_8px_rgba(0,0,0,0.06)] backdrop-blur-[20px] transition hover:bg-white"
           >
             Retour aux modèles

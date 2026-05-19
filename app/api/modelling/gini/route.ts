@@ -20,12 +20,17 @@ type SplitFilter = {
 
 const BACKEND_DIR = path.join(process.cwd(), "app", "backend");
 
-const PYTHON_CANDIDATES = [
-  process.env.PYTHON_PATH,
-  path.join(BACKEND_DIR, ".venv", "bin", "python"),
-  "python3",
-  "python",
-].filter((candidate): candidate is string => Boolean(candidate));
+function getPythonCandidates() {
+  const venvPythonParts =
+    process.platform === "win32" ? [".venv", "Scripts", "python.exe"] : [".venv", "bin", "python"];
+
+  return [
+    process.env.PYTHON_PATH,
+    path.join(BACKEND_DIR, ...venvPythonParts),
+    "python3",
+    "python",
+  ].filter((candidate): candidate is string => Boolean(candidate));
+}
 
 function isSplitFilter(value: unknown): value is SplitFilter {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -51,12 +56,13 @@ function runPythonGini(payload: {
   dataFile: "df_train.csv" | "df_train_partial.csv";
 }) {
   const scriptPath = path.join(BACKEND_DIR, "compute_gini.py");
+  const pythonCandidates = getPythonCandidates();
 
   return new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
     let candidateIndex = 0;
 
     const tryCandidate = () => {
-      const command = PYTHON_CANDIDATES[candidateIndex];
+      const command = pythonCandidates[candidateIndex];
 
       if (!command) {
         reject(new Error("No Python interpreter could run the Gini computation."));
@@ -95,7 +101,7 @@ function runPythonGini(payload: {
 
         candidateIndex += 1;
 
-        if (candidateIndex < PYTHON_CANDIDATES.length) {
+        if (candidateIndex < pythonCandidates.length) {
           tryCandidate();
           return;
         }

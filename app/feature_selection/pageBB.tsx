@@ -208,7 +208,7 @@ export default function FeatureSelectionWhiteBox() {
     setHasCheckedAnswers(true);
 
     if (hasAllCorrectTypes) {
-      router.push("/modelling?condition=BB");
+      router.push("/modelling");
     }
   };
 
