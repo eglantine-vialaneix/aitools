@@ -7,7 +7,9 @@
     "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "dev:clean": "rm -rf .next/cache && next dev",
+    "dev:fresh": "rm -rf .next && next dev"
   },
   "dependencies": {
     "@heroui/react": "^3.0.0-beta.8",
