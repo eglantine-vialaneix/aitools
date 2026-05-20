@@ -10,7 +10,7 @@ import {
   useExperimentCondition,
 } from "@/app/lib/experimentCondition";
 import { useSelectedFeatures } from "@/app/lib/featureSelectionState";
-import BlackBox from "./pageBB";
+import BlackBox, { PredictionTrainingTableOverlay } from "./pageBB";
 import WhiteBox from "./pageWB";
 import {
   MODEL_CONFIGS,
@@ -34,7 +34,11 @@ type ModelCardProps = {
 };
 
 type TableOverlayState = {
+  kind: "training";
   dataFile: ModelInput["data"];
+} | {
+  kind: "predictions";
+  modelInput: ModelInput;
 } | null;
 
 type SurfaceProps = {
@@ -137,11 +141,17 @@ function BlackBoxedModel({ modelId, isTrained, onTrain }: ModelCardProps) {
   );
 }
 
-function ModelSummary({ result }: { result: ModelTrainingResult }) {
+function ModelSummary({
+  result,
+  onInspectTable,
+}: {
+  result: ModelTrainingResult;
+  onInspectTable?: () => void;
+}) {
   return (
     <div className="flex w-[220px] flex-col items-center">
       <div aria-hidden="true" className="h-[75px] w-[3px] bg-[#dedee0]" />
-      <Surface variant="tertiary" className="flex h-[111px] w-[220px] items-center justify-center px-[22px] py-[16px]">
+      <Surface variant="tertiary" className="flex min-h-[111px] w-[220px] items-center justify-center px-[22px] py-[16px]">
         <div className="flex w-[177px] flex-col items-center justify-center gap-[8px]">
           <span className="flex h-[36px] min-h-[36px] w-full items-center justify-center rounded-[24px] bg-[#ff383c] px-[14px] py-[8px] text-[14px] font-medium leading-[20px] text-white">
             Carnivores: {result.pred_carnivores}
@@ -149,6 +159,14 @@ function ModelSummary({ result }: { result: ModelTrainingResult }) {
           <span className="flex h-[36px] min-h-[36px] w-full items-center justify-center rounded-[24px] bg-[#17c964] px-[14px] py-[8px] text-[14px] font-medium leading-[20px] text-white">
             Herbivores: {result.pred_herbivores}
           </span>
+          {onInspectTable && (
+            <Button
+              className="min-h-[32px] rounded-full border border-[#dedee0] bg-white px-[10px] text-[14px] font-medium leading-[20px] text-[#18181b]"
+              onPress={onInspectTable}
+            >
+              Inspecter le tableau
+            </Button>
+          )}
         </div>
       </Surface>
     </div>
@@ -178,7 +196,12 @@ function ModellingPageContent() {
   const selectedFeatures = useSelectedFeatures();
   const [modelBFeatures, setModelBFeatures] = useState<string[] | null>(null);
   const [tableOverlay, setTableOverlay] = useState<TableOverlayState>(null);
-  const [blackBoxReflection, setBlackBoxReflection] = useState("");
+  const [blackBoxReflections, setBlackBoxReflections] = useState<Record<ModelId, string>>({
+    A: "",
+    B: "",
+    C: "",
+  });
+  const [blackBoxTechnique, setBlackBoxTechnique] = useState("");
 
   useEffect(() => {
     let isActive = true;
@@ -257,7 +280,10 @@ function ModellingPageContent() {
     router.push(`/modelling?model=${modelId}${condition === "WB" && isFirstTraining ? "&intro=1" : ""}`);
   };
   const areAllModelsTrained = MODEL_IDS.every((modelId) => trainedModels.has(modelId));
-  const canGoToEvaluation = areAllModelsTrained && (condition !== "BB" || blackBoxReflection.trim().length > 0);
+  const isBlackBoxReflectionComplete =
+    MODEL_IDS.every((modelId) => blackBoxReflections[modelId].trim().length > 0) &&
+    blackBoxTechnique.trim().length > 0;
+  const canGoToEvaluation = areAllModelsTrained && (condition !== "BB" || isBlackBoxReflectionComplete);
 
   if (!resolvedCondition) {
     return (
@@ -297,7 +323,7 @@ function ModellingPageContent() {
                 <TrainingDataCard
                   condition={condition}
                   modelInput={modelInputs[modelId]}
-                  onInspectTable={() => setTableOverlay({ dataFile: modelInputs[modelId].data })}
+                  onInspectTable={() => setTableOverlay({ kind: "training", dataFile: modelInputs[modelId].data })}
                 />
                 <VerticalSeparator />
                 <BlackBoxedModel
@@ -306,24 +332,56 @@ function ModellingPageContent() {
                   onTrain={trainModel}
                 />
                 {trainedModels.has(modelId) && trainingResults[modelId] && (
-                  <ModelSummary result={trainingResults[modelId]} />
+                  <ModelSummary
+                    result={trainingResults[modelId]}
+                    onInspectTable={
+                      condition === "BB"
+                        ? () => setTableOverlay({ kind: "predictions", modelInput: modelInputs[modelId] })
+                        : undefined
+                    }
+                  />
                 )}
               </div>
             ))}
           </section>
 
           {condition === "BB" && areAllModelsTrained && (
-            <label className="flex min-h-[140px] w-full flex-col gap-[6px]">
-              <span className="text-[16px] font-medium leading-[1.43] text-[#18181b]">
+            <section className="flex w-full flex-col gap-[12px]">
+              <h2 className="text-[16px] font-medium leading-[1.43] text-[#18181b]">
                 Comment penses-tu que chaque modèle fait la distinction entre carnivore et herbivore ?
-              </span>
-              <TextArea
-                className="h-full w-full flex-1 [&>div]:h-full [&>div]:w-full [&_textarea]:min-h-[96px] [&_textarea]:resize-none [&_textarea]:text-[14px]"
-                onChange={(event) => setBlackBoxReflection(event.target.value)}
-                placeholder="Ta réponse ici..."
-                value={blackBoxReflection}
-              />
-            </label>
+              </h2>
+              <div className="grid w-full grid-cols-3 gap-[12px]">
+                {MODEL_IDS.map((modelId) => (
+                  <label key={modelId} className="flex min-h-[128px] min-w-0 flex-col gap-[6px]">
+                    <span className="text-[14px] font-medium leading-[1.43] text-[#18181b]">
+                      Modèle {modelId}
+                    </span>
+                    <TextArea
+                      className="h-full w-full flex-1 [&>div]:h-full [&>div]:w-full [&_textarea]:min-h-[96px] [&_textarea]:resize-none [&_textarea]:text-[14px]"
+                      onChange={(event) =>
+                        setBlackBoxReflections((currentReflections) => ({
+                          ...currentReflections,
+                          [modelId]: event.target.value,
+                        }))
+                      }
+                      placeholder="Ta réponse ici..."
+                      value={blackBoxReflections[modelId]}
+                    />
+                  </label>
+                ))}
+              </div>
+              <label className="flex min-h-[116px] w-full flex-col gap-[6px]">
+                <span className="text-[16px] font-medium leading-[1.43] text-[#18181b]">
+                  Explique le raisonnement que tu as suivi pour déterminer cela:
+                </span>
+                <TextArea
+                  className="h-full w-full flex-1 [&>div]:h-full [&>div]:w-full [&_textarea]:min-h-[84px] [&_textarea]:resize-none [&_textarea]:text-[14px]"
+                  onChange={(event) => setBlackBoxTechnique(event.target.value)}
+                  placeholder="Ta réponse ici..."
+                  value={blackBoxTechnique}
+                />
+              </label>
+            </section>
           )}
 
           <div className="flex justify-end">
@@ -338,10 +396,17 @@ function ModellingPageContent() {
         </main>
       </Surface>
       {tableOverlay && (
-        <TrainingTableOverlay
-          dataFile={tableOverlay.dataFile}
-          onClose={() => setTableOverlay(null)}
-        />
+        tableOverlay.kind === "training" ? (
+          <TrainingTableOverlay
+            dataFile={tableOverlay.dataFile}
+            onClose={() => setTableOverlay(null)}
+          />
+        ) : (
+          <PredictionTrainingTableOverlay
+            modelInput={tableOverlay.modelInput}
+            onClose={() => setTableOverlay(null)}
+          />
+        )
       )}
     </div>
   );

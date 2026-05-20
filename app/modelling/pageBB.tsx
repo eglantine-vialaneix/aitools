@@ -181,7 +181,7 @@ async function fitBlackBoxModel(modelInput: ModelInput) {
   return countPredictions(await fetchBlackBoxTrainingPredictions(modelInput));
 }
 
-function PredictionTrainingTableOverlay({
+export function PredictionTrainingTableOverlay({
   modelInput,
   onClose,
 }: {
