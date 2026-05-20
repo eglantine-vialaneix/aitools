@@ -2,15 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@heroui/react";
+import { DataTable, type SortConfig } from "@/app/components";
 import { readDinoLabels } from "@/app/lib/dinoLabels";
 import { type ModelDataFile } from "./modelConfig";
 
 type TableRow = Record<string, string>;
-type SortDirection = "ascending" | "descending";
-type SortConfig = {
-  column: string;
-  direction: SortDirection;
-} | null;
 
 const LABEL_COLUMN = "régime_alimentaire";
 
@@ -205,43 +201,18 @@ export function TrainingTableOverlay({
           {errorMessage ? (
             <p className="p-[20px] text-[16px] text-[#b42318]">{errorMessage}</p>
           ) : (
-            <table className="min-w-full border-collapse text-left text-[14px] leading-[1.35]">
-              <thead className="sticky top-0 z-10 bg-[#f4f4f5] text-[#3f3f46]">
-                <tr>
-                  {headers.map((header) => (
-                    <th key={header} className="whitespace-nowrap border-b border-[#dedee0] px-[12px] py-[10px] font-semibold">
-                      <button
-                        type="button"
-                        className="flex w-full items-center gap-[6px] text-left font-semibold"
-                        onClick={() => updateSort(header)}
-                      >
-                        <span>{header}</span>
-                        {sortConfig?.column === header && (
-                          <span className="text-[11px] uppercase text-[#71717a]" aria-hidden="true">
-                            {sortConfig.direction === "ascending" ? "asc" : "desc"}
-                          </span>
-                        )}
-                      </button>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {sortedRows.map((row) => (
-                  <tr key={row.nom} className="odd:bg-white even:bg-[#fafafa]">
-                    {headers.map((header) => {
-                      const wasOverwritten = changedCells.has(`${row.nom}:${header}`);
+            <DataTable
+              headers={headers}
+              rows={sortedRows}
+              sortConfig={sortConfig}
+              onSort={updateSort}
+              getRowKey={(row) => row.nom}
+              renderCell={(row, header) => {
+                const wasOverwritten = changedCells.has(`${row.nom}:${header}`);
 
-                      return (
-                        <td key={header} className="whitespace-nowrap border-b border-[#ededf0] px-[12px] py-[9px] text-[#27272a]">
-                          {wasOverwritten ? <em>{row[header]}</em> : row[header]}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                return wasOverwritten ? <em>{row[header]}</em> : row[header];
+              }}
+            />
           )}
         </div>
       </section>

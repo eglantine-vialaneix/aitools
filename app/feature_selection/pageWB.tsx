@@ -3,26 +3,22 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@heroui/react";
+import { DataTable, type SortConfig } from "@/app/components";
 import { readDinoLabels } from "@/app/lib/dinoLabels";
 import { writeSelectedFeatures } from "@/app/lib/featureSelectionState";
 
 type TableRow = Record<string, string>;
-type SortDirection = "ascending" | "descending";
-type SortConfig = {
-  column: string;
-  direction: SortDirection;
-} | null;
 
 const LABEL_COLUMN = "régime_alimentaire";
 const NAME_COLUMN_WIDTH_CLASS = "w-[150px] min-w-[150px]";
 const LABEL_COLUMN_WIDTH_CLASS = "w-[150px] min-w-[150px]";
 
-function getStickyColumnClass(header: string) {
-  if (header === "nom") {
+function getStickyColumnClass(header: string, columnIndex: number, orderedHeaders: string[]) {
+  if (header === "nom" && columnIndex === 0) {
     return `sticky left-0 ${NAME_COLUMN_WIDTH_CLASS}`;
   }
 
-  if (header === LABEL_COLUMN) {
+  if (header === LABEL_COLUMN && columnIndex === 1 && orderedHeaders[0] === "nom") {
     return `sticky left-[150px] ${LABEL_COLUMN_WIDTH_CLASS}`;
   }
 
@@ -264,60 +260,32 @@ export default function FeatureSelectionBlackBox() {
           {errorMessage ? (
             <p className="p-[20px] text-[16px] text-[#b42318]">{errorMessage}</p>
           ) : (
-            <table className="min-w-full border-collapse text-left text-[14px] leading-[1.35]">
-              <thead className="bg-[#f4f4f5] text-[#3f3f46]">
-                <tr>
-                  {headers.map((header) => {
-                    const isSelectedFeature = selectedFeatures.includes(header);
+            <DataTable
+              headers={headers}
+              rows={sortedRows}
+              sortConfig={sortConfig}
+              onSort={updateSort}
+              getRowKey={(row) => row.nom}
+              getHeaderClassName={(header, columnIndex, orderedHeaders) => {
+                const isSelectedFeature = selectedFeatures.includes(header);
+                const stickyClass = getStickyColumnClass(header, columnIndex, orderedHeaders);
 
-                    return (
-                      <th
-                        key={header}
-                        className={`sticky top-0 whitespace-nowrap border-b border-[#dedee0] px-[12px] py-[10px] font-semibold ${
-                          isSelectedFeature ? "bg-[#d9ecff] text-[#005bc4]" : "bg-[#f4f4f5]"
-                        } ${getStickyColumnClass(header)} ${header === "nom" || header === LABEL_COLUMN ? "z-30" : ""}`}
-                      >
-                        <Button
-                          className={`min-h-0 justify-start bg-transparent p-0 text-left font-semibold ${
-                            isSelectedFeature ? "text-[#005bc4]" : "text-[#3f3f46]"
-                          }`}
-                          onPress={() => updateSort(header)}
-                        >
-                          <span>{header}</span>
-                          {sortConfig?.column === header && (
-                            <span className="text-[11px] uppercase text-[#71717a]" aria-hidden="true">
-                              {sortConfig.direction === "ascending" ? "asc" : "desc"}
-                            </span>
-                          )}
-                        </Button>
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-              <tbody>
-                {sortedRows.map((row, rowIndex) => (
-                  <tr key={row.nom} className="odd:bg-white even:bg-[#fafafa]">
-                    {headers.map((header) => {
-                      const wasOverwritten = changedCells.has(`${row.nom}:${header}`);
-                      const isSelectedFeature = selectedFeatures.includes(header);
-                      const rowBackgroundClass = rowIndex % 2 === 0 ? "bg-white" : "bg-[#fafafa]";
+                return `${isSelectedFeature ? "bg-[#d9ecff] text-[#005bc4]" : "bg-[#f4f4f5]"} ${stickyClass} ${stickyClass ? "z-30" : ""}`;
+              }}
+              getHeaderButtonClassName={(header) => selectedFeatures.includes(header) ? "text-[#005bc4]" : "text-[#3f3f46]"}
+              getCellClassName={(row, header, rowIndex, columnIndex, orderedHeaders) => {
+                const isSelectedFeature = selectedFeatures.includes(header);
+                const rowBackgroundClass = rowIndex % 2 === 0 ? "bg-white" : "bg-[#fafafa]";
+                const stickyClass = getStickyColumnClass(header, columnIndex, orderedHeaders);
 
-                      return (
-                        <td
-                          key={header}
-                          className={`whitespace-nowrap border-b border-[#ededf0] px-[12px] py-[9px] text-[#27272a] ${
-                            isSelectedFeature ? "bg-[#edf6ff]" : rowBackgroundClass
-                          } ${getStickyColumnClass(header)} ${header === "nom" || header === LABEL_COLUMN ? "z-20" : ""}`}
-                        >
-                          {wasOverwritten ? <em>{row[header]}</em> : row[header]}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                return `${isSelectedFeature ? "bg-[#edf6ff]" : rowBackgroundClass} ${stickyClass} ${stickyClass ? "z-20" : ""}`;
+              }}
+              renderCell={(row, header) => {
+                const wasOverwritten = changedCells.has(`${row.nom}:${header}`);
+
+                return wasOverwritten ? <em>{row[header]}</em> : row[header];
+              }}
+            />
           )}
         </div>
       </main>

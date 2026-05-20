@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@heroui/react";
 import { GoGear } from "react-icons/go";
-import { Separator } from "@/app/components";
+import { DataTable, Separator, type SortConfig } from "@/app/components";
 import { readDinoLabels } from "@/app/lib/dinoLabels";
 import { MODEL_CONFIGS, type ModelId, type ModellingCondition } from "./modelConfig";
 import { resolveModelInput, type ModelInput } from "./modelInputs";
@@ -18,11 +18,6 @@ type ModellingBlackBoxProps = {
 type PredictionRow = {
   régime_alimentaire_prédit?: string;
 } & Record<string, string | number | boolean | undefined>;
-type SortDirection = "ascending" | "descending";
-type SortConfig = {
-  column: string;
-  direction: SortDirection;
-} | null;
 
 const SURFACE_SHADOW =
   "shadow-[0_2px_8px_rgba(0,0,0,0.06),0_-6px_12px_rgba(0,0,0,0.03),0_14px_28px_rgba(0,0,0,0.08)]";
@@ -291,39 +286,13 @@ export function PredictionTrainingTableOverlay({
           {errorMessage ? (
             <p className="p-[20px] text-[16px] text-[#b42318]">{errorMessage}</p>
           ) : (
-            <table className="min-w-full border-collapse text-left text-[14px] leading-[1.35]">
-              <thead className="sticky top-0 z-10 bg-[#f4f4f5] text-[#3f3f46]">
-                <tr>
-                  {headers.map((header) => (
-                    <th key={header} className="whitespace-nowrap border-b border-[#dedee0] px-[12px] py-[10px] font-semibold">
-                      <button
-                        type="button"
-                        className="flex w-full items-center gap-[6px] text-left font-semibold"
-                        onClick={() => updateSort(header)}
-                      >
-                        <span>{header}</span>
-                        {sortConfig?.column === header && (
-                          <span className="text-[11px] uppercase text-[#71717a]" aria-hidden="true">
-                            {sortConfig.direction === "ascending" ? "asc" : "desc"}
-                          </span>
-                        )}
-                      </button>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {sortedRows.map((row) => (
-                  <tr key={String(row.nom)} className="odd:bg-white even:bg-[#fafafa]">
-                    {headers.map((header) => (
-                      <td key={header} className="whitespace-nowrap border-b border-[#ededf0] px-[12px] py-[9px] text-[#27272a]">
-                        {String(row[header] ?? "")}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <DataTable
+              headers={headers}
+              rows={sortedRows}
+              sortConfig={sortConfig}
+              onSort={updateSort}
+              getRowKey={(row) => String(row.nom)}
+            />
           )}
         </div>
       </section>
