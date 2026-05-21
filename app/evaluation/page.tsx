@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Button, Input, TextArea } from "@heroui/react";
+import { useRouter } from "next/navigation";
 import { GoGear } from "react-icons/go";
 import {
   ActivityInstructionsButton,
@@ -12,6 +13,7 @@ import {
   type SortConfig,
 } from "@/app/components";
 import { readDinoLabels } from "@/app/lib/dinoLabels";
+import { saveEvaluationResponses } from "@/app/lib/evaluationResponses";
 import {
   conditionForStep,
   useExperimentCondition,
@@ -58,9 +60,9 @@ const TEST_FEATURE_COLUMNS = [
 ];
 
 const QUESTION_PROMPTS = [
-  "Comment qualifierais-tu la performance de chaque modèle? Bonne ? Mauvaise ? Pourquoi ?",
-  "Que corrigerais-tu pour améliorer la performance des moins bons modèles?",
-  "Quelle est la meilleure façon d’évaluer un modèle selon toi? Propose une troisième méthode.",
+  "Es-tu satisfait(e) de la performance de chaque modèle ? Pourquoi ?",
+  "Repense à ce que tu as fait pendant les étapes précédentes. Que corrigerais-tu pour améliorer la performance des moins bons modèles?",
+  "Quelle est la différence entre l'exactitude et la matrice de confusion comme méthode d'évaluation ? Quels avantages et incovénients trouves-tu à chacune ?",
 ];
 
 function modelTitle(modelId: ModelId) {
@@ -108,6 +110,10 @@ function emptyMatrixInputs() {
       },
     ]),
   ) as MatrixInputs;
+}
+
+function emptyReflectionAnswers() {
+  return QUESTION_PROMPTS.map(() => "");
 }
 
 function isCountCorrect(value: string, expectedValue: number) {
@@ -227,14 +233,50 @@ function SmallInput({
   return (
     <Input
       aria-label={ariaLabel}
-      className={`h-[36px] w-[146px] [&>div]:h-[36px] [&>div]:min-h-[36px] [&>div]:rounded-[12px] [&>div]:bg-white [&_input]:text-[14px] ${
-        isInvalid ? "[&>div]:border-[#ff383c]" : ""
+      className={`h-[36px] w-[146px] rounded-[12px] border bg-white px-[10px] text-[14px] outline-none transition focus:border-[#006fee] ${
+        isInvalid ? "border-[#ff383c] bg-[#fff1f1] ring-2 ring-inset ring-[#ff383c]" : "border-[#c9c9cf]"
       }`}
       onChange={(event) => onChange?.(event.target.value)}
       placeholder={placeholder}
       type="number"
       value={value}
     />
+  );
+}
+
+function MatrixCell({
+  ariaLabel,
+  hasInvalidAbove,
+  hasInvalidBelow,
+  isInvalid,
+  onChange,
+  value,
+}: {
+  ariaLabel: string;
+  hasInvalidAbove: boolean;
+  hasInvalidBelow: boolean;
+  isInvalid: boolean;
+  onChange: (value: string) => void;
+  value: string;
+}) {
+  const invalidOutlineClass = isInvalid
+    ? [
+        "relative bg-[#fff1f1]",
+        "after:pointer-events-none after:absolute after:inset-0 after:z-10 after:border-x-2 after:border-[#ff383c] after:content-['']",
+        hasInvalidAbove ? "" : "after:border-t-2",
+        hasInvalidBelow ? "" : "after:border-b-2",
+      ].join(" ")
+    : "";
+
+  return (
+    <td className={`border border-[#b9b9b9] ${invalidOutlineClass}`}>
+      <MatrixInput
+        ariaLabel={ariaLabel}
+        isInvalid={isInvalid}
+        onChange={onChange}
+        value={value}
+      />
+    </td>
   );
 }
 
@@ -298,10 +340,9 @@ function MatrixInput({
 }) {
   return (
     <input
+      aria-invalid={isInvalid || undefined}
       aria-label={ariaLabel}
-      className={`h-full w-full bg-transparent px-[8px] text-center text-[12px] leading-[1.3] text-black outline-none ${
-        isInvalid ? "rounded-[3px] ring-2 ring-inset ring-[#ff383c]" : ""
-      }`}
+      className="relative z-20 h-full w-full bg-transparent px-[8px] text-center text-[12px] leading-[1.3] text-black outline-none"
       inputMode="numeric"
       onChange={(event) => onChange(event.target.value)}
       value={value}
@@ -341,37 +382,52 @@ function ConfusionMatrix({
         </tr>
       </thead>
       <tbody>
-        {rows.map((row) => (
+        {rows.map((row, rowIndex) => {
+          const previousRow = rows[rowIndex - 1];
+          const nextRow = rows[rowIndex + 1];
+          const isCorrectInvalid = invalidFields.has(matrixKey(modelId, row.correctField));
+          const isWrongInvalid = invalidFields.has(matrixKey(modelId, row.wrongField));
+
+          return (
           <tr key={row.label} className="h-[36px]">
             <th
               className="border border-[#b9b9b9] bg-[#f0f0f0] px-[8px] text-left font-semibold leading-[1.3]"
             >
               {row.label}
             </th>
-            <td className="border border-[#b9b9b9]">
-              <MatrixInput
-                ariaLabel={`${modelTitle(modelId)} ${row.label} correct`}
-                isInvalid={invalidFields.has(matrixKey(modelId, row.correctField))}
-                onChange={(value) => onChange(row.correctField, value)}
-                value={matrixInput[row.correctField]}
-              />
-            </td>
-            <td className="border border-[#b9b9b9]">
-              <MatrixInput
-                ariaLabel={`${modelTitle(modelId)} ${row.label} faux`}
-                isInvalid={invalidFields.has(matrixKey(modelId, row.wrongField))}
-                onChange={(value) => onChange(row.wrongField, value)}
-                value={matrixInput[row.wrongField]}
-              />
-            </td>
+            <MatrixCell
+              ariaLabel={`${modelTitle(modelId)} ${row.label} correct`}
+              hasInvalidAbove={previousRow ? invalidFields.has(matrixKey(modelId, previousRow.correctField)) : false}
+              hasInvalidBelow={nextRow ? invalidFields.has(matrixKey(modelId, nextRow.correctField)) : false}
+              isInvalid={isCorrectInvalid}
+              onChange={(value) => onChange(row.correctField, value)}
+              value={matrixInput[row.correctField]}
+            />
+            <MatrixCell
+              ariaLabel={`${modelTitle(modelId)} ${row.label} faux`}
+              hasInvalidAbove={previousRow ? invalidFields.has(matrixKey(modelId, previousRow.wrongField)) : false}
+              hasInvalidBelow={nextRow ? invalidFields.has(matrixKey(modelId, nextRow.wrongField)) : false}
+              isInvalid={isWrongInvalid}
+              onChange={(value) => onChange(row.wrongField, value)}
+              value={matrixInput[row.wrongField]}
+            />
           </tr>
-        ))}
+          );
+        })}
       </tbody>
     </table>
   );
 }
 
-function ReflectionPrompt({ prompt }: { prompt: string }) {
+function ReflectionPrompt({
+  onChange,
+  prompt,
+  value,
+}: {
+  onChange: (value: string) => void;
+  prompt: string;
+  value: string;
+}) {
   return (
     <label className="flex min-h-[225px] min-w-[116px] flex-col gap-[4px]">
       <span className="pr-[8px] text-[14px] font-medium leading-[1.43] text-[#18181b]">
@@ -379,7 +435,9 @@ function ReflectionPrompt({ prompt }: { prompt: string }) {
       </span>
       <TextArea
         className="h-full w-full flex-1 [&>div]:h-full [&>div]:w-full [&_textarea]:min-h-[174px] [&_textarea]:resize-none [&_textarea]:text-[14px]"
+        onChange={(event) => onChange(event.target.value)}
         placeholder="Ta réponse ici..."
+        value={value}
       />
     </label>
   );
@@ -508,6 +566,7 @@ function TestTableOverlay({
 }
 
 export default function EvaluationPage() {
+  const router = useRouter();
   const experimentCondition = useExperimentCondition();
   const resolvedCondition = conditionForStep(experimentCondition, "evaluation");
   const condition: ModellingCondition = resolvedCondition ?? "WB";
@@ -516,8 +575,11 @@ export default function EvaluationPage() {
   const [tableOverlay, setTableOverlay] = useState<TableOverlayState>(null);
   const [accuracyInputs, setAccuracyInputs] = useState<AccuracyInputs>(() => emptyAccuracyInputs());
   const [matrixInputs, setMatrixInputs] = useState<MatrixInputs>(() => emptyMatrixInputs());
+  const [reflectionAnswers, setReflectionAnswers] = useState<string[]>(() => emptyReflectionAnswers());
   const [invalidFields, setInvalidFields] = useState<Set<string>>(new Set());
   const [verificationMessage, setVerificationMessage] = useState<string | null>(null);
+  const [allCalculationsAreCorrect, setAllCalculationsAreCorrect] = useState(false);
+  const [saveErrorMessage, setSaveErrorMessage] = useState<string | null>(null);
   const [isCheckingAnswers, setIsCheckingAnswers] = useState(false);
   const [isInstructionsOpen, setIsInstructionsOpen] = useState(true);
 
@@ -583,7 +645,29 @@ export default function EvaluationPage() {
     };
   }, [condition, selectedFeatures]);
 
+  useEffect(() => {
+    setAllCalculationsAreCorrect(false);
+    setInvalidFields(new Set());
+    setVerificationMessage(null);
+  }, [modelInputs]);
+
+  const clearInvalidField = (fieldKey: string) => {
+    setInvalidFields((currentInvalidFields) => {
+      if (!currentInvalidFields.has(fieldKey)) {
+        return currentInvalidFields;
+      }
+
+      const nextInvalidFields = new Set(currentInvalidFields);
+      nextInvalidFields.delete(fieldKey);
+      return nextInvalidFields;
+    });
+  };
+
   const updateAccuracyInput = (modelId: ModelId, field: AccuracyField, value: string) => {
+    setAllCalculationsAreCorrect(false);
+    setVerificationMessage(null);
+    setSaveErrorMessage(null);
+    clearInvalidField(answerKey("accuracy", modelId, field));
     setAccuracyInputs((currentInputs) => ({
       ...currentInputs,
       [modelId]: {
@@ -593,6 +677,10 @@ export default function EvaluationPage() {
     }));
   };
   const updateMatrixInput = (modelId: ModelId, field: MatrixField, value: string) => {
+    setAllCalculationsAreCorrect(false);
+    setVerificationMessage(null);
+    setSaveErrorMessage(null);
+    clearInvalidField(matrixKey(modelId, field));
     setMatrixInputs((currentInputs) => ({
       ...currentInputs,
       [modelId]: {
@@ -601,9 +689,18 @@ export default function EvaluationPage() {
       },
     }));
   };
+  const updateReflectionAnswer = (index: number, value: string) => {
+    setSaveErrorMessage(null);
+    setReflectionAnswers((currentAnswers) =>
+      currentAnswers.map((currentAnswer, currentIndex) => (currentIndex === index ? value : currentAnswer)),
+    );
+  };
+  const areReflectionAnswersComplete = reflectionAnswers.every((answer) => answer.trim() !== "");
+  const canFinishEvaluation = allCalculationsAreCorrect && areReflectionAnswersComplete;
   const verifyAnswers = async () => {
     setIsCheckingAnswers(true);
     setVerificationMessage(null);
+    setSaveErrorMessage(null);
 
     try {
       const expectedByModel = Object.fromEntries(
@@ -639,15 +736,37 @@ export default function EvaluationPage() {
       });
 
       setInvalidFields(nextInvalidFields);
+      setAllCalculationsAreCorrect(nextInvalidFields.size === 0);
       setVerificationMessage(
         nextInvalidFields.size === 0
           ? "Tout est correct."
           : "Certaines réponses semblent incorrectes. Les cases concernées sont indiquées en rouge.",
       );
     } catch (error) {
+      setAllCalculationsAreCorrect(false);
       setVerificationMessage(error instanceof Error ? error.message : "Une erreur est survenue.");
     } finally {
       setIsCheckingAnswers(false);
+    }
+  };
+  const saveAndFinish = () => {
+    try {
+      saveEvaluationResponses({
+        savedAt: new Date().toISOString(),
+        condition,
+        selectedFeatures,
+        modelBFeatures,
+        accuracyInputs,
+        matrixInputs,
+        reflectionAnswers,
+      });
+      router.push("/evaluation/fin");
+    } catch (error) {
+      setSaveErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Impossible de sauvegarder tes réponses. Vérifie l'espace disponible dans le navigateur.",
+      );
     }
   };
 
@@ -706,11 +825,15 @@ export default function EvaluationPage() {
 
           {QUESTION_PROMPTS.map((prompt, index) => (
             <div key={prompt} className="min-h-0" style={{ gridColumn: index + 1, gridRow: 5 }}>
-              <ReflectionPrompt prompt={prompt} />
+              <ReflectionPrompt
+                onChange={(value) => updateReflectionAnswer(index, value)}
+                prompt={prompt}
+                value={reflectionAnswers[index] ?? ""}
+              />
             </div>
           ))}
 
-          <div className="col-span-3 flex items-center justify-end gap-[14px]">
+          <div className="col-span-3 flex flex-wrap items-center justify-end gap-[14px]">
             {verificationMessage && (
               <p
                 className={`text-[14px] font-medium ${
@@ -720,6 +843,11 @@ export default function EvaluationPage() {
                 {verificationMessage}
               </p>
             )}
+            {saveErrorMessage && (
+              <p className="text-[14px] font-medium text-[#b42318]">
+                {saveErrorMessage}
+              </p>
+            )}
             <Button
               className="min-h-[40px] rounded-[22px] bg-[#006fee] px-[18px] text-[15px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-45"
               isDisabled={isCheckingAnswers}
@@ -727,6 +855,14 @@ export default function EvaluationPage() {
             >
               Vérifier mes réponses
             </Button>
+            {canFinishEvaluation && (
+              <Button
+                className="min-h-[40px] rounded-[22px] bg-[#0a7f38] px-[18px] text-[15px] font-medium text-white"
+                onPress={saveAndFinish}
+              >
+                Sauvegarder mes réponses et finir !
+              </Button>
+            )}
           </div>
         </div>
       </main>
