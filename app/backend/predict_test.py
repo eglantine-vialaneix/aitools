@@ -32,8 +32,8 @@ def _records(df):
         for row in df.to_dict(orient="records")
     ]
 
-
-def main():
+## same as for the gini computation
+def run(payload):
     payload = json.loads(sys.stdin.read() or "{}")
     features = payload.get("features", [])
     labels = payload.get("labels", {})
@@ -100,7 +100,12 @@ def main():
     result_df = target_df.copy()
     result_df["régime_alimentaire_prédit"] = model.predict(target_df[features])
 
-    print(json.dumps({"features": features, "rows": _records(result_df)}, ensure_ascii=False))
+    return {"features": features, "rows": _records(result_df)}
+
+
+def main():
+    #payload = json.loads(sys.stdin.read() or "{}")
+    print(json.dumps(run(payload), ensure_ascii=False))
 
 
 if __name__ == "__main__":

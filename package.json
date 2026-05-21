@@ -9,7 +9,11 @@
     "start": "next start",
     "lint": "eslint",
     "dev:clean": "rm -rf .next/cache && next dev",
-    "dev:fresh": "rm -rf .next && next dev"
+    "dev:fresh": "rm -rf .next && next dev",
+    "start:network": "next start --hostname 0.0.0.0",
+    "dev:network": "next dev --webpack --hostname 0.0.0.0",
+    "dev:backend": "app/backend/.venv/bin/uvicorn app.backend.server:app --reload --port 8000",
+    "dev:backend:network": "app/backend/.venv/bin/uvicorn app.backend.server:app --reload --host 0.0.0.0 --port 8000"
   },
   "dependencies": {
     "@heroui/react": "^3.0.0-beta.8",
