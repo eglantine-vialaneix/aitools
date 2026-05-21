@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ActivityInstructionsOverlay, LoremIpsumInstructions } from "@/app/components";
+import { ActivityInstructionsOverlay, FeatureSelectionInstructionsContent } from "@/app/components";
 import { conditionForStep, useExperimentCondition } from "@/app/lib/experimentCondition";
 import BlackBox from "./pageBB";
 import WhiteBox from "./pageWB";
@@ -19,7 +19,7 @@ export default function FeatureSelectionInstructions() {
         <WhiteBox onShowInstructions={openInstructions} />
         {isInstructionsOpen && (
           <ActivityInstructionsOverlay title="Consignes de sélection" onClose={closeInstructions}>
-            <LoremIpsumInstructions />
+            <FeatureSelectionInstructionsContent condition="WB" />
           </ActivityInstructionsOverlay>
         )}
       </>
@@ -32,7 +32,7 @@ export default function FeatureSelectionInstructions() {
         <BlackBox onShowInstructions={openInstructions} />
         {isInstructionsOpen && (
           <ActivityInstructionsOverlay title="Consignes de sélection" onClose={closeInstructions}>
-            <LoremIpsumInstructions />
+            <FeatureSelectionInstructionsContent condition="BB" />
           </ActivityInstructionsOverlay>
         )}
       </>

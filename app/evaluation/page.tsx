@@ -8,7 +8,7 @@ import {
   ActivityInstructionsButton,
   ActivityInstructionsOverlay,
   DataTable,
-  LoremIpsumInstructions,
+  EvaluationInstructionsContent,
   Separator,
   type SortConfig,
 } from "@/app/components";
@@ -879,7 +879,7 @@ export default function EvaluationPage() {
           title="Consignes d'évaluation"
           onClose={() => setIsInstructionsOpen(false)}
         >
-          <LoremIpsumInstructions />
+          <EvaluationInstructionsContent />
         </ActivityInstructionsOverlay>
       )}
     </div>

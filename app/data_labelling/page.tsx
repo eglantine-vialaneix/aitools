@@ -3,7 +3,7 @@
 import { useState } from "react";
 import BlackBox from "./pageBB";
 import WhiteBox from "./pageWB";
-import { ActivityInstructionsOverlay, LoremIpsumInstructions } from "@/app/components";
+import { ActivityInstructionsOverlay, DataLabellingInstructionsContent } from "@/app/components";
 import { conditionForStep, useExperimentCondition } from "@/app/lib/experimentCondition";
 
 export default function DataLabellingInstructions() {
@@ -19,7 +19,7 @@ export default function DataLabellingInstructions() {
         <WhiteBox onShowInstructions={openInstructions} />
         {isInstructionsOpen && (
           <ActivityInstructionsOverlay title="Consignes de classification" onClose={closeInstructions}>
-            <LoremIpsumInstructions />
+            <DataLabellingInstructionsContent condition="WB" />
           </ActivityInstructionsOverlay>
         )}
       </>
@@ -32,7 +32,7 @@ export default function DataLabellingInstructions() {
         <BlackBox onShowInstructions={openInstructions} />
         {isInstructionsOpen && (
           <ActivityInstructionsOverlay title="Consignes de classification" onClose={closeInstructions}>
-            <LoremIpsumInstructions />
+            <DataLabellingInstructionsContent condition="BB" />
           </ActivityInstructionsOverlay>
         )}
       </>

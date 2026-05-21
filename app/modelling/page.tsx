@@ -7,7 +7,7 @@ import { GoGear } from "react-icons/go";
 import {
   ActivityInstructionsButton,
   ActivityInstructionsOverlay,
-  LoremIpsumInstructions,
+  ModellingInstructionsContent,
 } from "@/app/components";
 import { readDinoLabels } from "@/app/lib/dinoLabels";
 import {
@@ -284,7 +284,7 @@ function ModellingPageContent() {
         <BlackBox model={selectedModel} condition={condition} onShowInstructions={openInstructions} />
         {isInstructionsOpen && (
           <ActivityInstructionsOverlay title="Consignes d'entraînement" onClose={closeInstructions}>
-            <LoremIpsumInstructions />
+            <ModellingInstructionsContent condition="BB" />
           </ActivityInstructionsOverlay>
         )}
       </>
@@ -298,7 +298,7 @@ function ModellingPageContent() {
         />
         {isInstructionsOpen && (
           <ActivityInstructionsOverlay title="Consignes d'entraînement" onClose={closeInstructions}>
-            <LoremIpsumInstructions />
+            <ModellingInstructionsContent condition="WB" />
           </ActivityInstructionsOverlay>
         )}
       </>
@@ -451,7 +451,7 @@ function ModellingPageContent() {
       )}
       {isInstructionsOpen && (
         <ActivityInstructionsOverlay title="Consignes d'entraînement" onClose={closeInstructions}>
-          <LoremIpsumInstructions />
+          <ModellingInstructionsContent condition={condition} />
         </ActivityInstructionsOverlay>
       )}
     </div>

@@ -1,7 +1,11 @@
 export {
   ActivityInstructionsButton,
   ActivityInstructionsOverlay,
-  LoremIpsumInstructions,
+  DataLabellingInstructionsContent,
+  EvaluationInstructionsContent,
+  FeatureSelectionInstructionsContent,
+  GiniInstructionsContent,
+  ModellingInstructionsContent,
 } from "./ActivityInstructions";
 export { Dino } from "./Dino";
 export { Button } from "./Button";

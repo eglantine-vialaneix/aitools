@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@heroui/react";
 import { GoGear } from "react-icons/go";
-import { ActivityInstructionsButton, Separator } from "@/app/components";
+import { ActivityInstructionsButton, GiniInstructionsContent, Separator } from "@/app/components";
 import { readDinoLabels } from "@/app/lib/dinoLabels";
 import { useSelectedFeatures } from "@/app/lib/featureSelectionState";
 import { type ModelId, type ModellingCondition } from "./modelConfig";
@@ -709,7 +709,6 @@ export default function ModellingWhiteBox({
   model = "A",
   condition = "WB",
   showIntro = false,
-  onShowInstructions,
 }: ModellingWhiteBoxProps) {
   const router = useRouter();
   const selectedFeatures = useSelectedFeatures();
@@ -902,7 +901,7 @@ export default function ModellingWhiteBox({
       className="relative h-dvh w-full overflow-hidden bg-cover bg-center bg-no-repeat px-[24px] py-[50px] text-[#18181b]"
       style={{ backgroundImage: "url('/background.png')" }}
     >
-      {onShowInstructions && !isIntroOpen && <ActivityInstructionsButton onPress={onShowInstructions} />}
+      {!isIntroOpen && <ActivityInstructionsButton onPress={() => setIsIntroOpen(true)} />}
       <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 bg-black/35" />
       <main className="relative z-10 mx-auto flex h-[calc(100dvh-130px)] w-full min-w-0 flex-col items-center">
         <div className="min-h-0 w-full min-w-0 flex-1 overflow-auto overscroll-contain">
@@ -959,14 +958,7 @@ export default function ModellingWhiteBox({
               </h2>
             </div>
             <div className="flex flex-col gap-[12px] text-[16px] leading-[1.5] text-[#3f3f46]">
-              <p>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec tempor
-                neque vitae mi luctus, sed dignissim dui faucibus.
-              </p>
-              <p>
-                Integer at sapien non lectus volutpat gravida. Fusce euismod, erat
-                vel commodo luctus, montre ici un exemple jouet pour comparer deux séparations.
-              </p>
+              <GiniInstructionsContent />
             </div>
             <div className="flex justify-end">
               <Button
