@@ -3,7 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, Input, TextArea } from "@heroui/react";
 import { GoGear } from "react-icons/go";
-import { DataTable, Separator, type SortConfig } from "@/app/components";
+import {
+  ActivityInstructionsButton,
+  ActivityInstructionsOverlay,
+  DataTable,
+  LoremIpsumInstructions,
+  Separator,
+  type SortConfig,
+} from "@/app/components";
 import { readDinoLabels } from "@/app/lib/dinoLabels";
 import {
   conditionForStep,
@@ -512,6 +519,7 @@ export default function EvaluationPage() {
   const [invalidFields, setInvalidFields] = useState<Set<string>>(new Set());
   const [verificationMessage, setVerificationMessage] = useState<string | null>(null);
   const [isCheckingAnswers, setIsCheckingAnswers] = useState(false);
+  const [isInstructionsOpen, setIsInstructionsOpen] = useState(true);
 
   const modelInputs = useMemo(
     () =>
@@ -655,6 +663,7 @@ export default function EvaluationPage() {
 
   return (
     <div className="relative flex min-h-dvh w-full items-center justify-center overflow-auto bg-cover bg-center bg-no-repeat p-[40px] text-[#18181b]" style={{ backgroundImage: `url('${BACKGROUND_IMAGE}')` }}>
+      <ActivityInstructionsButton onPress={() => setIsInstructionsOpen(true)} />
       <div aria-hidden="true" className="absolute inset-0 bg-black/35" />
       <main className="relative flex min-h-[calc(100dvh-80px)] w-full max-w-[1360px] overflow-auto rounded-[24px] bg-[#eaeaea]/90 p-[50px_30px_40px] shadow-[0_2px_4px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.06),0_0_1px_rgba(0,0,0,0.06)]">
         <div className="grid min-h-[760px] min-w-[1048px] flex-1 grid-cols-[minmax(199px,1fr)_minmax(290px,1.25fr)_minmax(245px,1fr)] grid-rows-[auto_repeat(3,minmax(112px,1fr))_minmax(225px,1.4fr)] items-stretch justify-center gap-x-[104px] gap-y-[20px]">
@@ -728,6 +737,14 @@ export default function EvaluationPage() {
           modelInput={tableOverlay.modelInput}
           onClose={() => setTableOverlay(null)}
         />
+      )}
+      {isInstructionsOpen && (
+        <ActivityInstructionsOverlay
+          title="Consignes d'évaluation"
+          onClose={() => setIsInstructionsOpen(false)}
+        >
+          <LoremIpsumInstructions />
+        </ActivityInstructionsOverlay>
       )}
     </div>
   );

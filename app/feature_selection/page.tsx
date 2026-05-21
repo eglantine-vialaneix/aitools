@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { ActivityInstructionsOverlay, LoremIpsumInstructions } from "@/app/components";
 import { conditionForStep, useExperimentCondition } from "@/app/lib/experimentCondition";
 import BlackBox from "./pageBB";
 import WhiteBox from "./pageWB";
@@ -7,13 +9,34 @@ import WhiteBox from "./pageWB";
 export default function FeatureSelectionInstructions() {
   const experimentCondition = useExperimentCondition();
   const condition = conditionForStep(experimentCondition, "feature_selection");
+  const [isInstructionsOpen, setIsInstructionsOpen] = useState(true);
+  const openInstructions = () => setIsInstructionsOpen(true);
+  const closeInstructions = () => setIsInstructionsOpen(false);
 
   if (condition === "WB") {
-    return <WhiteBox />;
+    return (
+      <>
+        <WhiteBox onShowInstructions={openInstructions} />
+        {isInstructionsOpen && (
+          <ActivityInstructionsOverlay title="Consignes de sélection" onClose={closeInstructions}>
+            <LoremIpsumInstructions />
+          </ActivityInstructionsOverlay>
+        )}
+      </>
+    );
   }
 
   if (condition === "BB") {
-    return <BlackBox />;
+    return (
+      <>
+        <BlackBox onShowInstructions={openInstructions} />
+        {isInstructionsOpen && (
+          <ActivityInstructionsOverlay title="Consignes de sélection" onClose={closeInstructions}>
+            <LoremIpsumInstructions />
+          </ActivityInstructionsOverlay>
+        )}
+      </>
+    );
   }
 
   return (

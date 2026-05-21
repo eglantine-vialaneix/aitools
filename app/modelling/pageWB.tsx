@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@heroui/react";
 import { GoGear } from "react-icons/go";
-import { Separator } from "@/app/components";
+import { ActivityInstructionsButton, Separator } from "@/app/components";
 import { readDinoLabels } from "@/app/lib/dinoLabels";
 import { useSelectedFeatures } from "@/app/lib/featureSelectionState";
 import { type ModelId, type ModellingCondition } from "./modelConfig";
@@ -22,6 +22,7 @@ type ModellingWhiteBoxProps = {
   model?: ModelId;
   condition?: ModellingCondition;
   showIntro?: boolean;
+  onShowInstructions?: () => void;
 };
 
 type SplitFilter = {
@@ -708,6 +709,7 @@ export default function ModellingWhiteBox({
   model = "A",
   condition = "WB",
   showIntro = false,
+  onShowInstructions,
 }: ModellingWhiteBoxProps) {
   const router = useRouter();
   const selectedFeatures = useSelectedFeatures();
@@ -900,6 +902,7 @@ export default function ModellingWhiteBox({
       className="relative h-dvh w-full overflow-hidden bg-cover bg-center bg-no-repeat px-[24px] py-[50px] text-[#18181b]"
       style={{ backgroundImage: "url('/background.png')" }}
     >
+      {onShowInstructions && !isIntroOpen && <ActivityInstructionsButton onPress={onShowInstructions} />}
       <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 bg-black/35" />
       <main className="relative z-10 mx-auto flex h-[calc(100dvh-130px)] w-full min-w-0 flex-col items-center">
         <div className="min-h-0 w-full min-w-0 flex-1 overflow-auto overscroll-contain">

@@ -4,6 +4,11 @@ import { Suspense, type ReactNode, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Surface as HeroSurface, TextArea } from "@heroui/react";
 import { GoGear } from "react-icons/go";
+import {
+  ActivityInstructionsButton,
+  ActivityInstructionsOverlay,
+  LoremIpsumInstructions,
+} from "@/app/components";
 import { readDinoLabels } from "@/app/lib/dinoLabels";
 import {
   conditionForStep,
@@ -199,6 +204,7 @@ function ModellingPageContent() {
   const selectedFeatures = useSelectedFeatures();
   const [modelBFeatures, setModelBFeatures] = useState<string[] | null>(null);
   const [tableOverlay, setTableOverlay] = useState<TableOverlayState>(null);
+  const [isInstructionsOpen, setIsInstructionsOpen] = useState(true);
   const [blackBoxReflections, setBlackBoxReflections] = useState<Record<ModelId, string>>({
     A: "",
     B: "",
@@ -270,14 +276,37 @@ function ModellingPageContent() {
 
   if (selectedModel) {
     const showIntro = condition === "WB" && searchParams.get("intro") === "1";
+    const openInstructions = () => setIsInstructionsOpen(true);
+    const closeInstructions = () => setIsInstructionsOpen(false);
 
     return condition === "BB" ? (
-      <BlackBox model={selectedModel} condition={condition} />
+      <>
+        <BlackBox model={selectedModel} condition={condition} onShowInstructions={openInstructions} />
+        {isInstructionsOpen && (
+          <ActivityInstructionsOverlay title="Consignes d'entraînement" onClose={closeInstructions}>
+            <LoremIpsumInstructions />
+          </ActivityInstructionsOverlay>
+        )}
+      </>
     ) : (
-      <WhiteBox model={selectedModel} condition={condition} showIntro={showIntro} />
+      <>
+        <WhiteBox
+          model={selectedModel}
+          condition={condition}
+          showIntro={showIntro}
+          onShowInstructions={openInstructions}
+        />
+        {isInstructionsOpen && (
+          <ActivityInstructionsOverlay title="Consignes d'entraînement" onClose={closeInstructions}>
+            <LoremIpsumInstructions />
+          </ActivityInstructionsOverlay>
+        )}
+      </>
     );
   }
 
+  const openInstructions = () => setIsInstructionsOpen(true);
+  const closeInstructions = () => setIsInstructionsOpen(false);
   const trainModel = (modelId: ModelId) => {
     const isFirstTraining = trainedModels.size === 0;
     router.push(`/modelling?model=${modelId}${condition === "WB" && isFirstTraining ? "&intro=1" : ""}`);
@@ -303,6 +332,7 @@ function ModellingPageContent() {
       className="relative flex min-h-dvh w-full items-center justify-center overflow-hidden bg-cover bg-center bg-no-repeat p-[40px] text-[#18181b]"
       style={{ backgroundImage: "url('/background.png')" }}
     >
+      <ActivityInstructionsButton onPress={openInstructions} />
       <div aria-hidden="true" className="absolute inset-0 bg-black/35" />
       <Surface
         className="relative flex min-h-[calc(100dvh-80px)] w-full max-w-[1351px] flex-col justify-center gap-[21px] p-[40px]"
@@ -418,6 +448,11 @@ function ModellingPageContent() {
             onClose={() => setTableOverlay(null)}
           />
         )
+      )}
+      {isInstructionsOpen && (
+        <ActivityInstructionsOverlay title="Consignes d'entraînement" onClose={closeInstructions}>
+          <LoremIpsumInstructions />
+        </ActivityInstructionsOverlay>
       )}
     </div>
   );

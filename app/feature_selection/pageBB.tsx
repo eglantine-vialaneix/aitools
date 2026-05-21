@@ -3,11 +3,14 @@
 import { useEffect, useMemo, useState, type Key } from "react";
 import { useRouter } from "next/navigation";
 import { Button, ListBox, Select } from "@heroui/react";
-import { DataTable, type SortConfig } from "@/app/components";
+import { ActivityInstructionsButton, DataTable, type SortConfig } from "@/app/components";
 import { readDinoLabels } from "@/app/lib/dinoLabels";
 
 type TableRow = Record<string, string>;
 type FeatureType = "Numérique" | "Booléen" | "Catégorique";
+type FeatureSelectionWhiteBoxProps = {
+  onShowInstructions?: () => void;
+};
 
 const LABEL_COLUMN = "régime_alimentaire";
 const NAME_COLUMN_WIDTH_CLASS = "w-[150px] min-w-[150px]";
@@ -99,7 +102,7 @@ function compareCellValues(firstValue: string, secondValue: string) {
   });
 }
 
-export default function FeatureSelectionWhiteBox() {
+export default function FeatureSelectionWhiteBox({ onShowInstructions }: FeatureSelectionWhiteBoxProps) {
   const router = useRouter();
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<TableRow[]>([]);
@@ -226,6 +229,7 @@ export default function FeatureSelectionWhiteBox() {
       className="relative flex min-h-dvh w-full items-center justify-center overflow-hidden bg-cover bg-center bg-no-repeat px-[50px] py-[60px] text-[#18181b]"
       style={{ backgroundImage: "url('/background.png')" }}
     >
+      {onShowInstructions && <ActivityInstructionsButton onPress={onShowInstructions} />}
       <div aria-hidden="true" className="absolute inset-0 bg-black/35" />
       <main className="relative flex max-h-[calc(100dvh-120px)] w-full max-w-[1280px] flex-col gap-[24px] overflow-hidden rounded-[24px] border border-[#dedee0] bg-[#f5f5f5] p-[32px] shadow-[-7px_7px_4px_0px_rgba(0,0,0,0.25)]">
         <div className="flex flex-col gap-[8px]">

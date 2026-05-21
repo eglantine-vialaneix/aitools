@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@heroui/react";
 import { GoGear } from "react-icons/go";
-import { Separator } from "@/app/components";
+import { ActivityInstructionsButton, Separator } from "@/app/components";
 import { MODEL_CONFIGS, type ModelId, type ModellingCondition } from "./modelConfig";
 import { resolveModelInput } from "./modelInputs";
 import { fitBlackBoxModel, PredictionTrainingTableOverlay } from "./PredictionTrainingTableOverlay";
@@ -13,6 +13,7 @@ import { markModelAsTrained, type ModelTrainingResult } from "./trainingState";
 type ModellingBlackBoxProps = {
   model?: ModelId;
   condition?: ModellingCondition;
+  onShowInstructions?: () => void;
 };
 
 const SURFACE_SHADOW =
@@ -114,6 +115,7 @@ function ModelSummary({
 export default function ModellingBlackBox({
   model = "A",
   condition = "BB",
+  onShowInstructions,
 }: ModellingBlackBoxProps) {
   const router = useRouter();
   const modelInput = useMemo(
@@ -170,6 +172,7 @@ export default function ModellingBlackBox({
       className="relative flex min-h-dvh w-full justify-center overflow-auto bg-cover bg-center bg-no-repeat px-[24px] py-[50px] text-[#18181b]"
       style={{ backgroundImage: "url('/background.png')" }}
     >
+      {onShowInstructions && <ActivityInstructionsButton onPress={onShowInstructions} />}
       <div aria-hidden="true" className="fixed inset-0 bg-black/35" />
       <main className="relative flex min-h-[calc(100dvh-100px)] w-full min-w-[980px] flex-col items-center">
         <TrainingDataCard

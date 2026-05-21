@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { TextArea } from "@heroui/react";
+import { ActivityInstructionsButton } from "@/app/components";
 import { Dino, type DinoName } from "@/app/components/Dino";
 import { Button as DietButton } from "@/app/components/Button";
 import { Separator } from "@/app/components/Separator";
@@ -28,6 +29,10 @@ type DinoItem = {
   state: DinoState;
 };
 
+type WhiteBoxProps = {
+  onShowInstructions?: () => void;
+};
+
 const initialDinos: DinoItem[] = [
   { name: "Apatosaurus", state: "selected" },
   { name: "Brachiosaurus", state: "left" },
@@ -41,7 +46,7 @@ const initialDinos: DinoItem[] = [
   { name: "Utahraptor", state: "left" },
 ];
 
-export default function WhiteBox() {
+export default function WhiteBox({ onShowInstructions }: WhiteBoxProps) {
   const [dinos, setDinos] = useState<DinoItem[]>(initialDinos);
   const [activeBucket, setActiveBucket] = useState<"herbivore" | "carnivore" | null>(null);
 
@@ -105,6 +110,7 @@ export default function WhiteBox() {
 
   return (
     <div className={pageClassName} data-name="WhiteBox - 1" data-node-id="4:13">
+      {onShowInstructions && <ActivityInstructionsButton onPress={onShowInstructions} />}
       <div aria-hidden="true" className="absolute inset-0 pointer-events-none">
         <Image fill alt="" className="absolute max-w-none object-cover" sizes="100vw" src={imgWhiteBox1} />
         <div className="absolute inset-0" style={{ backgroundImage: "url('data:image/svg+xml;utf8,<svg viewBox=\\'0 0 1440 1024\\' xmlns=\\'http://www.w3.org/2000/svg\\' preserveAspectRatio=\\'none\\'><rect x=\\'0\\' y=\\'0\\' height=\\'100%\\' width=\\'100%\\' fill=\\'url(%23grad)\\' opacity=\\'0.25\\'/><defs><radialGradient id=\\'grad\\' gradientUnits=\\'userSpaceOnUse\\' cx=\\'0\\' cy=\\'0\\' r=\\'10\\' gradientTransform=\\'matrix(4.4087e-15 51.2 -72 3.1351e-15 720 512)\\'><stop stop-color=\\'rgba(102,102,102,1)\\' offset=\\'0\\'/><stop stop-color=\\'rgba(77,77,77,1)\\' offset=\\'0.25\\'/><stop stop-color=\\'rgba(51,51,51,1)\\' offset=\\'0.5\\'/><stop stop-color=\\'rgba(26,26,26,1)\\' offset=\\'0.75\\'/><stop stop-color=\\'rgba(13,13,13,1)\\' offset=\\'0.875\\'/><stop stop-color=\\'rgba(6,6,6,1)\\' offset=\\'0.9375\\'/><stop stop-color=\\'rgba(0,0,0,1)\\' offset=\\'1\\'/></radialGradient></defs></svg>')" }} />

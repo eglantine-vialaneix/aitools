@@ -54,8 +54,9 @@ export default function Home() {
         ) : (
           <>
             <h1 className="text-4xl font-bold">Bienvenue dans AI Tools !</h1>
-            <HomeIdentificationField onValidated={() => setIsIdentificationValidated(true)} />
-            {isIdentificationValidated && (
+            {!isIdentificationValidated ? (
+              <HomeIdentificationField onValidated={() => setIsIdentificationValidated(true)} />
+            ) : (
               <>
                 <p className="max-w-4xl text-center text-lg text-zinc-600 dark:text-zinc-300">
                   {PRESENTATION_TEXT}
