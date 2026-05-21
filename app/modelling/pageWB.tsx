@@ -48,6 +48,7 @@ type GiniResult = {
   yes: NodeCounts;
   no: NodeCounts;
   isSplittable?: boolean;
+  reason?: string;
 };
 
 type TreeNodeData = {
@@ -87,6 +88,8 @@ type TreeNodeProps = {
 
 const SURFACE_SHADOW =
   "shadow-[0_2px_8px_rgba(0,0,0,0.06),0_-6px_12px_rgba(0,0,0,0.03),0_14px_28px_rgba(0,0,0,0.08)]";
+const giniRequestCache = new Map<string, GiniResult[]>();
+const inFlightGiniRequests = new Map<string, Promise<GiniResult[]>>();
 
 function formatGini(value: number | undefined) {
   return value === undefined ? "…" : value.toFixed(2);
@@ -303,6 +306,7 @@ function TreeNode({
                         isSelected ? "bg-[#ebebec]" : "hover:bg-[#f5f5f5]"
                       }`}
                       disabled={!canSplit}
+                      title={split?.reason}
                       onClick={() => canSplit && split && onSelectFeature(node.id, split)}
                     >
                       <span
@@ -618,26 +622,86 @@ function childNode({
 }
 
 async function fetchGiniForNode(node: TreeNodeData, dataFile: ModelInput["data"]) {
+  const payload = {
+    features: node.availableFeatures,
+    filters: node.filters,
+    labels: readDinoLabels(),
+    dataFile,
+  };
+  const cacheKey = JSON.stringify(payload);
+  const cachedResults = giniRequestCache.get(cacheKey);
+
+  if (cachedResults) {
+    return cachedResults;
+  }
+
+  const inFlightRequest = inFlightGiniRequests.get(cacheKey);
+
+  if (inFlightRequest) {
+    return inFlightRequest;
+  }
+
+  const request = fetch("/api/modelling/gini", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  })
+    .then(async (response) => {
+      if (!response.ok) {
+        throw new Error("Impossible de calculer l’impureté de Gini.");
+      }
+
+      const responsePayload = (await response.json()) as { results?: GiniResult[] };
+      const results = [...(responsePayload.results ?? [])].sort((first, second) => first.gini - second.gini);
+
+      giniRequestCache.set(cacheKey, results);
+      return results;
+    })
+    .finally(() => {
+      inFlightGiniRequests.delete(cacheKey);
+    });
+
+  inFlightGiniRequests.set(cacheKey, request);
+  return request;
+}
+
+async function fetchModelBFeatures(selectedFeatures: string[]) {
+  const cacheKey = JSON.stringify({
+    features: selectedFeatures,
+    filters: [],
+    labels: readDinoLabels(),
+    dataFile: "df_train.csv",
+  });
+  const cachedResults = giniRequestCache.get(cacheKey);
+
+  if (cachedResults) {
+    return bestAndWorstGiniFeatures(cachedResults);
+  }
+
   const response = await fetch("/api/modelling/gini", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      features: node.availableFeatures,
-      filters: node.filters,
+      features: selectedFeatures,
+      filters: [],
       labels: readDinoLabels(),
-      dataFile,
+      dataFile: "df_train.csv",
     }),
   });
 
   if (!response.ok) {
-    throw new Error("Impossible de calculer l’impureté de Gini.");
+    throw new Error("Impossible de calculer les caractéristiques du modèle B.");
   }
 
   const payload = (await response.json()) as { results?: GiniResult[] };
+  const results = [...(payload.results ?? [])].sort((first, second) => first.gini - second.gini);
 
-  return [...(payload.results ?? [])].sort((first, second) => first.gini - second.gini);
+  giniRequestCache.set(cacheKey, results);
+  return bestAndWorstGiniFeatures(results);
 }
 
 export default function ModellingWhiteBox({
@@ -679,24 +743,7 @@ export default function ModellingWhiteBox({
       }
 
       try {
-        const response = await fetch("/api/modelling/gini", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            features: selectedFeatures,
-            labels: readDinoLabels(),
-            dataFile: "df_train.csv",
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error("Impossible de calculer les caractéristiques du modèle B.");
-        }
-
-        const payload = (await response.json()) as { results?: { feature: string; gini: number }[] };
-        const nextModelBFeatures = bestAndWorstGiniFeatures(payload.results ?? []);
+        const nextModelBFeatures = await fetchModelBFeatures(selectedFeatures);
 
         if (isActive) {
           setModelBFeatures(nextModelBFeatures.length ? nextModelBFeatures : null);
@@ -729,6 +776,10 @@ export default function ModellingWhiteBox({
 
   const openNode = async (nodeId: string) => {
     setOpenNodeId(nodeId);
+
+    if (giniByNode[nodeId]?.isLoading) {
+      return;
+    }
 
     if (giniByNode[nodeId]?.results.length) {
       return;

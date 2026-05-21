@@ -136,10 +136,7 @@ export default function ModellingBlackBox({
 
     async function trainModel() {
       try {
-        const [result] = await Promise.all([
-          fitBlackBoxModel(modelInput),
-          new Promise((resolve) => setTimeout(resolve, 900)),
-        ]);
+        const result = await fitBlackBoxModel(modelInput);
 
         if (isActive) {
           setTrainingResult(result);
@@ -217,6 +214,7 @@ export default function ModellingBlackBox({
       {isTableOpen && (
         <PredictionTrainingTableOverlay
           modelInput={modelInput}
+          rows={trainingResult?.predictionRows}
           onClose={() => setIsTableOpen(false)}
         />
       )}

@@ -18,6 +18,8 @@ export function TrainingTableOverlay({
   const [changedCells, setChangedCells] = useState<Set<string>>(new Set());
   const [sortConfig, setSortConfig] = useState<SortConfig>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [loadedDataFile, setLoadedDataFile] = useState<ModelDataFile | null>(null);
+  const isLoading = loadedDataFile !== dataFile && !errorMessage;
 
   useEffect(() => {
     let isActive = true;
@@ -31,6 +33,7 @@ export function TrainingTableOverlay({
           setRows(loadedTable.rows);
           setChangedCells(loadedTable.changedCells);
           setErrorMessage(null);
+          setLoadedDataFile(dataFile);
         }
       } catch (error) {
         if (isActive) {
@@ -108,7 +111,9 @@ export function TrainingTableOverlay({
         </div>
 
         <div className="min-h-0 overflow-auto rounded-[8px] border border-[#dedee0] bg-white">
-          {errorMessage ? (
+          {isLoading ? (
+            <p className="p-[20px] text-[16px] font-medium text-[#52525b]">Chargement du tableau…</p>
+          ) : errorMessage ? (
             <p className="p-[20px] text-[16px] text-[#b42318]">{errorMessage}</p>
           ) : (
             <DataTable

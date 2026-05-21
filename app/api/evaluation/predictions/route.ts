@@ -12,6 +12,24 @@ type PredictionRequest = {
 };
 
 const BACKEND_DIR = path.join(process.cwd(), "app", "backend");
+const predictionCache = new Map<string, unknown>();
+const inFlightPredictions = new Map<string, Promise<unknown>>();
+
+function stableStringify(value: unknown): string {
+  if (!value || typeof value !== "object") {
+    return JSON.stringify(value);
+  }
+
+  if (Array.isArray(value)) {
+    return `[${value.map(stableStringify).join(",")}]`;
+  }
+
+  const objectValue = value as Record<string, unknown>;
+  return `{${Object.keys(objectValue)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${stableStringify(objectValue[key])}`)
+    .join(",")}}`;
+}
 
 function getPythonCandidates() {
   const venvPythonParts =
@@ -115,8 +133,35 @@ export async function POST(request: Request) {
       : "df_test.csv";
 
   try {
-    const { stdout } = await runPythonPrediction({ features, labels, dataFile, targetFile });
-    return NextResponse.json(JSON.parse(stdout));
+    const payload: {
+      features: string[];
+      labels: Record<string, string>;
+      dataFile: "df_train.csv" | "df_train_partial.csv";
+      targetFile: "df_train.csv" | "df_train_partial.csv" | "df_test.csv";
+    } = { features, labels, dataFile, targetFile };
+    const cacheKey = stableStringify(payload);
+    const cachedResponse = predictionCache.get(cacheKey);
+
+    if (cachedResponse) {
+      return NextResponse.json(cachedResponse);
+    }
+
+    const existingRequest = inFlightPredictions.get(cacheKey);
+
+    if (existingRequest) {
+      return NextResponse.json(await existingRequest);
+    }
+
+    const nextRequest = runPythonPrediction(payload).then(({ stdout }) => JSON.parse(stdout) as unknown);
+    inFlightPredictions.set(cacheKey, nextRequest);
+
+    try {
+      const response = await nextRequest;
+      predictionCache.set(cacheKey, response);
+      return NextResponse.json(response);
+    } finally {
+      inFlightPredictions.delete(cacheKey);
+    }
   } catch (error) {
     return NextResponse.json(
       {

@@ -9,6 +9,8 @@ import { type ModelTrainingResult } from "./trainingState";
 import { compareCellValues, type PredictionTableRow } from "./tableRows";
 
 const PREDICTION_COLUMN = "régime_alimentaire_prédit";
+const predictionRowsCache = new Map<string, PredictionTableRow[]>();
+const inFlightPredictionRequests = new Map<string, Promise<PredictionTableRow[]>>();
 
 export function countPredictions(rows: PredictionTableRow[]): ModelTrainingResult {
   return rows.reduce<ModelTrainingResult>(
@@ -28,29 +30,58 @@ export function countPredictions(rows: PredictionTableRow[]): ModelTrainingResul
 }
 
 export async function fetchBlackBoxTrainingPredictions(modelInput: ModelInput) {
-  const response = await fetch("/api/evaluation/predictions", {
+  const payload = {
+    features: modelInput.features,
+    labels: readDinoLabels(),
+    dataFile: modelInput.data,
+    targetFile: modelInput.data,
+  };
+  const cacheKey = JSON.stringify(payload);
+  const cachedRows = predictionRowsCache.get(cacheKey);
+
+  if (cachedRows) {
+    return cachedRows;
+  }
+
+  const inFlightRequest = inFlightPredictionRequests.get(cacheKey);
+
+  if (inFlightRequest) {
+    return inFlightRequest;
+  }
+
+  const request = fetch("/api/evaluation/predictions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      features: modelInput.features,
-      labels: readDinoLabels(),
-      dataFile: modelInput.data,
-      targetFile: modelInput.data,
-    }),
-  });
+    body: JSON.stringify(payload),
+  })
+    .then(async (response) => {
+      if (!response.ok) {
+        throw new Error("Impossible d’entraîner le modèle boîte noire.");
+      }
 
-  if (!response.ok) {
-    throw new Error("Impossible d’entraîner le modèle boîte noire.");
-  }
+      const responsePayload = (await response.json()) as { rows?: PredictionTableRow[] };
+      const rows = responsePayload.rows ?? [];
 
-  const payload = (await response.json()) as { rows?: PredictionTableRow[] };
-  return payload.rows ?? [];
+      predictionRowsCache.set(cacheKey, rows);
+      return rows;
+    })
+    .finally(() => {
+      inFlightPredictionRequests.delete(cacheKey);
+    });
+
+  inFlightPredictionRequests.set(cacheKey, request);
+  return request;
 }
 
 export async function fitBlackBoxModel(modelInput: ModelInput) {
-  return countPredictions(await fetchBlackBoxTrainingPredictions(modelInput));
+  const predictionRows = await fetchBlackBoxTrainingPredictions(modelInput);
+
+  return {
+    ...countPredictions(predictionRows),
+    predictionRows,
+  };
 }
 
 export function PredictionTrainingTableOverlay({
@@ -63,13 +94,19 @@ export function PredictionTrainingTableOverlay({
   onClose: () => void;
 }) {
   const [fetchedRows, setFetchedRows] = useState<PredictionTableRow[]>([]);
+  const [fetchedRowsKey, setFetchedRowsKey] = useState<string | null>(null);
   const [sortConfig, setSortConfig] = useState<SortConfig>(null);
   const [fetchErrorMessage, setFetchErrorMessage] = useState<string | null>(null);
-  const rows = providedRows ?? fetchedRows;
+  const requestKey = modelInput ? JSON.stringify({ features: modelInput.features, dataFile: modelInput.data }) : null;
+  const rows = useMemo(
+    () => providedRows ?? (fetchedRowsKey === requestKey ? fetchedRows : []),
+    [fetchedRows, fetchedRowsKey, providedRows, requestKey],
+  );
   const missingModelInputMessage = !providedRows && !modelInput
     ? "Aucune table de prédictions n’est disponible pour ce modèle."
     : null;
   const errorMessage = providedRows ? null : missingModelInputMessage ?? fetchErrorMessage;
+  const isLoading = !providedRows && Boolean(modelInput) && !errorMessage && rows.length === 0;
   const headers = useMemo(() => {
     const firstRow = rows[0];
 
@@ -98,6 +135,7 @@ export function PredictionTrainingTableOverlay({
 
         if (isActive) {
           setFetchedRows(nextRows);
+          setFetchedRowsKey(JSON.stringify({ features: input.features, dataFile: input.data }));
           setFetchErrorMessage(null);
         }
       } catch (error) {
@@ -176,7 +214,9 @@ export function PredictionTrainingTableOverlay({
         </div>
 
         <div className="min-h-0 overflow-auto rounded-[8px] border border-[#dedee0] bg-white">
-          {errorMessage ? (
+          {isLoading ? (
+            <p className="p-[20px] text-[16px] font-medium text-[#52525b]">Chargement du tableau…</p>
+          ) : errorMessage ? (
             <p className="p-[20px] text-[16px] text-[#b42318]">{errorMessage}</p>
           ) : (
             <DataTable

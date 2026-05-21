@@ -210,7 +210,7 @@ function ModellingPageContent() {
     let isActive = true;
 
     async function loadModelBFeatures() {
-      if (condition !== "WB" || selectedFeatures.length !== 4) {
+      if (selectedModel || condition !== "WB" || selectedFeatures.length !== 4) {
         setModelBFeatures(null);
         return;
       }
@@ -250,7 +250,7 @@ function ModellingPageContent() {
     return () => {
       isActive = false;
     };
-  }, [condition, selectedFeatures]);
+  }, [condition, selectedFeatures, selectedModel]);
 
   const modelInputs = useMemo(
     () =>
@@ -323,13 +323,13 @@ function ModellingPageContent() {
           <section className="grid w-full grid-cols-3 items-start gap-[22px]" aria-label="Modèles à entraîner">
             {MODEL_IDS.map((modelId) => {
               const trainingResult = trainingResults[modelId];
-              const whiteBoxPredictionRows = trainingResult?.predictionRows;
+              const predictionRows = trainingResult?.predictionRows;
               const openPredictionTable =
-                condition === "BB"
+                predictionRows?.length
+                  ? () => setTableOverlay({ kind: "predictions", rows: predictionRows })
+                  : condition === "BB"
                   ? () => setTableOverlay({ kind: "predictions", modelInput: modelInputs[modelId] })
-                  : whiteBoxPredictionRows?.length
-                    ? () => setTableOverlay({ kind: "predictions", rows: whiteBoxPredictionRows })
-                    : undefined;
+                  : undefined;
 
               return (
                 <div key={modelId} className="flex min-w-0 flex-col items-center">
