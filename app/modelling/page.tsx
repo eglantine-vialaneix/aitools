@@ -10,7 +10,7 @@ import {
   useExperimentCondition,
 } from "@/app/lib/experimentCondition";
 import { useSelectedFeatures } from "@/app/lib/featureSelectionState";
-import BlackBox, { PredictionTrainingTableOverlay } from "./pageBB";
+import BlackBox from "./pageBB";
 import WhiteBox from "./pageWB";
 import {
   MODEL_CONFIGS,
@@ -24,8 +24,10 @@ import {
   resolveModelInput,
   type ModelInput,
 } from "./modelInputs";
+import { PredictionTrainingTableOverlay } from "./PredictionTrainingTableOverlay";
 import { TrainingTableOverlay } from "./TrainingTableOverlay";
 import { readModelTrainingResults, readTrainedModels, type ModelTrainingResult } from "./trainingState";
+import { type PredictionTableRow } from "./tableRows";
 
 type ModelCardProps = {
   modelId: ModelId;
@@ -38,7 +40,8 @@ type TableOverlayState = {
   dataFile: ModelInput["data"];
 } | {
   kind: "predictions";
-  modelInput: ModelInput;
+  modelInput?: ModelInput;
+  rows?: PredictionTableRow[];
 } | null;
 
 type SurfaceProps = {
@@ -289,7 +292,7 @@ function ModellingPageContent() {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-zinc-50 text-zinc-900">
         <p className="rounded-3xl bg-white p-8 text-lg shadow-lg">
-          Choisis d&apos;abord une condition sur la page d&apos;accueil.
+          CONDITION ERROR: Retourner à la page d&apos;accueil pour définir la condition.
         </p>
       </div>
     );
@@ -318,31 +321,38 @@ function ModellingPageContent() {
           </div>
 
           <section className="grid w-full grid-cols-3 items-start gap-[22px]" aria-label="Modèles à entraîner">
-            {MODEL_IDS.map((modelId) => (
-              <div key={modelId} className="flex min-w-0 flex-col items-center">
-                <TrainingDataCard
-                  condition={condition}
-                  modelInput={modelInputs[modelId]}
-                  onInspectTable={() => setTableOverlay({ kind: "training", dataFile: modelInputs[modelId].data })}
-                />
-                <VerticalSeparator />
-                <BlackBoxedModel
-                  modelId={modelId}
-                  isTrained={trainedModels.has(modelId)}
-                  onTrain={trainModel}
-                />
-                {trainedModels.has(modelId) && trainingResults[modelId] && (
-                  <ModelSummary
-                    result={trainingResults[modelId]}
-                    onInspectTable={
-                      condition === "BB"
-                        ? () => setTableOverlay({ kind: "predictions", modelInput: modelInputs[modelId] })
-                        : undefined
-                    }
+            {MODEL_IDS.map((modelId) => {
+              const trainingResult = trainingResults[modelId];
+              const whiteBoxPredictionRows = trainingResult?.predictionRows;
+              const openPredictionTable =
+                condition === "BB"
+                  ? () => setTableOverlay({ kind: "predictions", modelInput: modelInputs[modelId] })
+                  : whiteBoxPredictionRows?.length
+                    ? () => setTableOverlay({ kind: "predictions", rows: whiteBoxPredictionRows })
+                    : undefined;
+
+              return (
+                <div key={modelId} className="flex min-w-0 flex-col items-center">
+                  <TrainingDataCard
+                    condition={condition}
+                    modelInput={modelInputs[modelId]}
+                    onInspectTable={() => setTableOverlay({ kind: "training", dataFile: modelInputs[modelId].data })}
                   />
-                )}
-              </div>
-            ))}
+                  <VerticalSeparator />
+                  <BlackBoxedModel
+                    modelId={modelId}
+                    isTrained={trainedModels.has(modelId)}
+                    onTrain={trainModel}
+                  />
+                  {trainedModels.has(modelId) && trainingResult && (
+                    <ModelSummary
+                      result={trainingResult}
+                      onInspectTable={openPredictionTable}
+                    />
+                  )}
+                </div>
+              );
+            })}
           </section>
 
           {condition === "BB" && areAllModelsTrained && (
@@ -404,6 +414,7 @@ function ModellingPageContent() {
         ) : (
           <PredictionTrainingTableOverlay
             modelInput={tableOverlay.modelInput}
+            rows={tableOverlay.rows}
             onClose={() => setTableOverlay(null)}
           />
         )

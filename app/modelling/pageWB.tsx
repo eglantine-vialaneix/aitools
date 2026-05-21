@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@heroui/react";
@@ -16,6 +16,7 @@ import {
 } from "./modelInputs";
 import { TrainingTableOverlay } from "./TrainingTableOverlay";
 import { markModelAsTrained, type ModelTrainingResult } from "./trainingState";
+import { loadLabelledTrainingRows, type PredictionTableRow, type TrainingTableRow } from "./tableRows";
 
 type ModellingWhiteBoxProps = {
   model?: ModelId;
@@ -67,6 +68,11 @@ type GiniState = {
   isLoading: boolean;
   errorMessage: string | null;
   results: GiniResult[];
+};
+
+type ConnectorLine = {
+  id: string;
+  path: string;
 };
 
 type TreeNodeProps = {
@@ -174,7 +180,10 @@ function LeafNode({ node }: { node: TreeNodeData }) {
   const herbivores = node.counts?.herbivores ?? 0;
 
   return (
-    <article className={`relative flex min-h-[220px] w-[196px] flex-col gap-[14px] rounded-[24px] bg-white p-[24px] ${SURFACE_SHADOW} backdrop-blur-[20px]`}>
+    <article
+      data-tree-node-card={node.id}
+      className={`relative flex min-h-[220px] w-[196px] flex-col gap-[14px] rounded-[24px] bg-white p-[24px] ${SURFACE_SHADOW} backdrop-blur-[20px]`}
+    >
       <p className="text-[16px] font-medium leading-[1.5] text-[#18181b]">{prediction === "carnivore" ? "Carnivore" : "Herbivore"}</p>
       <ul className="list-disc pl-[20px] text-[14px] leading-[1.43] text-[#71717a]">
         {node.pathLabels.slice(-2).map((label) => (
@@ -222,7 +231,10 @@ function TreeNode({
   }
 
   return (
-    <article className={`relative flex w-[393px] flex-col gap-[20px] rounded-[24px] bg-white p-[24px] ${SURFACE_SHADOW} backdrop-blur-[20px]`}>
+    <article
+      data-tree-node-card={node.id}
+      className={`relative flex w-[393px] flex-col gap-[20px] rounded-[24px] bg-white p-[24px] ${SURFACE_SHADOW} backdrop-blur-[20px]`}
+    >
       <div className="flex flex-col gap-[8px]">
         <p className="text-[16px] font-medium leading-[1.5] text-[#18181b]">
           {isSplitConfirmed && node.selectedSplit
@@ -238,10 +250,16 @@ function TreeNode({
 
       {isSplitConfirmed ? (
         <div className="grid grid-cols-2 gap-[8px]">
-          <span className="flex min-h-[36px] items-center justify-center rounded-full bg-[#ebebec] px-[14px] text-[14px] font-medium text-[#18181b]">
+          <span
+            data-tree-branch-button={`${node.id}:no`}
+            className="flex min-h-[36px] items-center justify-center rounded-full bg-[#ebebec] px-[14px] text-[14px] font-medium text-[#18181b]"
+          >
             NON
           </span>
-          <span className="flex min-h-[36px] items-center justify-center rounded-full bg-[#ebebec] px-[14px] text-[14px] font-medium text-[#18181b]">
+          <span
+            data-tree-branch-button={`${node.id}:yes`}
+            className="flex min-h-[36px] items-center justify-center rounded-full bg-[#ebebec] px-[14px] text-[14px] font-medium text-[#18181b]"
+          >
             OUI
           </span>
         </div>
@@ -339,10 +357,93 @@ function TreeCanvas({
   onConfirm: (nodeId: string) => void;
   onDefineLeaf: (nodeId: string) => void;
 }) {
+  const canvasRef = useRef<HTMLElement | null>(null);
+  const [connectorLines, setConnectorLines] = useState<ConnectorLine[]>([]);
   const nodesById = useMemo(() => {
     return new Map(nodes.map((node) => [node.id, node]));
   }, [nodes]);
   const rootNode = nodesById.get("root") ?? nodes[0];
+
+  useLayoutEffect(() => {
+    const canvas = canvasRef.current;
+
+    if (!canvas) {
+      setConnectorLines([]);
+      return;
+    }
+
+    let animationFrame: number | null = null;
+
+    const measureConnectors = () => {
+      const canvasRect = canvas.getBoundingClientRect();
+      const nextConnectorLines: ConnectorLine[] = [];
+
+      nodes.forEach((node) => {
+        if (!node.leftId || !node.rightId) {
+          return;
+        }
+
+        const connections = [
+          { branch: "no", childId: node.leftId },
+          { branch: "yes", childId: node.rightId },
+        ] as const;
+
+        connections.forEach(({ branch, childId }) => {
+          const branchButton = canvas.querySelector<HTMLElement>(
+            `[data-tree-branch-button="${node.id}:${branch}"]`,
+          );
+          const childCard = canvas.querySelector<HTMLElement>(
+            `[data-tree-node-card="${childId}"]`,
+          );
+
+          if (!branchButton || !childCard) {
+            return;
+          }
+
+          const buttonRect = branchButton.getBoundingClientRect();
+          const childRect = childCard.getBoundingClientRect();
+          const startX = buttonRect.left + buttonRect.width / 2 - canvasRect.left;
+          const startY = buttonRect.bottom - canvasRect.top;
+          const endX = childRect.left + childRect.width / 2 - canvasRect.left;
+          const endY = childRect.top - canvasRect.top;
+          const midpointY = startY + (endY - startY) / 2;
+
+          nextConnectorLines.push({
+            id: `${node.id}-${branch}-${childId}`,
+            path: `M ${startX} ${startY} V ${midpointY} H ${endX} V ${endY}`,
+          });
+        });
+      });
+
+      setConnectorLines(nextConnectorLines);
+    };
+
+    const scheduleMeasure = () => {
+      if (animationFrame !== null) {
+        cancelAnimationFrame(animationFrame);
+      }
+
+      animationFrame = requestAnimationFrame(measureConnectors);
+    };
+
+    scheduleMeasure();
+
+    const resizeObserver = new ResizeObserver(scheduleMeasure);
+    resizeObserver.observe(canvas);
+    canvas
+      .querySelectorAll<HTMLElement>("[data-tree-node-card], [data-tree-branch-button]")
+      .forEach((element) => resizeObserver.observe(element));
+    window.addEventListener("resize", scheduleMeasure);
+
+    return () => {
+      if (animationFrame !== null) {
+        cancelAnimationFrame(animationFrame);
+      }
+
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", scheduleMeasure);
+    };
+  }, [giniByNode, nodes, openNodeId]);
 
   function TreeBranch({ node }: { node: TreeNodeData }) {
     const leftNode = node.leftId ? nodesById.get(node.leftId) : undefined;
@@ -363,24 +464,7 @@ function TreeCanvas({
 
         {hasChildren && leftNode && rightNode && (
           <>
-            <div className="relative h-[70px] w-full min-w-[620px]" aria-hidden="true">
-              <Separator
-                orientation="vertical"
-                className="absolute left-[calc(50%-1.5px)] top-0 h-[32px] w-[3px]"
-              />
-              <Separator
-                label=""
-                className="absolute left-[25%] top-[30px] w-1/2"
-              />
-              <Separator
-                orientation="vertical"
-                className="absolute left-[calc(25%-1.5px)] top-[30px] h-[40px] w-[3px]"
-              />
-              <Separator
-                orientation="vertical"
-                className="absolute left-[calc(75%-1.5px)] top-[30px] h-[40px] w-[3px]"
-              />
-            </div>
+            <div className="h-[70px] w-full min-w-[620px]" aria-hidden="true" />
             <div className="flex items-start justify-center gap-[120px]">
               <TreeBranch node={leftNode} />
               <TreeBranch node={rightNode} />
@@ -392,8 +476,30 @@ function TreeCanvas({
   }
 
   return (
-    <section className="relative z-10 flex w-max min-w-full flex-col items-center">
-      {rootNode && <TreeBranch node={rootNode} />}
+    <section
+      ref={canvasRef}
+      className="relative z-10 mx-auto flex w-max min-w-full flex-col items-center pb-[120px]"
+    >
+      <svg
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-0 h-full w-full overflow-visible"
+      >
+        {connectorLines.map((connector) => (
+          <path
+            key={connector.id}
+            d={connector.path}
+            fill="none"
+            stroke="#dedee0"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="3"
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
+      </svg>
+      <div className="relative z-10 flex w-max min-w-full flex-col items-center">
+        {rootNode && <TreeBranch node={rootNode} />}
+      </div>
     </section>
   );
 }
@@ -433,6 +539,45 @@ function countTreePredictions(nodes: TreeNodeData[]): ModelTrainingResult {
     },
     { pred_carnivores: 0, pred_herbivores: 0 },
   );
+}
+
+function rowMatchesSplit(row: TrainingTableRow, split: GiniResult) {
+  const rowValue = row[split.feature];
+
+  if (split.operator === "gte") {
+    return Number(rowValue) >= Number(split.value);
+  }
+
+  return String(rowValue) === String(split.value);
+}
+
+function predictRowWithTree(row: TrainingTableRow, nodes: TreeNodeData[]) {
+  const nodesById = new Map(nodes.map((node) => [node.id, node]));
+  let currentNode = nodesById.get("root") ?? nodes[0];
+
+  while (currentNode?.selectedSplit && currentNode.leftId && currentNode.rightId) {
+    const nextNodeId = rowMatchesSplit(row, currentNode.selectedSplit)
+      ? currentNode.rightId
+      : currentNode.leftId;
+    const nextNode = nodesById.get(nextNodeId);
+
+    if (!nextNode) {
+      break;
+    }
+
+    currentNode = nextNode;
+  }
+
+  return currentNode?.counts?.majority ?? "herbivore";
+}
+
+async function buildWhiteBoxPredictionRows(nodes: TreeNodeData[], dataFile: ModelInput["data"]) {
+  const trainingTable = await loadLabelledTrainingRows(dataFile);
+
+  return trainingTable.rows.map<PredictionTableRow>((row) => ({
+    ...row,
+    régime_alimentaire_prédit: predictRowWithTree(row, nodes),
+  }));
 }
 
 function childNode({
@@ -682,40 +827,52 @@ export default function ModellingWhiteBox({
     setOpenNodeId(null);
   };
 
-  const finishTraining = () => {
+  const finishTraining = async () => {
     if (!isTreeComplete) {
       return;
     }
 
-    markModelAsTrained(model, countTreePredictions(nodes), condition);
+    const trainingResult = countTreePredictions(nodes);
+
+    try {
+      trainingResult.predictionRows = await buildWhiteBoxPredictionRows(nodes, modelInput.data);
+    } catch {
+      trainingResult.predictionRows = undefined;
+    }
+
+    markModelAsTrained(model, trainingResult, condition);
     router.push("/modelling");
   };
 
   return (
     <div
-      className="relative min-h-dvh w-full overflow-auto bg-cover bg-center bg-no-repeat px-[24px] py-[50px] text-[#18181b]"
+      className="relative h-dvh w-full overflow-hidden bg-cover bg-center bg-no-repeat px-[24px] py-[50px] text-[#18181b]"
       style={{ backgroundImage: "url('/background.png')" }}
     >
-      <div aria-hidden="true" className="fixed inset-0 bg-black/35" />
-      <main className="relative mx-auto flex min-h-[calc(100dvh-100px)] w-max min-w-full flex-col items-center">
-        <TrainingDataCard
-          features={modelInput.features}
-          carnivores={modelInput.init_carnivores}
-          herbivores={modelInput.init_herbivores}
-          onInspectTable={() => setIsTableOpen(true)}
-        />
-        <Separator orientation="vertical" className="h-[12px] w-[5px]" />
-        <TreeCanvas
-          nodes={nodes}
-          openNodeId={openNodeId}
-          giniByNode={giniByNode}
-          onOpen={openNode}
-          onSelectFeature={selectFeature}
-          onConfirm={confirmNode}
-          onDefineLeaf={defineLeaf}
-        />
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 bg-black/35" />
+      <main className="relative z-10 mx-auto flex h-[calc(100dvh-130px)] w-full min-w-0 flex-col items-center">
+        <div className="min-h-0 w-full min-w-0 flex-1 overflow-auto overscroll-contain">
+          <div className="flex w-max min-w-full flex-col items-center">
+            <TrainingDataCard
+              features={modelInput.features}
+              carnivores={modelInput.init_carnivores}
+              herbivores={modelInput.init_herbivores}
+              onInspectTable={() => setIsTableOpen(true)}
+            />
+            <Separator orientation="vertical" className="h-[12px] w-[5px] shrink-0" />
+            <TreeCanvas
+              nodes={nodes}
+              openNodeId={openNodeId}
+              giniByNode={giniByNode}
+              onOpen={openNode}
+              onSelectFeature={selectFeature}
+              onConfirm={confirmNode}
+              onDefineLeaf={defineLeaf}
+            />
+          </div>
+        </div>
 
-        <div className="fixed bottom-[20px] right-[20px] flex items-center gap-[10px]">
+        <div className="fixed bottom-[20px] right-[20px] z-20 flex items-center gap-[10px]">
           <Link
             href="/modelling"
             className="inline-flex min-h-[40px] items-center justify-center rounded-full border border-white/50 bg-white/85 px-[16px] text-[14px] font-medium text-[#18181b] shadow-[0_2px_8px_rgba(0,0,0,0.06)] backdrop-blur-[20px] transition hover:bg-white"

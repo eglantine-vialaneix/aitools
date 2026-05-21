@@ -1,13 +1,16 @@
 "use client";
 
 import { type ModelId, type ModellingCondition, isCondition, isModelId } from "./modelConfig";
+import { type PredictionTableRow } from "./tableRows";
 
 export type ModelTrainingResult = {
   pred_carnivores: number;
   pred_herbivores: number;
+  predictionRows?: PredictionTableRow[];
 };
 
-const TRAINED_MODELS_STORAGE_KEY = "modelling:trained-models:v5";
+const TRAINED_MODELS_STORAGE_KEY = "modelling:trained-models:v6";
+const LEGACY_TRAINED_MODELS_WITHOUT_PREDICTIONS_STORAGE_KEY = "modelling:trained-models:v5";
 const LEGACY_SESSION_TRAINED_MODELS_STORAGE_KEY = "modelling:trained-models:v4";
 const LEGACY_TRAINED_MODELS_STORAGE_KEY = "modelling:trained-models:v3";
 
@@ -19,7 +22,15 @@ function isModelTrainingResult(value: unknown): value is ModelTrainingResult {
   }
 
   const candidate = value as Record<string, unknown>;
-  return typeof candidate.pred_carnivores === "number" && typeof candidate.pred_herbivores === "number";
+  const hasValidCounts = typeof candidate.pred_carnivores === "number" && typeof candidate.pred_herbivores === "number";
+  const hasValidPredictionRows =
+    candidate.predictionRows === undefined ||
+    (Array.isArray(candidate.predictionRows) &&
+      candidate.predictionRows.every(
+        (row) => row && typeof row === "object" && !Array.isArray(row),
+      ));
+
+  return hasValidCounts && hasValidPredictionRows;
 }
 
 function readStoredTrainingResults(): StoredTrainingResults {
@@ -27,6 +38,7 @@ function readStoredTrainingResults(): StoredTrainingResults {
     return {};
   }
 
+  window.sessionStorage.removeItem(LEGACY_TRAINED_MODELS_WITHOUT_PREDICTIONS_STORAGE_KEY);
   window.localStorage.removeItem(LEGACY_TRAINED_MODELS_STORAGE_KEY);
   window.sessionStorage.removeItem(LEGACY_SESSION_TRAINED_MODELS_STORAGE_KEY);
 
