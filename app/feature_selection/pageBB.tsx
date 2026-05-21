@@ -8,7 +8,7 @@ import { readDinoLabels } from "@/app/lib/dinoLabels";
 
 type TableRow = Record<string, string>;
 type FeatureType = "Numérique" | "Booléen" | "Catégorique";
-type FeatureSelectionWhiteBoxProps = {
+type FeatureSelectionBlackBoxProps = {
   onShowInstructions?: () => void;
 };
 
@@ -29,6 +29,10 @@ function getStickyColumnClass(header: string, columnIndex: number, orderedHeader
 }
 
 const FEATURE_TYPES: FeatureType[] = ["Numérique", "Booléen", "Catégorique"];
+const FINAL_QUESTION =
+  "Dans quelle période vivait le dinosaure de la famille des Diplodocidae dont le poids n'excèdait pas 20000 kg ? (N'écris pas de phrase, uniquement la valeur de la case du tableau.)";
+const FINAL_QUESTION_ANSWER = "jurassique supérieur";
+const FINAL_QUESTION_HINT = "INDICE: Il s'agit du Diplodocus. Dans quelle période vivait-il ?";
 
 const CORRECT_FEATURE_TYPES: Record<string, FeatureType> = {
   période: "Catégorique",
@@ -102,13 +106,21 @@ function compareCellValues(firstValue: string, secondValue: string) {
   });
 }
 
-export default function FeatureSelectionWhiteBox({ onShowInstructions }: FeatureSelectionWhiteBoxProps) {
+function normalizeFinalAnswer(answer: string) {
+  return answer.trim().replace(/\s+/g, " ").toLocaleLowerCase("fr-FR");
+}
+
+export default function FeatureSelectionBlackBox({ onShowInstructions }: FeatureSelectionBlackBoxProps) {
   const router = useRouter();
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<TableRow[]>([]);
   const [changedCells, setChangedCells] = useState<Set<string>>(new Set());
   const [selectedTypes, setSelectedTypes] = useState<Record<string, FeatureType | undefined>>({});
   const [hasCheckedAnswers, setHasCheckedAnswers] = useState(false);
+  const [hasCompletedTypeQuestions, setHasCompletedTypeQuestions] = useState(false);
+  const [finalAnswer, setFinalAnswer] = useState("");
+  const [finalQuestionAttempts, setFinalQuestionAttempts] = useState(0);
+  const [finalQuestionError, setFinalQuestionError] = useState<string | null>(null);
   const [sortConfig, setSortConfig] = useState<SortConfig>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -207,8 +219,19 @@ export default function FeatureSelectionWhiteBox({ onShowInstructions }: Feature
     setHasCheckedAnswers(true);
 
     if (hasAllCorrectTypes) {
-      router.push("/modelling");
+      setHasCompletedTypeQuestions(true);
     }
+  };
+
+  const checkFinalAnswer = () => {
+    if (normalizeFinalAnswer(finalAnswer) === FINAL_QUESTION_ANSWER) {
+      router.push("/modelling");
+      return;
+    }
+
+    const nextAttempts = finalQuestionAttempts + 1;
+    setFinalQuestionAttempts(nextAttempts);
+    setFinalQuestionError(nextAttempts >= 3 ? FINAL_QUESTION_HINT : "Réponse incorrecte. Essaie encore.");
   };
 
   const updateSort = (column: string) => {
@@ -240,54 +263,85 @@ export default function FeatureSelectionWhiteBox({ onShowInstructions }: Feature
           </p>
         </div>
 
-        <section className="flex h-fit flex-col gap-[10px]" aria-label="Types des caractéristiques">
-          <div className="grid h-fit w-full grid-cols-5 gap-[12px]">
-            {featureHeaders.map((feature) => {
-              const selectedType = selectedTypes[feature];
-              const isIncorrect = hasCheckedAnswers && selectedType !== CORRECT_FEATURE_TYPES[feature];
-              const isCorrect = hasCheckedAnswers && selectedType === CORRECT_FEATURE_TYPES[feature];
+        <section className="flex h-fit flex-col gap-[10px]" aria-label={hasCompletedTypeQuestions ? "Question finale" : "Types des caractéristiques"}>
+          {hasCompletedTypeQuestions ? (
+            <div className="flex max-w-[800px] flex-col gap-[10px]">
+              <label htmlFor="final-feature-selection-answer" className="text-[18px] font-semibold leading-[1.35] text-[#27272a]">
+                {FINAL_QUESTION}
+              </label>
+              <input
+                id="final-feature-selection-answer"
+                className={`min-h-[44px] rounded-[8px] border bg-white px-[14px] text-[15px] outline-none transition focus:border-[#006fee] ${
+                  finalQuestionError ? "border-[#ff383c]" : "border-[#c9c9cf]"
+                }`}
+                onChange={(event) => {
+                  setFinalAnswer(event.target.value);
+                  setFinalQuestionError(null);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && finalAnswer.trim()) {
+                    checkFinalAnswer();
+                  }
+                }}
+                value={finalAnswer}
+              />
+              {finalQuestionError && (
+                <p className="text-[14px] leading-[1.35] text-[#b42318]">
+                  {finalQuestionError}
+                </p>
+              )}
+            </div>
+          ) : (
+            <>
+              <div className="grid h-fit w-full grid-cols-5 gap-[12px]">
+                {featureHeaders.map((feature) => {
+                  const selectedType = selectedTypes[feature];
+                  const isIncorrect = hasCheckedAnswers && selectedType !== CORRECT_FEATURE_TYPES[feature];
+                  const isCorrect = hasCheckedAnswers && selectedType === CORRECT_FEATURE_TYPES[feature];
 
-              return (
-                <div key={feature} className="flex flex-col gap-[6px]">
-                  <span className="text-[13px] font-medium text-[#3f3f46]">{feature}</span>
-                  <Select
-                    aria-label={`Type de ${feature}`}
-                    placeholder="Choisir..."
-                    selectedKey={selectedType ?? null}
-                    className="w-full"
-                    onSelectionChange={(key) => updateFeatureType(feature, key)}
-                  >
-                    <Select.Trigger
-                      className={`min-h-[44px] rounded-[8px] border bg-white text-[14px] ${
-                        isIncorrect
-                          ? "border-[#ff383c]"
-                          : isCorrect
-                            ? "border-[#17c964]"
-                            : "border-[#c9c9cf]"
-                      }`}
-                    >
-                      <Select.Value />
-                      <Select.Indicator />
-                    </Select.Trigger>
-                    <Select.Popover>
-                      <ListBox>
-                        {FEATURE_TYPES.map((featureType) => (
-                          <ListBox.Item key={featureType} id={featureType} textValue={featureType}>
-                            {featureType}
-                          </ListBox.Item>
-                        ))}
-                      </ListBox>
-                    </Select.Popover>
-                  </Select>
-                </div>
-              );
-            })}
-          </div>
+                  return (
+                    <div key={feature} className="flex flex-col gap-[6px]">
+                      <span className="text-[13px] font-medium text-[#3f3f46]">{feature}</span>
+                      <Select
+                        aria-label={`Type de ${feature}`}
+                        placeholder="Choisir..."
+                        selectedKey={selectedType ?? null}
+                        className="w-full"
+                        onSelectionChange={(key) => updateFeatureType(feature, key)}
+                      >
+                        <Select.Trigger
+                          className={`min-h-[44px] rounded-[8px] border bg-white text-[14px] ${
+                            isIncorrect
+                              ? "border-[#ff383c]"
+                              : isCorrect
+                                ? "border-[#17c964]"
+                                : "border-[#c9c9cf]"
+                          }`}
+                        >
+                          <Select.Value />
+                          <Select.Indicator />
+                        </Select.Trigger>
+                        <Select.Popover>
+                          <ListBox>
+                            {FEATURE_TYPES.map((featureType) => (
+                              <ListBox.Item key={featureType} id={featureType} textValue={featureType}>
+                                {featureType}
+                              </ListBox.Item>
+                            ))}
+                          </ListBox>
+                        </Select.Popover>
+                      </Select>
+                    </div>
+                  );
+                })}
+              </div>
 
-          {hasCheckedAnswers && !hasAllCorrectTypes && (
-            <p className="text-[14px] leading-[1.35] text-[#b42318]">
-              Corrige les types indiqués en rouge.
-            </p>
+              {hasCheckedAnswers && !hasAllCorrectTypes && (
+                <p className="text-[14px] leading-[1.35] text-[#b42318]">
+                  Corrige les types indiqués en rouge.
+                </p>
+              )}
+            </>
           )}
         </section>
 
@@ -308,10 +362,10 @@ export default function FeatureSelectionWhiteBox({ onShowInstructions }: Feature
             </button>
             <Button
               className="min-h-[40px] rounded-[22px] bg-[#006fee] px-[18px] text-[15px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-45"
-              isDisabled={!hasSelectedAllTypes}
-              onPress={goToNextStep}
+              isDisabled={hasCompletedTypeQuestions ? !finalAnswer.trim() : !hasSelectedAllTypes}
+              onPress={hasCompletedTypeQuestions ? checkFinalAnswer : goToNextStep}
             >
-              Suite
+              {hasCompletedTypeQuestions ? "Vérifier" : "Suite"}
             </Button>
           </div>
         </div>
