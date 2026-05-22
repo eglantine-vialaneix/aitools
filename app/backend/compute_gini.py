@@ -1,7 +1,6 @@
 import json
 import math
 import os
-import sys
 from pathlib import Path
 
 import pandas as pd
@@ -13,7 +12,7 @@ from tree_helpers import compute_all_ginis
 
 LABEL_COLUMN = "régime_alimentaire"
 DATA_ROOT = Path(__file__).resolve().parents[2] / "public" / "data"
-DATA_FILES = {"df_train.csv", "df_train_partial.csv"}
+DATA_FILES = {"df_train.csv"}
 
 
 def _json_value(value):
@@ -86,8 +85,16 @@ def _node_impurity_score(df):
     return (carnivores * herbivores) / total
 
 ## Changed the main to run to be able to call it with FASTAPI  
-def run(payload):
-    payload = json.loads(sys.stdin.read() or "{}")
+def _payload_from_stdin():
+    import sys
+
+    return json.loads(sys.stdin.read() or "{}")
+
+
+def run(payload=None):
+    if payload is None:
+        payload = _payload_from_stdin()
+
     features = payload.get("features", [])
     labels = payload.get("labels", {})
     filters = payload.get("filters", [])
@@ -103,10 +110,26 @@ def run(payload):
             df.loc[df["nom"] == name, LABEL_COLUMN] = diet
 
     df = _apply_filters(df, filters)
+    node_counts = _counts(df)
+    missing_features = []
     results = []
 
     for feature in features:
         if feature not in df.columns:
+            missing_features.append(feature)
+            results.append(
+                {
+                    "feature": feature,
+                    "gini": _node_impurity_score(df),
+                    "criterion": "",
+                    "operator": "eq",
+                    "value": "",
+                    "yes": _counts(df.iloc[0:0]),
+                    "no": node_counts,
+                    "isSplittable": False,
+                    "reason": "Feature is not present in this dataset.",
+                }
+            )
             continue
 
         values, ginis = compute_all_ginis(df, feature)
@@ -153,11 +176,10 @@ def run(payload):
             }
         )
 
-    return {"counts": _counts(df), "results": results}
+    return {"counts": node_counts, "results": results, "missingFeatures": missing_features}
 
 def main():
-    payload = json.loads(sys.stdin.read() or "{}")
-    print(json.dumps(run(payload), ensure_ascii=False))
+    print(json.dumps(run(), ensure_ascii=False))
 
 
 if __name__ == "__main__":

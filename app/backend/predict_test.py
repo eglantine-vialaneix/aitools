@@ -1,6 +1,5 @@
 import json
 import os
-import sys
 from pathlib import Path
 
 import pandas as pd
@@ -14,8 +13,8 @@ os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
 
 LABEL_COLUMN = "régime_alimentaire"
 DATA_ROOT = Path(__file__).resolve().parents[2] / "public" / "data"
-DATA_FILES = {"df_train.csv", "df_train_partial.csv"}
-TARGET_DATA_FILES = {"df_train.csv", "df_train_partial.csv", "df_test.csv"}
+DATA_FILES = {"df_train.csv"}
+TARGET_DATA_FILES = {"df_train.csv", "df_test.csv"}
 RANDOM_STATE = 15
 
 
@@ -32,9 +31,16 @@ def _records(df):
         for row in df.to_dict(orient="records")
     ]
 
-## same as for the gini computation
-def run(payload):
-    payload = json.loads(sys.stdin.read() or "{}")
+def _payload_from_stdin():
+    import sys
+
+    return json.loads(sys.stdin.read() or "{}")
+
+
+def run(payload=None):
+    if payload is None:
+        payload = _payload_from_stdin()
+
     features = payload.get("features", [])
     labels = payload.get("labels", {})
     data_file = payload.get("dataFile", "df_train.csv")
@@ -104,8 +110,7 @@ def run(payload):
 
 
 def main():
-    #payload = json.loads(sys.stdin.read() or "{}")
-    print(json.dumps(run(payload), ensure_ascii=False))
+    print(json.dumps(run(), ensure_ascii=False))
 
 
 if __name__ == "__main__":

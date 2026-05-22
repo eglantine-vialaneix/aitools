@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@heroui/react";
 import { GoGear } from "react-icons/go";
 import { ActivityInstructionsButton, Separator } from "@/app/components";
 import { MODEL_CONFIG, type ModellingCondition } from "./modelConfig";
-import { resolveModelInput } from "./modelInputs";
+import { useResolvedModelInput } from "./modelInputs";
 import { fitBlackBoxModel, PredictionTrainingTableOverlay } from "./PredictionTrainingTableOverlay";
 import { markModelAsTrained, type ModelTrainingResult } from "./trainingState";
 
@@ -108,14 +108,10 @@ export default function ModellingBlackBox({
   onShowInstructions,
 }: ModellingBlackBoxProps) {
   const router = useRouter();
-  const modelInput = useMemo(
-    () =>
-      resolveModelInput({
-        condition,
-        selectedFeatures: [],
-      }),
-    [condition],
-  );
+  const modelInput = useResolvedModelInput({
+    condition,
+    selectedFeatures: [],
+  });
   const [trainingResult, setTrainingResult] = useState<ModelTrainingResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isTableOpen, setIsTableOpen] = useState(false);

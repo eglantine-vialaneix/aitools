@@ -17,8 +17,8 @@ export const MODEL_CONFIG: ModelConfig = {
   dev_descr: "Selected features, full data",
   features: [],
   data: "df_train.csv",
-  init_carnivores: 15,
-  init_herbivores: 15,
+  init_carnivores: 5,
+  init_herbivores: 5,
   pred_carnivores: -1,
   pred_herbivores: -1,
 };

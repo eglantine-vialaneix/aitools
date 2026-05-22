@@ -21,13 +21,12 @@ import {
   type ModellingCondition,
 } from "./modelConfig";
 import {
-  resolveModelInput,
+  useResolvedModelInput,
   type ModelInput,
 } from "./modelInputs";
 import { PredictionTrainingTableOverlay } from "./PredictionTrainingTableOverlay";
 import { TrainingTableOverlay } from "./TrainingTableOverlay";
-//import { readModelTrainingResults, readTrainedModels, type ModelTrainingResult } from "./trainingState";
-import { useTrainedModels, useModelTrainingResults, type ModelTrainingResult } from "./trainingState";
+import { useModelTrainingResult, type ModelTrainingResult } from "./trainingState";
 import { type PredictionTableRow } from "./tableRows";
 
 type ModelCardProps = {
@@ -150,8 +149,7 @@ function ModelSummary({
   onInspectTable?: () => void;
 }) {
   return (
-    <div className="flex w-[220px] flex-col items-center">
-      <div aria-hidden="true" className="h-[75px] w-[3px] bg-[#dedee0]" />
+    <div className="flex w-[220px] items-center">
       <Surface variant="tertiary" className="flex min-h-[111px] w-[220px] items-center justify-center px-[22px] py-[16px]">
         <div className="flex w-[177px] flex-col items-center justify-center gap-[8px]">
           <span className="flex h-[36px] min-h-[36px] w-full items-center justify-center rounded-[24px] bg-[#ff383c] px-[14px] py-[8px] text-[14px] font-medium leading-[20px] text-white">
@@ -174,11 +172,11 @@ function ModelSummary({
   );
 }
 
-function VerticalSeparator({ className = "" }: { className?: string }) {
+function HorizontalSeparator({ className = "" }: { className?: string }) {
   return (
     <div
       aria-hidden="true"
-      className={`h-[75px] w-[5px] bg-[#dedee0] ${className}`}
+      className={`h-[5px] w-[72px] bg-[#dedee0] ${className}`}
     />
   );
 }
@@ -191,17 +189,15 @@ function ModellingPageContent() {
   const condition: ModellingCondition = resolvedCondition ?? "WB";
   const isTraining = searchParams.get("training") === "1";
 
-  //const trainedModels = readTrainedModels(condition);
-  //const trainingResults = readModelTrainingResults(condition);
-  const trainedModels = useTrainedModels(condition);
-  const trainingResults = useModelTrainingResults(condition); 
+  const trainingResult = useModelTrainingResult(condition);
+  const isTrained = Boolean(trainingResult);
   const selectedFeatures = useSelectedFeatures();
   const [tableOverlay, setTableOverlay] = useState<TableOverlayState>(null);
   const [isInstructionsOpen, setIsInstructionsOpen] = useState(true);
   const [blackBoxReflection, setBlackBoxReflection] = useState("");
   const [blackBoxTechnique, setBlackBoxTechnique] = useState("");
 
-  const modelInput = resolveModelInput({
+  const modelInput = useResolvedModelInput({
     condition,
     selectedFeatures,
   });
@@ -279,29 +275,38 @@ function ModellingPageContent() {
             </p>
           </div>
 
-          <section className="grid w-full max-w-[545px] grid-cols-1 items-start gap-[22px] self-center" aria-label="Modèle à entraîner">
-            <div className="flex min-w-0 flex-col items-center">
-              <TrainingDataCard
-                condition={condition}
-                modelInput={modelInput}
-                onInspectTable={() => setTableOverlay({ kind: "training", dataFile: modelInput.data })}
-              />
-              <VerticalSeparator />
-              <BlackBoxedModel
-                isTrained={isTrained}
-                onTrain={trainModel}
-              />
-              {isTrained && trainingResult && (
-                <ModelSummary
-                  result={trainingResult}
-                  onInspectTable={
-                    trainingResult.predictionRows?.length
-                      ? () => setTableOverlay({ kind: "predictions", rows: trainingResult.predictionRows })
-                      : condition === "BB"
-                      ? () => setTableOverlay({ kind: "predictions", modelInput })
-                      : undefined
-                  }
+          <section className="flex w-full items-center justify-center overflow-x-auto py-[18px]" aria-label="Modèle à entraîner">
+            <div className="flex min-w-max items-center justify-center">
+              <div className="w-[545px] shrink-0">
+                <TrainingDataCard
+                  condition={condition}
+                  modelInput={modelInput}
+                  onInspectTable={() => setTableOverlay({ kind: "training", dataFile: modelInput.data })}
                 />
+              </div>
+              <HorizontalSeparator />
+              <div className="shrink-0">
+                <BlackBoxedModel
+                  isTrained={isTrained}
+                  onTrain={trainModel}
+                />
+              </div>
+              {isTrained && trainingResult && (
+                <>
+                  <HorizontalSeparator />
+                  <div className="shrink-0">
+                    <ModelSummary
+                      result={trainingResult}
+                      onInspectTable={
+                        trainingResult.predictionRows?.length
+                          ? () => setTableOverlay({ kind: "predictions", rows: trainingResult.predictionRows })
+                          : condition === "BB"
+                          ? () => setTableOverlay({ kind: "predictions", modelInput })
+                          : undefined
+                      }
+                    />
+                  </div>
+                </>
               )}
             </div>
           </section>

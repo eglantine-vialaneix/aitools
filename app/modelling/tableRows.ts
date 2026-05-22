@@ -115,6 +115,23 @@ export async function loadLabelledTrainingRows(dataFile: ModelDataFile) {
   return table;
 }
 
+export function countDietRows(rows: TrainingTableRow[]) {
+  return rows.reduce(
+    (counts, row) => {
+      if (row[LABEL_COLUMN] === "carnivore") {
+        return { ...counts, carnivores: counts.carnivores + 1 };
+      }
+
+      if (row[LABEL_COLUMN] === "herbivore") {
+        return { ...counts, herbivores: counts.herbivores + 1 };
+      }
+
+      return counts;
+    },
+    { carnivores: 0, herbivores: 0 },
+  );
+}
+
 async function loadLabelledTrainingRowsFromCsv(dataFile: ModelDataFile, userLabels: ReturnType<typeof readDinoLabels>) {
   const response = await fetch(`/data/${dataFile}`);
 

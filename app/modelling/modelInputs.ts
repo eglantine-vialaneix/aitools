@@ -1,10 +1,12 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import {
   MODEL_CONFIG,
   type ModelDataFile,
   type ModellingCondition,
 } from "./modelConfig";
+import { countDietRows, loadLabelledTrainingRows } from "./tableRows";
 
 export type ModelInput = {
   features: string[];
@@ -48,4 +50,66 @@ export function resolveModelInput({
     init_carnivores: MODEL_CONFIG.init_carnivores,
     init_herbivores: MODEL_CONFIG.init_herbivores,
   };
+}
+
+export function useResolvedModelInput({
+  condition,
+  selectedFeatures,
+}: {
+  condition: ModellingCondition;
+  selectedFeatures: string[];
+}) {
+  const selectedFeaturesKey = JSON.stringify(selectedFeatures);
+  const features = useMemo(() => {
+    const stableSelectedFeatures = JSON.parse(selectedFeaturesKey) as string[];
+
+    return condition === "BB"
+      ? BLACK_BOX_FEATURES
+      : stableSelectedFeatures.length === 4
+        ? stableSelectedFeatures
+        : fallbackFeatures();
+  }, [condition, selectedFeaturesKey]);
+  const [counts, setCounts] = useState({
+    carnivores: MODEL_CONFIG.init_carnivores,
+    herbivores: MODEL_CONFIG.init_herbivores,
+  });
+  const data = MODEL_CONFIG.data;
+
+  useEffect(() => {
+    let isActive = true;
+
+    async function loadTrainingCounts() {
+      try {
+        const trainingTable = await loadLabelledTrainingRows(data);
+        const nextCounts = countDietRows(trainingTable.rows);
+
+        if (isActive) {
+          setCounts(nextCounts);
+        }
+      } catch {
+        if (isActive) {
+          setCounts({
+            carnivores: MODEL_CONFIG.init_carnivores,
+            herbivores: MODEL_CONFIG.init_herbivores,
+          });
+        }
+      }
+    }
+
+    loadTrainingCounts();
+
+    return () => {
+      isActive = false;
+    };
+  }, [data]);
+
+  return useMemo(
+    () => ({
+      features,
+      data,
+      init_carnivores: counts.carnivores,
+      init_herbivores: counts.herbivores,
+    }),
+    [counts.carnivores, counts.herbivores, data, features],
+  );
 }

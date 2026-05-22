@@ -10,7 +10,7 @@ import { readDinoLabels } from "@/app/lib/dinoLabels";
 import { useSelectedFeatures } from "@/app/lib/featureSelectionState";
 import { type ModellingCondition } from "./modelConfig";
 import {
-  resolveModelInput,
+  useResolvedModelInput,
   type ModelInput,
 } from "./modelInputs";
 import { TrainingTableOverlay } from "./TrainingTableOverlay";
@@ -672,7 +672,7 @@ export default function ModellingWhiteBox({
 }: ModellingWhiteBoxProps) {
   const router = useRouter();
   const selectedFeatures = useSelectedFeatures();
-  const modelInput = resolveModelInput({
+  const modelInput = useResolvedModelInput({
     condition,
     selectedFeatures,
   });
