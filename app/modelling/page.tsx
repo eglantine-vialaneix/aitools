@@ -203,7 +203,8 @@ function ModellingPageContent() {
   });
 
   if (isTraining) {
-    const showIntro = condition === "WB" && searchParams.get("intro") === "1";
+    const isViewingTrainedTree = condition === "WB" && Boolean(trainingResult?.whiteBoxTree?.length);
+    const showIntro = condition === "WB" && !isViewingTrainedTree && searchParams.get("intro") === "1";
     const openInstructions = () => setIsInstructionsOpen(true);
     const closeInstructions = () => setIsInstructionsOpen(false);
 
@@ -220,10 +221,12 @@ function ModellingPageContent() {
       <>
         <WhiteBox
           condition={condition}
+          initialNodes={trainingResult?.whiteBoxTree}
+          isReadOnly={Boolean(trainingResult?.whiteBoxTree?.length)}
           showIntro={showIntro}
           onShowInstructions={openInstructions}
         />
-        {isInstructionsOpen && (
+        {!isViewingTrainedTree && isInstructionsOpen && (
           <ActivityInstructionsOverlay title="Consignes d'entraînement" onClose={closeInstructions}>
             <ModellingInstructionsContent condition="WB" />
           </ActivityInstructionsOverlay>

@@ -4,10 +4,52 @@ import { useEffect, useState } from "react";
 import { type ModellingCondition, isCondition } from "./modelConfig";
 import { type PredictionTableRow } from "./tableRows";
 
+export type WhiteBoxSplitFilter = {
+  feature: string;
+  operator: "eq" | "gte";
+  value: string | number | boolean;
+  branch: "yes" | "no";
+};
+
+export type WhiteBoxNodeCounts = {
+  total: number;
+  carnivores: number;
+  herbivores: number;
+  majority: "carnivore" | "herbivore";
+  isPure: boolean;
+};
+
+export type WhiteBoxGiniResult = {
+  feature: string;
+  gini: number;
+  criterion: string;
+  operator: "eq" | "gte";
+  value: string | number | boolean;
+  yes: WhiteBoxNodeCounts;
+  no: WhiteBoxNodeCounts;
+  isSplittable?: boolean;
+  reason?: string;
+};
+
+export type WhiteBoxTreeNode = {
+  id: string;
+  depth: number;
+  branchLabel?: "NON" | "OUI";
+  pathLabels: string[];
+  filters: WhiteBoxSplitFilter[];
+  availableFeatures: string[];
+  counts?: WhiteBoxNodeCounts;
+  selectedSplit?: WhiteBoxGiniResult;
+  leftId?: string;
+  rightId?: string;
+  isLeaf?: boolean;
+};
+
 export type ModelTrainingResult = {
   pred_carnivores: number;
   pred_herbivores: number;
   predictionRows?: PredictionTableRow[];
+  whiteBoxTree?: WhiteBoxTreeNode[];
 };
 
 const TRAINED_MODELS_STORAGE_KEY = "modelling:trained-model:v8";
@@ -34,8 +76,14 @@ function isModelTrainingResult(value: unknown): value is ModelTrainingResult {
       candidate.predictionRows.every(
         (row) => row && typeof row === "object" && !Array.isArray(row),
       ));
+  const hasValidWhiteBoxTree =
+    candidate.whiteBoxTree === undefined ||
+    (Array.isArray(candidate.whiteBoxTree) &&
+      candidate.whiteBoxTree.every(
+        (node) => node && typeof node === "object" && !Array.isArray(node),
+      ));
 
-  return hasValidCounts && hasValidPredictionRows;
+  return hasValidCounts && hasValidPredictionRows && hasValidWhiteBoxTree;
 }
 
 function readStoredTrainingResults(): StoredTrainingResults {

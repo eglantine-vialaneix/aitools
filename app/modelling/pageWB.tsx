@@ -21,6 +21,8 @@ type ModellingWhiteBoxProps = {
   condition?: ModellingCondition;
   showIntro?: boolean;
   onShowInstructions?: () => void;
+  initialNodes?: TreeNodeData[];
+  isReadOnly?: boolean;
 };
 
 type SplitFilter = {
@@ -120,6 +122,18 @@ function formatBranchCondition(split: GiniResult, branch: "oui" | "non") {
   }
 
   return formatCondition(split);
+}
+
+function canSelectSplit(split: GiniResult | undefined, availableFeatureCount: number) {
+  if (!split) {
+    return false;
+  }
+
+  if (split.isSplittable !== false) {
+    return true;
+  }
+
+  return availableFeatureCount === 1 && split.criterion.length > 0;
 }
 
 function TrainingDataCard({
@@ -295,7 +309,7 @@ function TreeNode({
                 {node.availableFeatures.map((feature) => {
                   const split = splitByFeature.get(feature);
                   const isSelected = selectedFeature === feature;
-                  const canSplit = Boolean(split?.isSplittable ?? split);
+                  const canSplit = canSelectSplit(split, node.availableFeatures.length);
 
                   return (
                     <button
@@ -669,6 +683,8 @@ async function fetchGiniForNode(node: TreeNodeData, dataFile: ModelInput["data"]
 export default function ModellingWhiteBox({
   condition = "WB",
   showIntro = false,
+  initialNodes,
+  isReadOnly = false,
 }: ModellingWhiteBoxProps) {
   const router = useRouter();
   const selectedFeatures = useSelectedFeatures();
@@ -676,8 +692,10 @@ export default function ModellingWhiteBox({
     condition,
     selectedFeatures,
   });
-  const [isIntroOpen, setIsIntroOpen] = useState(showIntro);
-  const [nodes, setNodes] = useState<TreeNodeData[]>(() => [createRootNode(modelInput.features)]);
+  const [isIntroOpen, setIsIntroOpen] = useState(showIntro && !isReadOnly);
+  const [nodes, setNodes] = useState<TreeNodeData[]>(() =>
+    initialNodes?.length ? initialNodes : [createRootNode(modelInput.features)],
+  );
   const [openNodeId, setOpenNodeId] = useState<string | null>(null);
   const [giniByNode, setGiniByNode] = useState<Record<string, GiniState>>({});
   const [isTableOpen, setIsTableOpen] = useState(false);
@@ -688,10 +706,10 @@ export default function ModellingWhiteBox({
   }, [nodes]);
 
   useEffect(() => {
-    setNodes([createRootNode(modelInput.features)]);
+    setNodes(initialNodes?.length ? initialNodes : [createRootNode(modelInput.features)]);
     setOpenNodeId(null);
     setGiniByNode({});
-  }, [modelInput.features]);
+  }, [initialNodes, modelInput.features]);
 
   const updateNode = (nodeId: string, updater: (node: TreeNodeData) => TreeNodeData) => {
     setNodes((currentNodes) =>
@@ -816,6 +834,7 @@ export default function ModellingWhiteBox({
       trainingResult.predictionRows = undefined;
     }
 
+    trainingResult.whiteBoxTree = nodes;
     markModelAsTrained(trainingResult, condition);
     router.push("/modelling");
   };
@@ -825,7 +844,7 @@ export default function ModellingWhiteBox({
       className="relative h-dvh w-full overflow-hidden bg-cover bg-center bg-no-repeat px-[24px] py-[50px] text-[#18181b]"
       style={{ backgroundImage: "url('/background.png')" }}
     >
-      {!isIntroOpen && <ActivityInstructionsButton onPress={() => setIsIntroOpen(true)} />}
+      {!isReadOnly && !isIntroOpen && <ActivityInstructionsButton onPress={() => setIsIntroOpen(true)} />}
       <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 bg-black/35" />
       <main className="relative z-10 mx-auto flex h-[calc(100dvh-130px)] w-full min-w-0 flex-col items-center">
         <div className="min-h-0 w-full min-w-0 flex-1 overflow-auto overscroll-contain">
@@ -856,7 +875,7 @@ export default function ModellingWhiteBox({
           >
             Retour
           </Link>
-          {isTreeComplete && (
+          {!isReadOnly && isTreeComplete && (
             <Button
               className="min-h-[40px] rounded-full bg-[#0485f7] px-[16px] text-[14px] font-medium text-white shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
               onPress={finishTraining}
