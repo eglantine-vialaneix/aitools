@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@heroui/react";
 import { ActivityInstructionsButton, DataTable, type SortConfig } from "@/app/components";
 import { readDinoLabels } from "@/app/lib/dinoLabels";
+import { saveFeatureSelectionEnd } from "@/app/lib/experimentCollection";
 import { writeSelectedFeatures } from "@/app/lib/featureSelectionState";
 
 type TableRow = Record<string, string>;
@@ -183,6 +184,7 @@ export default function FeatureSelectionBlackBox({ onShowInstructions }: Feature
   const goToNextStep = () => {
     if (selectedFeatures.length === 4) {
       writeSelectedFeatures(selectedFeatures);
+      saveFeatureSelectionEnd({ selectedFeatures });
       router.push("/modelling");
     }
   };

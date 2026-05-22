@@ -15,6 +15,11 @@ import {
 import { readDinoLabels } from "@/app/lib/dinoLabels";
 import { saveEvaluationResponses } from "@/app/lib/evaluationResponses";
 import {
+  markCollectionStepStart,
+  saveEvaluationEnd,
+  submitExperimentCollection,
+} from "@/app/lib/experimentCollection";
+import {
   conditionForStep,
   useExperimentCondition,
 } from "@/app/lib/experimentCondition";
@@ -549,6 +554,7 @@ export default function EvaluationPage() {
   const [accuracyInputs, setAccuracyInputs] = useState<AccuracyInputs>(() => emptyAccuracyInputs());
   const [matrixInputs, setMatrixInputs] = useState<MatrixInputs>(() => emptyMatrixInputs());
   const [reflectionAnswers, setReflectionAnswers] = useState<string[]>(() => emptyReflectionAnswers());
+  const [accuracyAttempts, setAccuracyAttempts] = useState(0);
   const [invalidFields, setInvalidFields] = useState<Set<string>>(new Set());
   const [verificationMessage, setVerificationMessage] = useState<string | null>(null);
   const [allCalculationsAreCorrect, setAllCalculationsAreCorrect] = useState(false);
@@ -564,6 +570,10 @@ export default function EvaluationPage() {
     features: modelInput.features,
     data: modelInput.data,
   });
+
+  useEffect(() => {
+    markCollectionStepStart("Eval");
+  }, []);
 
   useEffect(() => {
     setAllCalculationsAreCorrect(false);
@@ -612,6 +622,7 @@ export default function EvaluationPage() {
   const areReflectionAnswersComplete = reflectionAnswers.every((answer) => answer.trim() !== "");
   const canFinishEvaluation = allCalculationsAreCorrect && areReflectionAnswersComplete;
   const verifyAnswers = async () => {
+    setAccuracyAttempts((currentAttempts) => currentAttempts + 1);
     setIsCheckingAnswers(true);
     setVerificationMessage(null);
     setSaveErrorMessage(null);
@@ -650,8 +661,17 @@ export default function EvaluationPage() {
       setIsCheckingAnswers(false);
     }
   };
-  const saveAndFinish = () => {
+  const saveAndFinish = async () => {
     try {
+      const evalAnswers = QUESTION_PROMPTS.map((prompt, index) => {
+        return `${prompt}\n${reflectionAnswers[index] ?? ""}`;
+      }).join("\n\n");
+
+      saveEvaluationEnd({
+        accuracyAttempts,
+        evalAnswers,
+      });
+      await submitExperimentCollection();
       saveEvaluationResponses({
         savedAt: new Date().toISOString(),
         condition,

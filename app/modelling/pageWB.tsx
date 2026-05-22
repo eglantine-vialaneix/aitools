@@ -7,6 +7,7 @@ import { Button } from "@heroui/react";
 import { GoGear } from "react-icons/go";
 import { ActivityInstructionsButton, GiniInstructionsContent, Separator } from "@/app/components";
 import { readDinoLabels } from "@/app/lib/dinoLabels";
+import { saveTrainedTree, type TrainedTreeNode } from "@/app/lib/experimentCollection";
 import { useSelectedFeatures } from "@/app/lib/featureSelectionState";
 import { type ModellingCondition } from "./modelConfig";
 import {
@@ -588,6 +589,33 @@ function predictRowWithTree(row: TrainingTableRow, nodes: TreeNodeData[]) {
   return currentNode?.counts?.majority ?? "herbivore";
 }
 
+function collectionTreeFromNodes(nodes: TreeNodeData[]): TrainedTreeNode | null {
+  const nodesById = new Map(nodes.map((node) => [node.id, node]));
+  const rootNode = nodesById.get("root") ?? nodes[0];
+
+  if (!rootNode) {
+    return null;
+  }
+
+  const visitNode = (node: TreeNodeData): TrainedTreeNode => {
+    if (!node.selectedSplit || !node.leftId || !node.rightId) {
+      return node.counts?.majority ?? "herbivore";
+    }
+
+    const yesNode = nodesById.get(node.rightId);
+    const noNode = nodesById.get(node.leftId);
+
+    return {
+      [formatCondition(node.selectedSplit)]: {
+        yes: yesNode ? visitNode(yesNode) : "herbivore",
+        no: noNode ? visitNode(noNode) : "herbivore",
+      },
+    };
+  };
+
+  return visitNode(rootNode);
+}
+
 async function buildWhiteBoxPredictionRows(nodes: TreeNodeData[], dataFile: ModelInput["data"]) {
   const trainingTable = await loadLabelledTrainingRows(dataFile);
 
@@ -835,6 +863,7 @@ export default function ModellingWhiteBox({
     }
 
     trainingResult.whiteBoxTree = nodes;
+    saveTrainedTree(collectionTreeFromNodes(nodes));
     markModelAsTrained(trainingResult, condition);
     router.push("/modelling");
   };

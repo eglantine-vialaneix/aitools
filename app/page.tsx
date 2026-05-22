@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { HomeIdentificationField } from "./components/HomeIdentificationField";
 import { type ValidIdentificationKeys } from "./components/key";
+import { startExperiment } from "./lib/experimentCollection";
 import { saveExperimentCondition } from "./lib/experimentCondition";
 
 const PRESENTATION_TEXT = (
@@ -24,6 +25,11 @@ export default function Home() {
 
   const validateIdentification = (validatedKeys: ValidIdentificationKeys) => {
     saveExperimentCondition(validatedKeys.condition);
+    startExperiment({
+      condition: validatedKeys.condition,
+      group: validatedKeys.group,
+      keys: validatedKeys.keys,
+    });
     setIsIdentificationValidated(true);
   };
 

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BlackBox from "./pageBB";
 import WhiteBox from "./pageWB";
 import { ActivityInstructionsOverlay, DataLabellingInstructionsContent } from "@/app/components";
+import { markCollectionStepStart } from "@/app/lib/experimentCollection";
 import { conditionForStep, useExperimentCondition } from "@/app/lib/experimentCondition";
 
 export default function DataLabellingInstructions() {
@@ -12,6 +13,10 @@ export default function DataLabellingInstructions() {
   const [isInstructionsOpen, setIsInstructionsOpen] = useState(true);
   const openInstructions = () => setIsInstructionsOpen(true);
   const closeInstructions = () => setIsInstructionsOpen(false);
+
+  useEffect(() => {
+    markCollectionStepStart("DL");
+  }, []);
 
   if (condition === "WB") {
     return (

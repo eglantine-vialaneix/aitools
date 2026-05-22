@@ -2,13 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { TextArea } from "@heroui/react";
 import { ActivityInstructionsButton } from "@/app/components";
 import { Dino, type DinoName } from "@/app/components/Dino";
 import { Button as DietButton } from "@/app/components/Button";
 import { Separator } from "@/app/components/Separator";
 import { DinoBucket } from "@/app/components/DinoBucket";
+import { saveDataLabellingEnd } from "@/app/lib/experimentCollection";
 import { clearDinoLabels, saveDinoLabels, type DinoDiet } from "@/app/lib/dinoLabels";
 
 const imgWhiteBox1 = "/background.png";
@@ -49,6 +50,7 @@ const initialDinos: DinoItem[] = [
 export default function WhiteBox({ onShowInstructions }: WhiteBoxProps) {
   const [dinos, setDinos] = useState<DinoItem[]>(initialDinos);
   const [activeBucket, setActiveBucket] = useState<"herbivore" | "carnivore" | null>(null);
+  const [notes, setNotes] = useState("");
 
   useEffect(() => {
     clearDinoLabels();
@@ -60,16 +62,23 @@ export default function WhiteBox({ onShowInstructions }: WhiteBoxProps) {
   const carnivoreDinos = dinos.filter((dino) => dino.state === "carnivore").map((dino) => dino.name);
   const dinoCount = remainingDinos.length;
   const hasLabelledAllDinos = dinos.every((dino) => dino.state === "herbivore" || dino.state === "carnivore");
+  const labels = useMemo(
+    () =>
+      Object.fromEntries(
+        dinos
+          .filter((dino) => dino.state === "herbivore" || dino.state === "carnivore")
+          .map((dino) => [dino.name, dino.state as DinoDiet]),
+      ),
+    [dinos],
+  );
 
   useEffect(() => {
     if (!hasLabelledAllDinos) {
       return;
     }
 
-    saveDinoLabels(
-      Object.fromEntries(dinos.map((dino) => [dino.name, dino.state as DinoDiet])),
-    );
-  }, [dinos, hasLabelledAllDinos]);
+    saveDinoLabels(labels);
+  }, [hasLabelledAllDinos, labels]);
 
   const renderBucketCards = (bucketDinos: DinoName[]) => {
     return bucketDinos.map((dino) => (
@@ -134,7 +143,12 @@ export default function WhiteBox({ onShowInstructions }: WhiteBoxProps) {
           </div>
           <div className="flex w-full min-w-[180px] flex-col items-start gap-[4px] flex-[1_0_0] self-stretch">
             <p className="font-medium text-[14px] leading-[1.43] text-[#efefef]">Tes notes:</p>
-            <TextArea className="w-full h-full [&>div]:w-full" placeholder="Écris tes notes ici..." />
+            <TextArea
+              className="w-full h-full [&>div]:w-full"
+              onChange={(event) => setNotes(event.target.value)}
+              placeholder="Écris tes notes ici..."
+              value={notes}
+            />
           </div>
         </div>
         <div className={mainCardClassName} data-name="Main card" data-node-id="10:187">
@@ -146,6 +160,7 @@ export default function WhiteBox({ onShowInstructions }: WhiteBoxProps) {
               <Link
                 className="inline-flex h-[48px] items-center justify-center rounded-full bg-[#006fee] px-[24px] text-[16px] font-medium text-white transition hover:bg-[#0059c9]"
                 href="/feature_selection"
+                onClick={() => saveDataLabellingEnd(notes, labels)}
               >
                 Suite
               </Link>

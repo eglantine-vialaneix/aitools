@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ActivityInstructionsOverlay, FeatureSelectionInstructionsContent } from "@/app/components";
+import { markCollectionStepStart } from "@/app/lib/experimentCollection";
 import { conditionForStep, useExperimentCondition } from "@/app/lib/experimentCondition";
 import BlackBox from "./pageBB";
 import WhiteBox from "./pageWB";
@@ -12,6 +13,10 @@ export default function FeatureSelectionInstructions() {
   const [isInstructionsOpen, setIsInstructionsOpen] = useState(true);
   const openInstructions = () => setIsInstructionsOpen(true);
   const closeInstructions = () => setIsInstructionsOpen(false);
+
+  useEffect(() => {
+    markCollectionStepStart("FS");
+  }, []);
 
   if (condition === "WB") {
     return (

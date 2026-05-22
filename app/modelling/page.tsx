@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, type ReactNode, useState } from "react";
+import { Suspense, type ReactNode, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Surface as HeroSurface, TextArea } from "@heroui/react";
 import { GoGear } from "react-icons/go";
@@ -13,6 +13,7 @@ import {
   conditionForStep,
   useExperimentCondition,
 } from "@/app/lib/experimentCondition";
+import { markCollectionStepStart, saveModelEnd } from "@/app/lib/experimentCollection";
 import { useSelectedFeatures } from "@/app/lib/featureSelectionState";
 import BlackBox from "./pageBB";
 import WhiteBox from "./pageWB";
@@ -197,6 +198,10 @@ function ModellingPageContent() {
   const [blackBoxReflection, setBlackBoxReflection] = useState("");
   const [blackBoxTechnique, setBlackBoxTechnique] = useState("");
 
+  useEffect(() => {
+    markCollectionStepStart("Model");
+  }, []);
+
   const modelInput = useResolvedModelInput({
     condition,
     selectedFeatures,
@@ -244,6 +249,19 @@ function ModellingPageContent() {
     blackBoxReflection.trim().length > 0 &&
     blackBoxTechnique.trim().length > 0;
   const canGoToEvaluation = isTrained && (condition !== "BB" || isBlackBoxReflectionComplete);
+  const goToEvaluation = () => {
+    saveModelEnd(
+      condition === "BB"
+        ? [
+            "Comment penses-tu que le modèle fait la distinction entre carnivore et herbivore ?",
+            blackBoxReflection,
+            "Explique le raisonnement que tu as suivi pour déterminer cela:",
+            blackBoxTechnique,
+          ].join("\n")
+        : null,
+    );
+    router.push("/evaluation");
+  };
 
   if (!resolvedCondition) {
     return (
@@ -345,7 +363,7 @@ function ModellingPageContent() {
             <Button
               className="min-h-[40px] rounded-[22px] bg-[#006fee] px-[18px] text-[15px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-45"
               isDisabled={!canGoToEvaluation}
-              onPress={() => router.push("/evaluation")}
+              onPress={goToEvaluation}
             >
               Suite
             </Button>

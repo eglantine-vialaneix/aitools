@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button, ListBox, Select } from "@heroui/react";
 import { ActivityInstructionsButton, DataTable, type SortConfig } from "@/app/components";
 import { readDinoLabels } from "@/app/lib/dinoLabels";
+import { saveFeatureSelectionEnd, saveFeatureTypeAttempt } from "@/app/lib/experimentCollection";
 
 type TableRow = Record<string, string>;
 type FeatureType = "Numérique" | "Booléen" | "Catégorique";
@@ -116,6 +117,7 @@ export default function FeatureSelectionBlackBox({ onShowInstructions }: Feature
   const [rows, setRows] = useState<TableRow[]>([]);
   const [changedCells, setChangedCells] = useState<Set<string>>(new Set());
   const [selectedTypes, setSelectedTypes] = useState<Record<string, FeatureType | undefined>>({});
+  const [featureTypeAttemptCount, setFeatureTypeAttemptCount] = useState(0);
   const [hasCheckedAnswers, setHasCheckedAnswers] = useState(false);
   const [hasCompletedTypeQuestions, setHasCompletedTypeQuestions] = useState(false);
   const [finalAnswer, setFinalAnswer] = useState("");
@@ -216,6 +218,10 @@ export default function FeatureSelectionBlackBox({ onShowInstructions }: Feature
   };
 
   const goToNextStep = () => {
+    const attemptNumber = featureTypeAttemptCount + 1;
+
+    saveFeatureTypeAttempt(attemptNumber, selectedTypes);
+    setFeatureTypeAttemptCount(attemptNumber);
     setHasCheckedAnswers(true);
 
     if (hasAllCorrectTypes) {
@@ -225,6 +231,7 @@ export default function FeatureSelectionBlackBox({ onShowInstructions }: Feature
 
   const checkFinalAnswer = () => {
     if (normalizeFinalAnswer(finalAnswer) === FINAL_QUESTION_ANSWER) {
+      saveFeatureSelectionEnd({});
       router.push("/modelling");
       return;
     }
