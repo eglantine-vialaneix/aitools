@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { type ModellingCondition, isCondition } from "./modelConfig";
 import { type PredictionTableRow } from "./tableRows";
 
@@ -15,6 +16,8 @@ const LEGACY_THREE_MODEL_TRAINED_MODELS_STORAGE_KEY = "modelling:trained-models:
 const LEGACY_TRAINED_MODELS_WITHOUT_PREDICTIONS_STORAGE_KEY = "modelling:trained-models:v5";
 const LEGACY_SESSION_TRAINED_MODELS_STORAGE_KEY = "modelling:trained-models:v4";
 const LEGACY_TRAINED_MODELS_STORAGE_KEY = "modelling:trained-models:v3";
+
+const TRAINED_MODELS_CHANGE_EVENT = "modelling:trained-models-change";
 
 type StoredTrainingResults = Partial<Record<ModellingCondition, ModelTrainingResult>>;
 
@@ -81,4 +84,31 @@ export function markModelAsTrained(result: ModelTrainingResult, condition: Model
       [condition]: result,
     }),
   );
+  window.dispatchEvent(new Event(TRAINED_MODELS_CHANGE_EVENT));
+}
+
+
+//// Instead of reading sessionStorage directly during render (which causes a server/client mismatch),
+// these hooks start empty (matching the server) and load the real data after the page mounts in the browser.
+// They also listen for TRAINED_MODELS_CHANGE_EVENT so the UI updates instantly when a model is trained.
+export function useTrainedModels(condition: ModellingCondition) {
+  const [trainedModels, setTrainedModels] = useState<Set<ModelId>>(new Set()); //TODO: adapt with recent changes from 3 to 1 model
+  useEffect(() => {
+    const update = () => setTrainedModels(useTrainedModels(condition));
+    update();
+    window.addEventListener(TRAINED_MODELS_CHANGE_EVENT, update);
+    return () => window.removeEventListener(TRAINED_MODELS_CHANGE_EVENT, update);
+  }, [condition]);
+  return trainedModels;
+}
+
+export function useModelTrainingResults(condition: ModellingCondition) {
+  const [results, setResults] = useState<Partial<Record<ModellingCondition, ModelTrainingResult>>>({});
+  useEffect(() => {
+    const update = () => setResults(useModelTrainingResults(condition));
+    update();
+    window.addEventListener(TRAINED_MODELS_CHANGE_EVENT, update);
+    return () => window.removeEventListener(TRAINED_MODELS_CHANGE_EVENT, update);
+  }, [condition]);
+  return results;
 }

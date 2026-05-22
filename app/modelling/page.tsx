@@ -26,7 +26,8 @@ import {
 } from "./modelInputs";
 import { PredictionTrainingTableOverlay } from "./PredictionTrainingTableOverlay";
 import { TrainingTableOverlay } from "./TrainingTableOverlay";
-import { isModelTrained, readModelTrainingResult, type ModelTrainingResult } from "./trainingState";
+//import { readModelTrainingResults, readTrainedModels, type ModelTrainingResult } from "./trainingState";
+import { useTrainedModels, useModelTrainingResults, type ModelTrainingResult } from "./trainingState";
 import { type PredictionTableRow } from "./tableRows";
 
 type ModelCardProps = {
@@ -190,8 +191,10 @@ function ModellingPageContent() {
   const condition: ModellingCondition = resolvedCondition ?? "WB";
   const isTraining = searchParams.get("training") === "1";
 
-  const isTrained = isModelTrained(condition);
-  const trainingResult = readModelTrainingResult(condition);
+  //const trainedModels = readTrainedModels(condition);
+  //const trainingResults = readModelTrainingResults(condition);
+  const trainedModels = useTrainedModels(condition);
+  const trainingResults = useModelTrainingResults(condition); 
   const selectedFeatures = useSelectedFeatures();
   const [tableOverlay, setTableOverlay] = useState<TableOverlayState>(null);
   const [isInstructionsOpen, setIsInstructionsOpen] = useState(true);

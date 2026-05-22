@@ -85,8 +85,8 @@ def _node_impurity_score(df):
 
     return (carnivores * herbivores) / total
 
-
-def main():
+## Changed the main to run to be able to call it with FASTAPI  
+def run(payload):
     payload = json.loads(sys.stdin.read() or "{}")
     features = payload.get("features", [])
     labels = payload.get("labels", {})
@@ -153,7 +153,11 @@ def main():
             }
         )
 
-    print(json.dumps({"counts": _counts(df), "results": results}, ensure_ascii=False))
+    return {"counts": _counts(df), "results": results}
+
+def main():
+    payload = json.loads(sys.stdin.read() or "{}")
+    print(json.dumps(run(payload), ensure_ascii=False))
 
 
 if __name__ == "__main__":
