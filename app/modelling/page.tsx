@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, type ReactNode, useEffect, useMemo, useState } from "react";
+import { Suspense, type ReactNode, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Surface as HeroSurface, TextArea } from "@heroui/react";
 import { GoGear } from "react-icons/go";
@@ -9,7 +9,6 @@ import {
   ActivityInstructionsOverlay,
   ModellingInstructionsContent,
 } from "@/app/components";
-import { readDinoLabels } from "@/app/lib/dinoLabels";
 import {
   conditionForStep,
   useExperimentCondition,
@@ -18,26 +17,21 @@ import { useSelectedFeatures } from "@/app/lib/featureSelectionState";
 import BlackBox from "./pageBB";
 import WhiteBox from "./pageWB";
 import {
-  MODEL_CONFIGS,
-  MODEL_IDS,
-  type ModelId,
+  MODEL_CONFIG,
   type ModellingCondition,
-  isModelId,
 } from "./modelConfig";
 import {
-  bestAndWorstGiniFeatures,
   resolveModelInput,
   type ModelInput,
 } from "./modelInputs";
 import { PredictionTrainingTableOverlay } from "./PredictionTrainingTableOverlay";
 import { TrainingTableOverlay } from "./TrainingTableOverlay";
-import { readModelTrainingResults, readTrainedModels, type ModelTrainingResult } from "./trainingState";
+import { isModelTrained, readModelTrainingResult, type ModelTrainingResult } from "./trainingState";
 import { type PredictionTableRow } from "./tableRows";
 
 type ModelCardProps = {
-  modelId: ModelId;
   isTrained: boolean;
-  onTrain: (modelId: ModelId) => void;
+  onTrain: () => void;
 };
 
 type TableOverlayState = {
@@ -123,9 +117,7 @@ function TrainingDataCard({
   );
 }
 
-function BlackBoxedModel({ modelId, isTrained, onTrain }: ModelCardProps) {
-  const model = MODEL_CONFIGS[modelId];
-
+function BlackBoxedModel({ isTrained, onTrain }: ModelCardProps) {
   return (
     <article className="relative flex h-[200px] w-[275px] flex-col items-center justify-center overflow-hidden rounded-[20px] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06),0_-6px_12px_rgba(0,0,0,0.03),0_14px_28px_rgba(0,0,0,0.08)] backdrop-blur-[20px]">
       <GoGear aria-hidden="true" className="absolute left-[10px] top-[10px] size-[20px] text-[#18181b]" />
@@ -133,7 +125,7 @@ function BlackBoxedModel({ modelId, isTrained, onTrain }: ModelCardProps) {
       <GoGear aria-hidden="true" className="absolute bottom-[10px] left-[10px] size-[20px] text-[#18181b]" />
       <GoGear aria-hidden="true" className="absolute bottom-[10px] right-[10px] size-[20px] text-[#18181b]" />
       <h2 className="mb-[14px] text-center text-[24px] font-bold leading-[1.34] text-black">
-        {model.title}
+        {MODEL_CONFIG.title}
       </h2>
       <Button
         className={`min-h-[40px] rounded-full px-[16px] text-[14px] font-medium ${
@@ -141,7 +133,7 @@ function BlackBoxedModel({ modelId, isTrained, onTrain }: ModelCardProps) {
             ? "border border-[#dedee0] bg-white text-[#18181b]"
             : "bg-[#0485f7] text-white hover:bg-[#006fee]"
         }`}
-        onPress={() => onTrain(modelId)}
+        onPress={onTrain}
       >
         {isTrained ? "Entraîné" : "Entraîner"}
       </Button>
@@ -193,95 +185,32 @@ function VerticalSeparator({ className = "" }: { className?: string }) {
 function ModellingPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const modelParam = searchParams.get("model");
   const experimentCondition = useExperimentCondition();
   const resolvedCondition = conditionForStep(experimentCondition, "modelling");
   const condition: ModellingCondition = resolvedCondition ?? "WB";
-  const selectedModel: ModelId | null = isModelId(modelParam) ? modelParam : null;
+  const isTraining = searchParams.get("training") === "1";
 
-  const trainedModels = readTrainedModels(condition);
-  const trainingResults = readModelTrainingResults(condition);
+  const isTrained = isModelTrained(condition);
+  const trainingResult = readModelTrainingResult(condition);
   const selectedFeatures = useSelectedFeatures();
-  const [modelBFeatures, setModelBFeatures] = useState<string[] | null>(null);
   const [tableOverlay, setTableOverlay] = useState<TableOverlayState>(null);
   const [isInstructionsOpen, setIsInstructionsOpen] = useState(true);
-  const [blackBoxReflections, setBlackBoxReflections] = useState<Record<ModelId, string>>({
-    A: "",
-    B: "",
-    C: "",
-  });
+  const [blackBoxReflection, setBlackBoxReflection] = useState("");
   const [blackBoxTechnique, setBlackBoxTechnique] = useState("");
 
-  useEffect(() => {
-    let isActive = true;
+  const modelInput = resolveModelInput({
+    condition,
+    selectedFeatures,
+  });
 
-    async function loadModelBFeatures() {
-      if (selectedModel || condition !== "WB" || selectedFeatures.length !== 4) {
-        setModelBFeatures(null);
-        return;
-      }
-
-      try {
-        const response = await fetch("/api/modelling/gini", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            features: selectedFeatures,
-            labels: readDinoLabels(),
-            dataFile: "df_train.csv",
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error("Impossible de calculer les caractéristiques du modèle B.");
-        }
-
-        const payload = (await response.json()) as { results?: { feature: string; gini: number }[] };
-        const nextModelBFeatures = bestAndWorstGiniFeatures(payload.results ?? []);
-
-        if (isActive) {
-          setModelBFeatures(nextModelBFeatures.length ? nextModelBFeatures : null);
-        }
-      } catch {
-        if (isActive) {
-          setModelBFeatures(null);
-        }
-      }
-    }
-
-    loadModelBFeatures();
-
-    return () => {
-      isActive = false;
-    };
-  }, [condition, selectedFeatures, selectedModel]);
-
-  const modelInputs = useMemo(
-    () =>
-      Object.fromEntries(
-        MODEL_IDS.map((modelId) => [
-          modelId,
-          resolveModelInput({
-            modelId,
-            condition,
-            selectedFeatures,
-            modelBFeatures,
-          }),
-        ]),
-      ) as Record<ModelId, ModelInput>,
-    [condition, modelBFeatures, selectedFeatures],
-  );
-
-  if (selectedModel) {
+  if (isTraining) {
     const showIntro = condition === "WB" && searchParams.get("intro") === "1";
     const openInstructions = () => setIsInstructionsOpen(true);
     const closeInstructions = () => setIsInstructionsOpen(false);
 
     return condition === "BB" ? (
       <>
-        <BlackBox model={selectedModel} condition={condition} onShowInstructions={openInstructions} />
+        <BlackBox condition={condition} onShowInstructions={openInstructions} />
         {isInstructionsOpen && (
           <ActivityInstructionsOverlay title="Consignes d'entraînement" onClose={closeInstructions}>
             <ModellingInstructionsContent condition="BB" />
@@ -291,7 +220,6 @@ function ModellingPageContent() {
     ) : (
       <>
         <WhiteBox
-          model={selectedModel}
           condition={condition}
           showIntro={showIntro}
           onShowInstructions={openInstructions}
@@ -307,15 +235,13 @@ function ModellingPageContent() {
 
   const openInstructions = () => setIsInstructionsOpen(true);
   const closeInstructions = () => setIsInstructionsOpen(false);
-  const trainModel = (modelId: ModelId) => {
-    const isFirstTraining = trainedModels.size === 0;
-    router.push(`/modelling?model=${modelId}${condition === "WB" && isFirstTraining ? "&intro=1" : ""}`);
+  const trainModel = () => {
+    router.push(`/modelling?training=1${condition === "WB" && !isTrained ? "&intro=1" : ""}`);
   };
-  const areAllModelsTrained = MODEL_IDS.every((modelId) => trainedModels.has(modelId));
   const isBlackBoxReflectionComplete =
-    MODEL_IDS.every((modelId) => blackBoxReflections[modelId].trim().length > 0) &&
+    blackBoxReflection.trim().length > 0 &&
     blackBoxTechnique.trim().length > 0;
-  const canGoToEvaluation = areAllModelsTrained && (condition !== "BB" || isBlackBoxReflectionComplete);
+  const canGoToEvaluation = isTrained && (condition !== "BB" || isBlackBoxReflectionComplete);
 
   if (!resolvedCondition) {
     return (
@@ -340,76 +266,56 @@ function ModellingPageContent() {
         <main className="relative flex w-full flex-col justify-center gap-[21px]">
           <div className="w-full text-black">
             <h1 className="text-[24px] font-bold leading-[1.34]">
-              Entraîne ces trois modèles:
+              Entraîne ce modèle:
             </h1>
             <p className="mt-[9px] w-full text-[16px] leading-[1.5]">
               Pour entraîner un modèle, tu dois lui présenter les données que tu viens de préparer
               pour qu’il puisse découvrir quels caractéristiques déterminent si un dinosaure est
-              carnivore ou herbivore. Pour cela, clique sur “Entraîner” et observe comment chaque
-              modèle classifie les données d’entraînement.
+              carnivore ou herbivore. Pour cela, clique sur “Entraîner” et observe comment il
+              classifie les données d’entraînement.
             </p>
           </div>
 
-          <section className="grid w-full grid-cols-3 items-start gap-[22px]" aria-label="Modèles à entraîner">
-            {MODEL_IDS.map((modelId) => {
-              const trainingResult = trainingResults[modelId];
-              const predictionRows = trainingResult?.predictionRows;
-              const openPredictionTable =
-                predictionRows?.length
-                  ? () => setTableOverlay({ kind: "predictions", rows: predictionRows })
-                  : condition === "BB"
-                  ? () => setTableOverlay({ kind: "predictions", modelInput: modelInputs[modelId] })
-                  : undefined;
-
-              return (
-                <div key={modelId} className="flex min-w-0 flex-col items-center">
-                  <TrainingDataCard
-                    condition={condition}
-                    modelInput={modelInputs[modelId]}
-                    onInspectTable={() => setTableOverlay({ kind: "training", dataFile: modelInputs[modelId].data })}
-                  />
-                  <VerticalSeparator />
-                  <BlackBoxedModel
-                    modelId={modelId}
-                    isTrained={trainedModels.has(modelId)}
-                    onTrain={trainModel}
-                  />
-                  {trainedModels.has(modelId) && trainingResult && (
-                    <ModelSummary
-                      result={trainingResult}
-                      onInspectTable={openPredictionTable}
-                    />
-                  )}
-                </div>
-              );
-            })}
+          <section className="grid w-full max-w-[545px] grid-cols-1 items-start gap-[22px] self-center" aria-label="Modèle à entraîner">
+            <div className="flex min-w-0 flex-col items-center">
+              <TrainingDataCard
+                condition={condition}
+                modelInput={modelInput}
+                onInspectTable={() => setTableOverlay({ kind: "training", dataFile: modelInput.data })}
+              />
+              <VerticalSeparator />
+              <BlackBoxedModel
+                isTrained={isTrained}
+                onTrain={trainModel}
+              />
+              {isTrained && trainingResult && (
+                <ModelSummary
+                  result={trainingResult}
+                  onInspectTable={
+                    trainingResult.predictionRows?.length
+                      ? () => setTableOverlay({ kind: "predictions", rows: trainingResult.predictionRows })
+                      : condition === "BB"
+                      ? () => setTableOverlay({ kind: "predictions", modelInput })
+                      : undefined
+                  }
+                />
+              )}
+            </div>
           </section>
 
-          {condition === "BB" && areAllModelsTrained && (
+          {condition === "BB" && isTrained && (
             <section className="flex w-full flex-col gap-[12px]">
               <h2 className="text-[16px] font-medium leading-[1.43] text-[#18181b]">
-                Comment penses-tu que chaque modèle fait la distinction entre carnivore et herbivore ?
+                Comment penses-tu que le modèle fait la distinction entre carnivore et herbivore ?
               </h2>
-              <div className="grid w-full grid-cols-3 gap-[12px]">
-                {MODEL_IDS.map((modelId) => (
-                  <label key={modelId} className="flex min-h-[128px] min-w-0 flex-col gap-[6px]">
-                    <span className="text-[14px] font-medium leading-[1.43] text-[#18181b]">
-                      Modèle {modelId}
-                    </span>
-                    <TextArea
-                      className="h-full w-full flex-1 [&>div]:h-full [&>div]:w-full [&_textarea]:min-h-[96px] [&_textarea]:resize-none [&_textarea]:text-[14px]"
-                      onChange={(event) =>
-                        setBlackBoxReflections((currentReflections) => ({
-                          ...currentReflections,
-                          [modelId]: event.target.value,
-                        }))
-                      }
-                      placeholder="Ta réponse ici..."
-                      value={blackBoxReflections[modelId]}
-                    />
-                  </label>
-                ))}
-              </div>
+              <label className="flex min-h-[128px] min-w-0 flex-col gap-[6px]">
+                <TextArea
+                  className="h-full w-full flex-1 [&>div]:h-full [&>div]:w-full [&_textarea]:min-h-[96px] [&_textarea]:resize-none [&_textarea]:text-[14px]"
+                  onChange={(event) => setBlackBoxReflection(event.target.value)}
+                  placeholder="Ta réponse ici..."
+                  value={blackBoxReflection}
+                />
+              </label>
               <label className="flex min-h-[116px] w-full flex-col gap-[6px]">
                 <span className="text-[16px] font-medium leading-[1.43] text-[#18181b]">
                   Explique le raisonnement que tu as suivi pour déterminer cela:

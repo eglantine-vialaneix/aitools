@@ -135,12 +135,12 @@ export function ModellingInstructionsContent({ condition }: { condition: Activit
     return (
       <>
         <p>
-          Maintenant que tu as fini de préparer tes données, tu vas pouvoir les donner à différents
-          modèles d&apos;apprentissage automatique pour les entraîner.
+          Maintenant que tu as fini de préparer tes données, tu vas pouvoir les donner à un modèle
+          d&apos;apprentissage automatique pour l&apos;entraîner.
         </p>
         <p>
-          Pour chaque modèle, inspecte d&apos;abord les données qui lui sont transmises, puis lance
-          l&apos;entraînement. Observe ensuite comment le modèle utilise les caractéristiques choisies
+          Inspecte d&apos;abord les données qui lui sont transmises, puis lance l&apos;entraînement.
+          Observe ensuite comment le modèle utilise les caractéristiques choisies
           pour différencier les dinosaures carnivores des dinosaures herbivores.
         </p>
       </>
@@ -150,13 +150,13 @@ export function ModellingInstructionsContent({ condition }: { condition: Activit
   return (
     <>
       <p>
-        Maintenant que tu as fini de préparer tes données, tu vas pouvoir les donner à différents
-        modèles d&apos;apprentissage automatique pour les entraîner.
+        Maintenant que tu as fini de préparer tes données, tu vas pouvoir les donner à un modèle
+        d&apos;apprentissage automatique pour l&apos;entraîner.
       </p>
       <p>
-        Pour chaque modèle, inspecte les données qui lui sont transmises, lance l&apos;entraînement,
-        puis observe le résultat obtenu. Ton objectif est de comprendre, à partir de ce que tu peux
-        voir, comment chaque modèle parvient à différencier les carnivores des herbivores.
+        Inspecte les données qui lui sont transmises, lance l&apos;entraînement, puis observe le
+        résultat obtenu. Ton objectif est de comprendre, à partir de ce que tu peux voir, comment
+        le modèle parvient à différencier les carnivores des herbivores.
       </p>
     </>
   );
@@ -166,8 +166,8 @@ export function EvaluationInstructionsContent() {
   return (
     <>
       <p>
-        Dernière étape ! Tu as pu entraîner 3 modèles à reconnaître le régime alimentaire d&apos;un
-        dinosaure. Voyons maintenant comment chacun performe sur des dinosaures qu&apos;il n&apos;a encore
+        Dernière étape ! Tu as pu entraîner un modèle à reconnaître le régime alimentaire d&apos;un
+        dinosaure. Voyons maintenant comment il performe sur des dinosaures qu&apos;il n&apos;a encore
         jamais rencontrés.
       </p>
       <p>

@@ -8,9 +8,8 @@ import { GoGear } from "react-icons/go";
 import { ActivityInstructionsButton, GiniInstructionsContent, Separator } from "@/app/components";
 import { readDinoLabels } from "@/app/lib/dinoLabels";
 import { useSelectedFeatures } from "@/app/lib/featureSelectionState";
-import { type ModelId, type ModellingCondition } from "./modelConfig";
+import { type ModellingCondition } from "./modelConfig";
 import {
-  bestAndWorstGiniFeatures,
   resolveModelInput,
   type ModelInput,
 } from "./modelInputs";
@@ -19,7 +18,6 @@ import { markModelAsTrained, type ModelTrainingResult } from "./trainingState";
 import { loadLabelledTrainingRows, type PredictionTableRow, type TrainingTableRow } from "./tableRows";
 
 type ModellingWhiteBoxProps = {
-  model?: ModelId;
   condition?: ModellingCondition;
   showIntro?: boolean;
   onShowInstructions?: () => void;
@@ -668,61 +666,16 @@ async function fetchGiniForNode(node: TreeNodeData, dataFile: ModelInput["data"]
   return request;
 }
 
-async function fetchModelBFeatures(selectedFeatures: string[]) {
-  const cacheKey = JSON.stringify({
-    features: selectedFeatures,
-    filters: [],
-    labels: readDinoLabels(),
-    dataFile: "df_train.csv",
-  });
-  const cachedResults = giniRequestCache.get(cacheKey);
-
-  if (cachedResults) {
-    return bestAndWorstGiniFeatures(cachedResults);
-  }
-
-  const response = await fetch("/api/modelling/gini", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      features: selectedFeatures,
-      filters: [],
-      labels: readDinoLabels(),
-      dataFile: "df_train.csv",
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error("Impossible de calculer les caractéristiques du modèle B.");
-  }
-
-  const payload = (await response.json()) as { results?: GiniResult[] };
-  const results = [...(payload.results ?? [])].sort((first, second) => first.gini - second.gini);
-
-  giniRequestCache.set(cacheKey, results);
-  return bestAndWorstGiniFeatures(results);
-}
-
 export default function ModellingWhiteBox({
-  model = "A",
   condition = "WB",
   showIntro = false,
 }: ModellingWhiteBoxProps) {
   const router = useRouter();
   const selectedFeatures = useSelectedFeatures();
-  const [modelBFeatures, setModelBFeatures] = useState<string[] | null>(null);
-  const modelInput = useMemo(
-    () =>
-      resolveModelInput({
-        modelId: model,
-        condition,
-        selectedFeatures,
-        modelBFeatures,
-      }),
-    [condition, model, modelBFeatures, selectedFeatures],
-  );
+  const modelInput = resolveModelInput({
+    condition,
+    selectedFeatures,
+  });
   const [isIntroOpen, setIsIntroOpen] = useState(showIntro);
   const [nodes, setNodes] = useState<TreeNodeData[]>(() => [createRootNode(modelInput.features)]);
   const [openNodeId, setOpenNodeId] = useState<string | null>(null);
@@ -733,35 +686,6 @@ export default function ModellingWhiteBox({
 
     return terminalNodes.length > 0 && terminalNodes.every((node) => node.isLeaf);
   }, [nodes]);
-
-  useEffect(() => {
-    let isActive = true;
-
-    async function loadModelBFeatures() {
-      if (condition !== "WB" || model !== "B" || selectedFeatures.length !== 4) {
-        setModelBFeatures(null);
-        return;
-      }
-
-      try {
-        const nextModelBFeatures = await fetchModelBFeatures(selectedFeatures);
-
-        if (isActive) {
-          setModelBFeatures(nextModelBFeatures.length ? nextModelBFeatures : null);
-        }
-      } catch {
-        if (isActive) {
-          setModelBFeatures(null);
-        }
-      }
-    }
-
-    loadModelBFeatures();
-
-    return () => {
-      isActive = false;
-    };
-  }, [condition, model, selectedFeatures]);
 
   useEffect(() => {
     setNodes([createRootNode(modelInput.features)]);
@@ -892,7 +816,7 @@ export default function ModellingWhiteBox({
       trainingResult.predictionRows = undefined;
     }
 
-    markModelAsTrained(model, trainingResult, condition);
+    markModelAsTrained(trainingResult, condition);
     router.push("/modelling");
   };
 
@@ -930,7 +854,7 @@ export default function ModellingWhiteBox({
             href="/modelling"
             className="inline-flex min-h-[40px] items-center justify-center rounded-full border border-white/50 bg-white/85 px-[16px] text-[14px] font-medium text-[#18181b] shadow-[0_2px_8px_rgba(0,0,0,0.06)] backdrop-blur-[20px] transition hover:bg-white"
           >
-            Retour aux modèles
+            Retour
           </Link>
           {isTreeComplete && (
             <Button

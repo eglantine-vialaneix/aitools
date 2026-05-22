@@ -1,6 +1,6 @@
 "use client";
 
-import { type ModelId, type ModellingCondition, isCondition, isModelId } from "./modelConfig";
+import { type ModellingCondition, isCondition } from "./modelConfig";
 import { type PredictionTableRow } from "./tableRows";
 
 export type ModelTrainingResult = {
@@ -9,12 +9,14 @@ export type ModelTrainingResult = {
   predictionRows?: PredictionTableRow[];
 };
 
-const TRAINED_MODELS_STORAGE_KEY = "modelling:trained-models:v6";
+const TRAINED_MODELS_STORAGE_KEY = "modelling:trained-model:v8";
+const LEGACY_SINGLE_MODEL_WITH_ID_STORAGE_KEY = "modelling:trained-models:v7";
+const LEGACY_THREE_MODEL_TRAINED_MODELS_STORAGE_KEY = "modelling:trained-models:v6";
 const LEGACY_TRAINED_MODELS_WITHOUT_PREDICTIONS_STORAGE_KEY = "modelling:trained-models:v5";
 const LEGACY_SESSION_TRAINED_MODELS_STORAGE_KEY = "modelling:trained-models:v4";
 const LEGACY_TRAINED_MODELS_STORAGE_KEY = "modelling:trained-models:v3";
 
-type StoredTrainingResults = Partial<Record<ModellingCondition, Partial<Record<ModelId, ModelTrainingResult>>>>;
+type StoredTrainingResults = Partial<Record<ModellingCondition, ModelTrainingResult>>;
 
 function isModelTrainingResult(value: unknown): value is ModelTrainingResult {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -39,6 +41,8 @@ function readStoredTrainingResults(): StoredTrainingResults {
   }
 
   window.sessionStorage.removeItem(LEGACY_TRAINED_MODELS_WITHOUT_PREDICTIONS_STORAGE_KEY);
+  window.sessionStorage.removeItem(LEGACY_SINGLE_MODEL_WITH_ID_STORAGE_KEY);
+  window.sessionStorage.removeItem(LEGACY_THREE_MODEL_TRAINED_MODELS_STORAGE_KEY);
   window.localStorage.removeItem(LEGACY_TRAINED_MODELS_STORAGE_KEY);
   window.sessionStorage.removeItem(LEGACY_SESSION_TRAINED_MODELS_STORAGE_KEY);
 
@@ -50,46 +54,31 @@ function readStoredTrainingResults(): StoredTrainingResults {
     }
 
     return Object.fromEntries(
-      Object.entries(storedResults).filter(([condition, modelResults]) => {
-        if (!isCondition(condition) || !modelResults || typeof modelResults !== "object" || Array.isArray(modelResults)) {
-          return false;
-        }
-        return Object.entries(modelResults).some(([modelId, result]) => isModelId(modelId) && isModelTrainingResult(result));
-      }).map(([condition, modelResults]) => [
-        condition,
-        Object.fromEntries(
-          Object.entries(modelResults as Record<string, unknown>).filter(([modelId, result]) => isModelId(modelId) && isModelTrainingResult(result)),
-        ),
-      ]),
+      Object.entries(storedResults).filter(
+        ([condition, result]) => isCondition(condition) && isModelTrainingResult(result),
+      ),
     ) as StoredTrainingResults;
   } catch {
     return {};
   }
 }
 
-export function readTrainedModels(condition: ModellingCondition) {
-  if (typeof window === "undefined") {
-    return new Set<ModelId>();
-  }
-
-  return new Set<ModelId>(Object.keys(readStoredTrainingResults()[condition] ?? {}).filter(isModelId));
+export function readModelTrainingResult(condition: ModellingCondition) {
+  return readStoredTrainingResults()[condition] ?? null;
 }
 
-export function readModelTrainingResults(condition: ModellingCondition) {
-  return readStoredTrainingResults()[condition] ?? {};
+export function isModelTrained(condition: ModellingCondition) {
+  return readModelTrainingResult(condition) !== null;
 }
 
-export function markModelAsTrained(modelId: ModelId, result: ModelTrainingResult, condition: ModellingCondition) {
+export function markModelAsTrained(result: ModelTrainingResult, condition: ModellingCondition) {
   const storedResults = readStoredTrainingResults();
 
   window.sessionStorage.setItem(
     TRAINED_MODELS_STORAGE_KEY,
     JSON.stringify({
       ...storedResults,
-      [condition]: {
-        ...(storedResults[condition] ?? {}),
-        [modelId]: result,
-      },
+      [condition]: result,
     }),
   );
 }

@@ -5,13 +5,12 @@ import { useRouter } from "next/navigation";
 import { Button } from "@heroui/react";
 import { GoGear } from "react-icons/go";
 import { ActivityInstructionsButton, Separator } from "@/app/components";
-import { MODEL_CONFIGS, type ModelId, type ModellingCondition } from "./modelConfig";
+import { MODEL_CONFIG, type ModellingCondition } from "./modelConfig";
 import { resolveModelInput } from "./modelInputs";
 import { fitBlackBoxModel, PredictionTrainingTableOverlay } from "./PredictionTrainingTableOverlay";
 import { markModelAsTrained, type ModelTrainingResult } from "./trainingState";
 
 type ModellingBlackBoxProps = {
-  model?: ModelId;
   condition?: ModellingCondition;
   onShowInstructions?: () => void;
 };
@@ -57,15 +56,7 @@ function TrainingDataCard({
   );
 }
 
-function BlackBoxModelCard({
-  model,
-  isLoading,
-}: {
-  model: ModelId;
-  isLoading: boolean;
-}) {
-  const modelConfig = MODEL_CONFIGS[model];
-
+function BlackBoxModelCard({ isLoading }: { isLoading: boolean }) {
   return (
     <article className={`relative flex h-[200px] w-[275px] flex-col items-center justify-center overflow-hidden rounded-[20px] bg-white ${SURFACE_SHADOW} backdrop-blur-[20px]`}>
       <GoGear aria-hidden="true" className={`absolute left-[10px] top-[10px] size-[20px] text-[#18181b] ${isLoading ? "animate-spin" : ""}`} />
@@ -73,7 +64,7 @@ function BlackBoxModelCard({
       <GoGear aria-hidden="true" className={`absolute bottom-[10px] left-[10px] size-[20px] text-[#18181b] ${isLoading ? "animate-spin" : ""}`} />
       <GoGear aria-hidden="true" className={`absolute bottom-[10px] right-[10px] size-[20px] text-[#18181b] ${isLoading ? "animate-spin" : ""}`} />
       <h1 className="text-center text-[24px] font-bold leading-[1.34] text-black">
-        {modelConfig.title}
+        {MODEL_CONFIG.title}
       </h1>
       <p className="mt-[10px] text-center text-[14px] font-medium leading-[1.43] text-[#71717a]">
         {isLoading ? "Entraînement en cours..." : "Modèle entraîné"}
@@ -113,7 +104,6 @@ function ModelSummary({
 }
 
 export default function ModellingBlackBox({
-  model = "A",
   condition = "BB",
   onShowInstructions,
 }: ModellingBlackBoxProps) {
@@ -121,12 +111,10 @@ export default function ModellingBlackBox({
   const modelInput = useMemo(
     () =>
       resolveModelInput({
-        modelId: model,
         condition,
         selectedFeatures: [],
-        modelBFeatures: null,
       }),
-    [condition, model],
+    [condition],
   );
   const [trainingResult, setTrainingResult] = useState<ModelTrainingResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -163,7 +151,7 @@ export default function ModellingBlackBox({
       return;
     }
 
-    markModelAsTrained(model, trainingResult, condition);
+    markModelAsTrained(trainingResult, condition);
     router.push("/modelling");
   };
 
@@ -181,7 +169,7 @@ export default function ModellingBlackBox({
           onInspectTable={() => setIsTableOpen(true)}
         />
         <Separator orientation="vertical" className="h-[42px] w-[5px]" />
-        <BlackBoxModelCard model={model} isLoading={isLoading} />
+        <BlackBoxModelCard isLoading={isLoading} />
 
         {errorMessage && (
           <p className="mt-[18px] rounded-[12px] bg-white px-[18px] py-[12px] text-[14px] font-medium text-[#b42318]">
@@ -201,7 +189,7 @@ export default function ModellingBlackBox({
             className="min-h-[40px] rounded-full border border-white/50 bg-white/85 px-[16px] text-[14px] font-medium text-[#18181b] shadow-[0_2px_8px_rgba(0,0,0,0.06)] backdrop-blur-[20px] transition hover:bg-white"
             onPress={() => router.push("/modelling")}
           >
-            Retour aux modèles
+            Retour
           </Button>
           {trainingResult && (
             <Button

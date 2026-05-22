@@ -4,9 +4,8 @@ export type SavedEvaluationResponses = {
   savedAt: string;
   condition: string;
   selectedFeatures: string[];
-  modelBFeatures: string[] | null;
-  accuracyInputs: Record<string, Record<string, string>>;
-  matrixInputs: Record<string, Record<string, string>>;
+  accuracyInputs: Record<string, string>;
+  matrixInputs: Record<string, string>;
   reflectionAnswers: string[];
 };
 

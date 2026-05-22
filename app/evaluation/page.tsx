@@ -20,23 +20,19 @@ import {
 } from "@/app/lib/experimentCondition";
 import { readSelectedFeatures } from "@/app/lib/featureSelectionState";
 import {
-  MODEL_IDS,
-  type ModelId,
   type ModellingCondition,
 } from "@/app/modelling/modelConfig";
 import {
-  bestAndWorstGiniFeatures,
   resolveModelInput,
   type ModelInput,
 } from "@/app/modelling/modelInputs";
 
 type AccuracyField = "correct" | "total" | "accuracy";
 type MatrixField = "carnivoreCorrect" | "carnivoreWrong" | "herbivoreCorrect" | "herbivoreWrong";
-type AccuracyInputs = Record<ModelId, Record<AccuracyField, string>>;
-type MatrixInputs = Record<ModelId, Record<MatrixField, string>>;
+type AccuracyInputs = Record<AccuracyField, string>;
+type MatrixInputs = Record<MatrixField, string>;
 type TestTableRow = Record<string, string | number | boolean>;
 type TableOverlayState = {
-  modelId: ModelId;
   modelInput: ModelInput;
 } | null;
 type ExpectedModelAnswers = {
@@ -60,14 +56,11 @@ const TEST_FEATURE_COLUMNS = [
 ];
 
 const QUESTION_PROMPTS = [
-  "Es-tu satisfait(e) de la performance de chaque modèle ? Pourquoi ?",
-  "Repense à ce que tu as fait pendant les étapes précédentes. Que corrigerais-tu pour améliorer la performance des moins bons modèles?",
+  "Es-tu satisfait(e) de la performance du modèle ? Pourquoi ?",
+  "Repense à ce que tu as fait pendant les étapes précédentes. Que corrigerais-tu pour améliorer la performance du modèle ?",
   "Quelle est la différence entre l'exactitude et la matrice de confusion comme méthode d'évaluation ? Quels avantages et incovénients trouves-tu à chacune ?",
 ];
-
-function modelTitle(modelId: ModelId) {
-  return `Modèle ${modelId}`;
-}
+const MODEL_TITLE = "Modèle";
 
 function modelTableColumns(condition: ModellingCondition, features: string[]) {
   const visibleFeatures = condition === "BB" ? TEST_FEATURE_COLUMNS : features;
@@ -93,23 +86,16 @@ function compareCellValues(firstValue: string | number | boolean | undefined, se
 }
 
 function emptyAccuracyInputs() {
-  return Object.fromEntries(
-    MODEL_IDS.map((modelId) => [modelId, { correct: "", total: "", accuracy: "" }]),
-  ) as AccuracyInputs;
+  return { correct: "", total: "", accuracy: "" };
 }
 
 function emptyMatrixInputs() {
-  return Object.fromEntries(
-    MODEL_IDS.map((modelId) => [
-      modelId,
-      {
-        carnivoreCorrect: "",
-        carnivoreWrong: "",
-        herbivoreCorrect: "",
-        herbivoreWrong: "",
-      },
-    ]),
-  ) as MatrixInputs;
+  return {
+    carnivoreCorrect: "",
+    carnivoreWrong: "",
+    herbivoreCorrect: "",
+    herbivoreWrong: "",
+  };
 }
 
 function emptyReflectionAnswers() {
@@ -183,17 +169,11 @@ async function fetchPredictionRows(modelInput: ModelInput) {
   return payload.rows ?? [];
 }
 
-function EvaluationModelCard({
-  modelId,
-  onInspectTable,
-}: {
-  modelId: ModelId;
-  onInspectTable: () => void;
-}) {
+function EvaluationModelCard({ onInspectTable }: { onInspectTable: () => void }) {
   return (
     <article className="relative flex h-full min-h-[112px] w-full min-w-[199px] flex-col items-center justify-center gap-[10px] overflow-hidden rounded-[20px] bg-white px-[18px] py-[18px] shadow-[0_2px_8px_rgba(0,0,0,0.06),0_-6px_12px_rgba(0,0,0,0.03),0_14px_28px_rgba(0,0,0,0.08)] backdrop-blur-[20px]">
       <h2 className="whitespace-nowrap text-center text-[16px] font-semibold leading-[1.5] text-black">
-        {modelTitle(modelId)}
+        {MODEL_TITLE}
       </h2>
       <Button
         className="min-h-[32px] rounded-full border border-[#dedee0] bg-white px-[10px] text-[14px] font-medium text-[#18181b]"
@@ -209,12 +189,12 @@ function EvaluationModelCard({
   );
 }
 
-function answerKey(section: "accuracy", modelId: ModelId, field: AccuracyField) {
-  return `${section}:${modelId}:${field}`;
+function answerKey(section: "accuracy", field: AccuracyField) {
+  return `${section}:${field}`;
 }
 
-function matrixKey(modelId: ModelId, field: MatrixField) {
-  return `matrix:${modelId}:${field}`;
+function matrixKey(field: MatrixField) {
+  return `matrix:${field}`;
 }
 
 function SmallInput({
@@ -281,14 +261,12 @@ function MatrixCell({
 }
 
 function AccuracyFormula({
-  modelId,
   correct,
   total,
   accuracy,
   invalidFields,
   onChange,
 }: {
-  modelId: ModelId;
   correct: string;
   total: string;
   accuracy: string;
@@ -299,16 +277,16 @@ function AccuracyFormula({
     <div className="flex items-center justify-start gap-[10px]">
       <div className="flex flex-col items-start gap-px">
         <SmallInput
-          ariaLabel={`${modelTitle(modelId)} nombre de prédictions correctes`}
-          isInvalid={invalidFields.has(answerKey("accuracy", modelId, "correct"))}
+          ariaLabel={`${MODEL_TITLE} nombre de prédictions correctes`}
+          isInvalid={invalidFields.has(answerKey("accuracy", "correct"))}
           onChange={(value) => onChange("correct", value)}
           placeholder="Nombre de corrects..."
           value={correct}
         />
         <Separator label="" className="w-[146px]" />
         <SmallInput
-          ariaLabel={`${modelTitle(modelId)} nombre total de prédictions`}
-          isInvalid={invalidFields.has(answerKey("accuracy", modelId, "total"))}
+          ariaLabel={`${MODEL_TITLE} nombre total de prédictions`}
+          isInvalid={invalidFields.has(answerKey("accuracy", "total"))}
           onChange={(value) => onChange("total", value)}
           placeholder="Nombre total..."
           value={total}
@@ -316,8 +294,8 @@ function AccuracyFormula({
       </div>
       <span className="text-[16px] font-semibold leading-[1.5] text-[#71717a]">=</span>
       <SmallInput
-        ariaLabel={`${modelTitle(modelId)} exactitude calculée`}
-        isInvalid={invalidFields.has(answerKey("accuracy", modelId, "accuracy"))}
+        ariaLabel={`${MODEL_TITLE} exactitude calculée`}
+        isInvalid={invalidFields.has(answerKey("accuracy", "accuracy"))}
         onChange={(value) => onChange("accuracy", value)}
         placeholder="Exactitude..."
         value={accuracy}
@@ -353,12 +331,10 @@ function MatrixInput({
 function ConfusionMatrix({
   invalidFields,
   matrixInput,
-  modelId,
   onChange,
 }: {
   invalidFields: Set<string>;
   matrixInput: Record<MatrixField, string>;
-  modelId: ModelId;
   onChange: (field: MatrixField, value: string) => void;
 }) {
   const rows: { label: string; correctField: MatrixField; wrongField: MatrixField }[] = [
@@ -371,7 +347,7 @@ function ConfusionMatrix({
       <thead>
         <tr className="h-[36px] bg-[#f0f0f0]">
           <th className="w-[90px] border border-[#b9b9b9] px-[8px] text-left font-semibold leading-[1.3]">
-            {modelTitle(modelId).toUpperCase()}
+            {MODEL_TITLE.toUpperCase()}
           </th>
           <th className="w-[66px] border border-[#b9b9b9] px-[5px] text-center font-semibold leading-[1.3]">
             Correct
@@ -385,8 +361,8 @@ function ConfusionMatrix({
         {rows.map((row, rowIndex) => {
           const previousRow = rows[rowIndex - 1];
           const nextRow = rows[rowIndex + 1];
-          const isCorrectInvalid = invalidFields.has(matrixKey(modelId, row.correctField));
-          const isWrongInvalid = invalidFields.has(matrixKey(modelId, row.wrongField));
+          const isCorrectInvalid = invalidFields.has(matrixKey(row.correctField));
+          const isWrongInvalid = invalidFields.has(matrixKey(row.wrongField));
 
           return (
           <tr key={row.label} className="h-[36px]">
@@ -396,17 +372,17 @@ function ConfusionMatrix({
               {row.label}
             </th>
             <MatrixCell
-              ariaLabel={`${modelTitle(modelId)} ${row.label} correct`}
-              hasInvalidAbove={previousRow ? invalidFields.has(matrixKey(modelId, previousRow.correctField)) : false}
-              hasInvalidBelow={nextRow ? invalidFields.has(matrixKey(modelId, nextRow.correctField)) : false}
+              ariaLabel={`${MODEL_TITLE} ${row.label} correct`}
+              hasInvalidAbove={previousRow ? invalidFields.has(matrixKey(previousRow.correctField)) : false}
+              hasInvalidBelow={nextRow ? invalidFields.has(matrixKey(nextRow.correctField)) : false}
               isInvalid={isCorrectInvalid}
               onChange={(value) => onChange(row.correctField, value)}
               value={matrixInput[row.correctField]}
             />
             <MatrixCell
-              ariaLabel={`${modelTitle(modelId)} ${row.label} faux`}
-              hasInvalidAbove={previousRow ? invalidFields.has(matrixKey(modelId, previousRow.wrongField)) : false}
-              hasInvalidBelow={nextRow ? invalidFields.has(matrixKey(modelId, nextRow.wrongField)) : false}
+              ariaLabel={`${MODEL_TITLE} ${row.label} faux`}
+              hasInvalidAbove={previousRow ? invalidFields.has(matrixKey(previousRow.wrongField)) : false}
+              hasInvalidBelow={nextRow ? invalidFields.has(matrixKey(nextRow.wrongField)) : false}
               isInvalid={isWrongInvalid}
               onChange={(value) => onChange(row.wrongField, value)}
               value={matrixInput[row.wrongField]}
@@ -445,12 +421,10 @@ function ReflectionPrompt({
 
 function TestTableOverlay({
   condition,
-  modelId,
   modelInput,
   onClose,
 }: {
   condition: ModellingCondition;
-  modelId: ModelId;
   modelInput: ModelInput;
   onClose: () => void;
 }) {
@@ -522,7 +496,7 @@ function TestTableOverlay({
         <div className="flex items-start justify-between gap-[18px]">
           <div>
             <h2 id="test-table-title" className="text-[28px] font-bold leading-[1.16]">
-              Données de test - {modelTitle(modelId)}
+              Données de test - {MODEL_TITLE}
             </h2>
             <p className="mt-[6px] text-[14px] font-medium text-[#52525b]">
               {sortConfig
@@ -571,7 +545,6 @@ export default function EvaluationPage() {
   const resolvedCondition = conditionForStep(experimentCondition, "evaluation");
   const condition: ModellingCondition = resolvedCondition ?? "WB";
   const selectedFeatures = useMemo(() => readSelectedFeatures(), []);
-  const [modelBFeatures, setModelBFeatures] = useState<string[] | null>(null);
   const [tableOverlay, setTableOverlay] = useState<TableOverlayState>(null);
   const [accuracyInputs, setAccuracyInputs] = useState<AccuracyInputs>(() => emptyAccuracyInputs());
   const [matrixInputs, setMatrixInputs] = useState<MatrixInputs>(() => emptyMatrixInputs());
@@ -583,73 +556,20 @@ export default function EvaluationPage() {
   const [isCheckingAnswers, setIsCheckingAnswers] = useState(false);
   const [isInstructionsOpen, setIsInstructionsOpen] = useState(true);
 
-  const modelInputs = useMemo(
-    () =>
-      Object.fromEntries(
-        MODEL_IDS.map((modelId) => [
-          modelId,
-          resolveModelInput({
-            modelId,
-            condition,
-            selectedFeatures,
-            modelBFeatures,
-          }),
-        ]),
-      ) as Record<ModelId, ModelInput>,
-    [condition, modelBFeatures, selectedFeatures],
-  );
-
-  useEffect(() => {
-    let isActive = true;
-
-    async function loadModelBFeatures() {
-      if (condition !== "WB" || selectedFeatures.length !== 4) {
-        setModelBFeatures(null);
-        return;
-      }
-
-      try {
-        const response = await fetch("/api/modelling/gini", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            features: selectedFeatures,
-            labels: readDinoLabels(),
-            dataFile: "df_train.csv",
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error("Impossible de calculer les caractéristiques du modèle B.");
-        }
-
-        const payload = (await response.json()) as { results?: { feature: string; gini: number }[] };
-        const nextModelBFeatures = bestAndWorstGiniFeatures(payload.results ?? []);
-
-        if (isActive) {
-          setModelBFeatures(nextModelBFeatures.length ? nextModelBFeatures : null);
-        }
-      } catch {
-        if (isActive) {
-          setModelBFeatures(null);
-        }
-      }
-    }
-
-    loadModelBFeatures();
-
-    return () => {
-      isActive = false;
-    };
-  }, [condition, selectedFeatures]);
+  const modelInput = resolveModelInput({
+    condition,
+    selectedFeatures,
+  });
+  const modelInputKey = JSON.stringify({
+    features: modelInput.features,
+    data: modelInput.data,
+  });
 
   useEffect(() => {
     setAllCalculationsAreCorrect(false);
     setInvalidFields(new Set());
     setVerificationMessage(null);
-  }, [modelInputs]);
+  }, [modelInputKey]);
 
   const clearInvalidField = (fieldKey: string) => {
     setInvalidFields((currentInvalidFields) => {
@@ -663,30 +583,24 @@ export default function EvaluationPage() {
     });
   };
 
-  const updateAccuracyInput = (modelId: ModelId, field: AccuracyField, value: string) => {
+  const updateAccuracyInput = (field: AccuracyField, value: string) => {
     setAllCalculationsAreCorrect(false);
     setVerificationMessage(null);
     setSaveErrorMessage(null);
-    clearInvalidField(answerKey("accuracy", modelId, field));
+    clearInvalidField(answerKey("accuracy", field));
     setAccuracyInputs((currentInputs) => ({
       ...currentInputs,
-      [modelId]: {
-        ...currentInputs[modelId],
-        [field]: value,
-      },
+      [field]: value,
     }));
   };
-  const updateMatrixInput = (modelId: ModelId, field: MatrixField, value: string) => {
+  const updateMatrixInput = (field: MatrixField, value: string) => {
     setAllCalculationsAreCorrect(false);
     setVerificationMessage(null);
     setSaveErrorMessage(null);
-    clearInvalidField(matrixKey(modelId, field));
+    clearInvalidField(matrixKey(field));
     setMatrixInputs((currentInputs) => ({
       ...currentInputs,
-      [modelId]: {
-        ...currentInputs[modelId],
-        [field]: value,
-      },
+      [field]: value,
     }));
   };
   const updateReflectionAnswer = (index: number, value: string) => {
@@ -703,36 +617,23 @@ export default function EvaluationPage() {
     setSaveErrorMessage(null);
 
     try {
-      const expectedByModel = Object.fromEntries(
-        await Promise.all(
-          MODEL_IDS.map(async (modelId) => [
-            modelId,
-            computeExpectedAnswers(await fetchPredictionRows(modelInputs[modelId])),
-          ]),
-        ),
-      ) as Record<ModelId, ExpectedModelAnswers>;
+      const expected = computeExpectedAnswers(await fetchPredictionRows(modelInput));
       const nextInvalidFields = new Set<string>();
 
-      MODEL_IDS.forEach((modelId) => {
-        const expected = expectedByModel[modelId];
-        const accuracyInput = accuracyInputs[modelId];
-        const matrixInput = matrixInputs[modelId];
-
-        (["correct", "total"] as const).forEach((field) => {
-          if (!isCountCorrect(accuracyInput[field], expected.accuracy[field])) {
-            nextInvalidFields.add(answerKey("accuracy", modelId, field));
-          }
-        });
-
-        if (!isAccuracyCorrect(accuracyInput.accuracy, expected.accuracy.accuracy)) {
-          nextInvalidFields.add(answerKey("accuracy", modelId, "accuracy"));
+      (["correct", "total"] as const).forEach((field) => {
+        if (!isCountCorrect(accuracyInputs[field], expected.accuracy[field])) {
+          nextInvalidFields.add(answerKey("accuracy", field));
         }
+      });
 
-        (Object.keys(expected.matrix) as MatrixField[]).forEach((field) => {
-          if (!isCountCorrect(matrixInput[field], expected.matrix[field])) {
-            nextInvalidFields.add(matrixKey(modelId, field));
-          }
-        });
+      if (!isAccuracyCorrect(accuracyInputs.accuracy, expected.accuracy.accuracy)) {
+        nextInvalidFields.add(answerKey("accuracy", "accuracy"));
+      }
+
+      (Object.keys(expected.matrix) as MatrixField[]).forEach((field) => {
+        if (!isCountCorrect(matrixInputs[field], expected.matrix[field])) {
+          nextInvalidFields.add(matrixKey(field));
+        }
       });
 
       setInvalidFields(nextInvalidFields);
@@ -755,7 +656,6 @@ export default function EvaluationPage() {
         savedAt: new Date().toISOString(),
         condition,
         selectedFeatures,
-        modelBFeatures,
         accuracyInputs,
         matrixInputs,
         reflectionAnswers,
@@ -785,46 +685,37 @@ export default function EvaluationPage() {
       <ActivityInstructionsButton onPress={() => setIsInstructionsOpen(true)} />
       <div aria-hidden="true" className="absolute inset-0 bg-black/35" />
       <main className="relative flex min-h-[calc(100dvh-80px)] w-full max-w-[1360px] overflow-auto rounded-[24px] bg-[#eaeaea]/90 p-[50px_30px_40px] shadow-[0_2px_4px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.06),0_0_1px_rgba(0,0,0,0.06)]">
-        <div className="grid min-h-[760px] min-w-[1048px] flex-1 grid-cols-[minmax(199px,1fr)_minmax(290px,1.25fr)_minmax(245px,1fr)] grid-rows-[auto_repeat(3,minmax(112px,1fr))_minmax(225px,1.4fr)] items-stretch justify-center gap-x-[104px] gap-y-[20px]">
+        <div className="grid min-h-[520px] min-w-[1048px] flex-1 grid-cols-[minmax(199px,1fr)_minmax(290px,1.25fr)_minmax(245px,1fr)] grid-rows-[auto_minmax(112px,1fr)_minmax(225px,1.4fr)] items-stretch justify-center gap-x-[104px] gap-y-[20px]">
           <h1 className="col-span-3 whitespace-nowrap text-[30.72px] font-bold leading-[1.34] text-black">
-            Pour chaque modèle, calcule son exactitude et sa matrice de confusion:
+            Calcule l&apos;exactitude et la matrice de confusion du modèle:
           </h1>
 
-          {MODEL_IDS.map((modelId, index) => (
-            <div key={modelId} style={{ gridColumn: 1, gridRow: index + 2 }}>
-              <EvaluationModelCard
-                modelId={modelId}
-                onInspectTable={() => setTableOverlay({ modelId, modelInput: modelInputs[modelId] })}
-              />
-            </div>
-          ))}
+          <div style={{ gridColumn: 1, gridRow: 2 }}>
+            <EvaluationModelCard
+              onInspectTable={() => setTableOverlay({ modelInput })}
+            />
+          </div>
 
-          {MODEL_IDS.map((modelId, index) => (
-            <div key={modelId} className="flex items-center" style={{ gridColumn: 2, gridRow: index + 2 }}>
-              <AccuracyFormula
-                accuracy={accuracyInputs[modelId].accuracy}
-                correct={accuracyInputs[modelId].correct}
-                invalidFields={invalidFields}
-                modelId={modelId}
-                onChange={(field, value) => updateAccuracyInput(modelId, field, value)}
-                total={accuracyInputs[modelId].total}
-              />
-            </div>
-          ))}
+          <div className="flex items-center" style={{ gridColumn: 2, gridRow: 2 }}>
+            <AccuracyFormula
+              accuracy={accuracyInputs.accuracy}
+              correct={accuracyInputs.correct}
+              invalidFields={invalidFields}
+              onChange={updateAccuracyInput}
+              total={accuracyInputs.total}
+            />
+          </div>
 
-          {MODEL_IDS.map((modelId, index) => (
-            <div key={modelId} className="flex items-start" style={{ gridColumn: 3, gridRow: index + 2 }}>
-              <ConfusionMatrix
-                invalidFields={invalidFields}
-                matrixInput={matrixInputs[modelId]}
-                modelId={modelId}
-                onChange={(field, value) => updateMatrixInput(modelId, field, value)}
-              />
-            </div>
-          ))}
+          <div className="flex items-start" style={{ gridColumn: 3, gridRow: 2 }}>
+            <ConfusionMatrix
+              invalidFields={invalidFields}
+              matrixInput={matrixInputs}
+              onChange={updateMatrixInput}
+            />
+          </div>
 
           {QUESTION_PROMPTS.map((prompt, index) => (
-            <div key={prompt} className="min-h-0" style={{ gridColumn: index + 1, gridRow: 5 }}>
+            <div key={prompt} className="min-h-0" style={{ gridColumn: index + 1, gridRow: 3 }}>
               <ReflectionPrompt
                 onChange={(value) => updateReflectionAnswer(index, value)}
                 prompt={prompt}
@@ -869,7 +760,6 @@ export default function EvaluationPage() {
       {tableOverlay && (
         <TestTableOverlay
           condition={condition}
-          modelId={tableOverlay.modelId}
           modelInput={tableOverlay.modelInput}
           onClose={() => setTableOverlay(null)}
         />
