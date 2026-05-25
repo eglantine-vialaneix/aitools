@@ -4,7 +4,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { TextArea } from "@heroui/react";
-import { ActivityInstructionsButton } from "@/app/components";
+import {
+  ActivityInstructionsButton,
+  DataLabellingCenterTutorialHint,
+  DataLabellingTutorialTarget,
+  type DataLabellingTutorialStep,
+} from "@/app/components";
 import { Dino, type DinoName } from "@/app/components/Dino";
 import { DinoBucket } from "@/app/components/DinoBucket";
 import { saveDataLabellingEnd } from "@/app/lib/experimentCollection";
@@ -30,6 +35,8 @@ type DinoItem = {
 
 type BlackBoxProps = {
   onShowInstructions?: () => void;
+  tutorialStep?: DataLabellingTutorialStep;
+  onTutorialDismiss?: () => void;
 };
 
 const dinoDiets: Record<DinoName, "herbivore" | "carnivore"> = {
@@ -88,7 +95,11 @@ function NextControl({ isDisabled, onClick }: { isDisabled: boolean; onClick: ()
   );
 }
 
-export default function BlackBox({ onShowInstructions }: BlackBoxProps) {
+export default function BlackBox({
+  onShowInstructions,
+  tutorialStep = null,
+  onTutorialDismiss = () => {},
+}: BlackBoxProps) {
   const [dinos, setDinos] = useState<DinoItem[]>(initialDinos);
   const [notes, setNotes] = useState("");
 
@@ -158,6 +169,9 @@ export default function BlackBox({ onShowInstructions }: BlackBoxProps) {
   return (
     <div className={pageClassName} data-name="BlackBox - 1" data-node-id="4:14">
       {onShowInstructions && <ActivityInstructionsButton onPress={onShowInstructions} />}
+      {tutorialStep === 1 && (
+        <DataLabellingCenterTutorialHint label="1) Lis la fiche" onDismiss={onTutorialDismiss} />
+      )}
       <div aria-hidden="true" className="absolute inset-0 pointer-events-none">
         <Image fill alt="" className="absolute max-w-none object-cover" sizes="100vw" src={imgBlackBox1} />
         <div className="absolute inset-0" style={{ backgroundImage: "url('data:image/svg+xml;utf8,<svg viewBox=\\'0 0 1440 1024\\' xmlns=\\'http://www.w3.org/2000/svg\\' preserveAspectRatio=\\'none\\'><rect x=\\'0\\' y=\\'0\\' height=\\'100%\\' width=\\'100%\\' fill=\\'url(%23grad)\\' opacity=\\'0.25\\'/><defs><radialGradient id=\\'grad\\' gradientUnits=\\'userSpaceOnUse\\' cx=\\'0\\' cy=\\'0\\' r=\\'10\\' gradientTransform=\\'matrix(4.4087e-15 51.2 -72 3.1351e-15 720 512)\\'><stop stop-color=\\'rgba(102,102,102,1)\\' offset=\\'0\\'/><stop stop-color=\\'rgba(77,77,77,1)\\' offset=\\'0.25\\'/><stop stop-color=\\'rgba(51,51,51,1)\\' offset=\\'0.5\\'/><stop stop-color=\\'rgba(26,26,26,1)\\' offset=\\'0.75\\'/><stop stop-color=\\'rgba(13,13,13,1)\\' offset=\\'0.875\\'/><stop stop-color=\\'rgba(6,6,6,1)\\' offset=\\'0.9375\\'/><stop stop-color=\\'rgba(0,0,0,1)\\' offset=\\'1\\'/></radialGradient></defs></svg>')" }} />
@@ -181,12 +195,28 @@ export default function BlackBox({ onShowInstructions }: BlackBoxProps) {
           </div>
           <div className="flex w-full min-w-[180px] flex-col items-start gap-[4px] flex-[1_0_0] self-stretch">
             <p className="font-medium text-[14px] leading-[1.43] text-[#efefef]">Tes notes:</p>
-            <TextArea
-              className="w-full h-full [&>div]:w-full"
-              onChange={(event) => setNotes(event.target.value)}
-              placeholder="Écris tes notes ici..."
-              value={notes}
-            />
+            {tutorialStep === 2 ? (
+              <DataLabellingTutorialTarget
+                className="h-full w-full"
+                label="2) Prends des notes sur chaque dinosaure"
+                onDismiss={onTutorialDismiss}
+                placement="top"
+              >
+                <TextArea
+                  className="h-full w-full [&>div]:w-full"
+                  onChange={(event) => setNotes(event.target.value)}
+                  placeholder="Écris tes notes ici..."
+                  value={notes}
+                />
+              </DataLabellingTutorialTarget>
+            ) : (
+              <TextArea
+                className="w-full h-full [&>div]:w-full"
+                onChange={(event) => setNotes(event.target.value)}
+                placeholder="Écris tes notes ici..."
+                value={notes}
+              />
+            )}
           </div>
         </div>
         <div className={mainCardClassName} data-name="Main card">
@@ -209,7 +239,18 @@ export default function BlackBox({ onShowInstructions }: BlackBoxProps) {
           <DinoBucket className="flex-1 min-h-0" data-name="all herbivores">
             {renderBucketCards(herbivoreDinos)}
           </DinoBucket>
-          <NextControl isDisabled={!hasNextDino} onClick={goToNextDino} />
+          {tutorialStep === 3 ? (
+            <DataLabellingTutorialTarget
+              className="w-full"
+              label="3) Passe au prochain au dinosaure"
+              onDismiss={onTutorialDismiss}
+              placement="left"
+            >
+              <NextControl isDisabled={!hasNextDino} onClick={goToNextDino} />
+            </DataLabellingTutorialTarget>
+          ) : (
+            <NextControl isDisabled={!hasNextDino} onClick={goToNextDino} />
+          )}
           <DinoBucket className="flex-1 min-h-0" data-name="all carnivores">
             {renderBucketCards(carnivoreDinos)}
           </DinoBucket>

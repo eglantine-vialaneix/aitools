@@ -56,13 +56,13 @@ export function HomeIdentificationField({ onValidated }: HomeIdentificationField
         ))}
       </div>
       {shouldShowValidationError && (
-        <p className="text-center text-sm font-medium text-red-600 dark:text-red-400">
+        <p className="text-center text-sm font-medium text-red-600">
           {validation.error}
         </p>
       )}
       {onValidated && (
         <Button
-          className="self-center rounded-full bg-sky-600 px-8 py-3 text-sm font-semibold text-white transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-45 dark:bg-sky-500 dark:hover:bg-sky-400"
+          className="self-center rounded-full bg-sky-600 px-8 py-3 text-sm font-semibold text-white transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-45"
           isDisabled={!validation.isValid}
           onPress={validateKeys}
         >

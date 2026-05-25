@@ -2,6 +2,7 @@
 
 import { Button } from "@heroui/react";
 import { type ReactNode } from "react";
+import Image from "next/image"
 
 type ActivityInstructionsOverlayProps = {
   title: string;
@@ -66,15 +67,18 @@ export function DataLabellingInstructionsContent({ condition }: { condition: Act
     return (
       <>
         <p>
-          Voici les fiches d&apos;information que tu as pu collecter sur 10 dinosaures. Lis-les
-          attentivement et prends des notes sur les indices qui peuvent t&apos;aider à comprendre leur
-          régime alimentaire.
+          Voici les fiches d&apos;information de 10 dinosaures. Lis-les
+          attentivement et prends des notes sur les indices qui pourraient t&apos;aider à identifier leur
+          régime alimentaire et classe les dinosaures.
         </p>
-        <p>
-          Pour chaque fiche, classe le dinosaure dans la catégorie qui te semble correcte:
-          carnivore ou herbivore. Tu peux t&apos;appuyer sur ses caractéristiques, son anatomie, son
-          habitat ou toute autre information utile présente sur la fiche.
-        </p>
+        <Image
+        alt="Exemples de types de colonnes: numérique, catégorique et booléen"
+        className="mt-[4px] h-auto w-full rounded-[12px] border border-[#dedee0]"
+        height={621}
+        priority
+        src="/Hints/TaskClassify.png"
+        width={3720}
+      />
       </>
     );
   }
@@ -82,15 +86,18 @@ export function DataLabellingInstructionsContent({ condition }: { condition: Act
   return (
     <>
       <p>
-        Voici les fiches d&apos;information que tu as pu collecter sur 10 dinosaures. Lis-les et
-        prends des notes sur les informations disponibles: taille, période, habitat, type de
-        dinosaure ou tout autre indice qui te semble important.
-      </p>
-      <p>
-        Ces dinosaures ont déjà été classifiés manuellement entre carnivores et herbivores.
-        Observe bien les fiches et le classement obtenu: ces informations te serviront pour la
-        suite de l&apos;enquête.
-      </p>
+          Voici les fiches d&apos;information de 10 dinosaures. Lis-les
+          attentivement et prends des notes sur les indices qui pourraient aider l'algorithme 
+          à identifier leur régime alimentaire.
+        </p>
+        <Image
+        alt="Exemples de types de colonnes: numérique, catégorique et booléen"
+        className="mt-[4px] h-auto w-full rounded-[12px] border border-[#dedee0]"
+        height={621}
+        priority
+        src="/Hints/TaskClassify.png"
+        width={3720}
+      />
     </>
   );
 }
@@ -100,15 +107,21 @@ export function FeatureSelectionInstructionsContent({ condition }: { condition: 
     return (
       <>
         <p>
-          Tu as pu voir que tu avais beaucoup d&apos;informations sur chaque dinosaure. Tu as décidé
-          de les organiser dans un tableau, en regroupant tes 10 fiches avec celles que certains de
-          tes collègues ont aussi pu étiqueter.
+          Parmi les nombreuses informations que tu as pu récolter, seulement une partie pourra permettre
+        de déterminer si un dinosaure est carnivore ou herbivore.
         </p>
         <p>
-          Tu dois maintenant choisir 4 caractéristiques qui te semblent les plus judicieuses pour
-          déterminer si un dinosaure est carnivore ou herbivore. Cherche des colonnes qui pourraient
-          vraiment aider un modèle à faire la différence entre les deux régimes.
+          Choisis 4 caractéristiques qui te semblent les plus judicieuses pour
+          déterminer si un dinosaure est carnivore ou herbivore. 
         </p>
+        <Image
+        alt="Sélection des caractéristiques"
+        className="mt-[4px] h-auto w-full "
+        height={621}
+        priority
+        src="/Hints/TaskFeatures.png"
+        width={3720}
+      />
       </>
     );
   }
@@ -116,16 +129,23 @@ export function FeatureSelectionInstructionsContent({ condition }: { condition: 
   return (
     <>
       <p>
-        Tu as pu voir que tu avais beaucoup d&apos;informations sur chaque dinosaure. Tu as décidé de
-        les organiser dans un tableau, en regroupant tes 10 fiches avec celles que certains de tes
-        collègues ont aussi pu étiqueter.
+        Parmi les nombreuses informations que tu as pu récolter, seulement une partie pourra permettre
+        de déterminer si un dinosaure est carnivore ou herbivore. En voici une première sélection.
       </p>
       <p>
-        Tu dois maintenant indiquer le type de chaque colonne. Une colonne est numérique quand elle
-        contient des nombres mesurables, comme une longueur ou un poids. Elle est catégorique quand
-        elle décrit une catégorie, comme une période, un habitat ou une famille. Elle est booléenne
-        quand elle ne peut prendre que deux valeurs, par exemple vrai/faux ou oui/non.
+        Tu dois maintenant indiquer le type de chaque colonne. <br></br>
+        Elle est catégorique quand elle décrit une liste de catégories. <br></br>
+        Une colonne est numérique quand elle contient des nombres mesurables. <br></br>
+        Elle est booléenne quand elle ne peut prendre que deux valeurs: vrai/faux ou oui/non.
       </p>
+      <Image
+        alt="Exemples de types de colonnes: numérique, catégorique et booléen"
+        className="mt-[4px] h-auto w-full rounded-[12px] border border-[#dedee0]"
+        height={621}
+        priority
+        src="/Hints/FeatureTypes_Inline.png"
+        width={3720}
+      />
     </>
   );
 }

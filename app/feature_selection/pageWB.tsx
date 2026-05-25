@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@heroui/react";
+import { IoInformationCircleOutline } from "react-icons/io5";
 import { ActivityInstructionsButton, DataTable, type SortConfig } from "@/app/components";
+import { PeriodHeaderHint, ResetSortHint } from "@/app/components/FeatureSelectionHints";
 import { readDinoLabels } from "@/app/lib/dinoLabels";
 import { saveFeatureSelectionEnd } from "@/app/lib/experimentCollection";
 import { writeSelectedFeatures } from "@/app/lib/featureSelectionState";
@@ -11,6 +13,7 @@ import { writeSelectedFeatures } from "@/app/lib/featureSelectionState";
 type TableRow = Record<string, string>;
 type FeatureSelectionBlackBoxProps = {
   onShowInstructions?: () => void;
+  shouldShowTableHints?: boolean;
 };
 
 const LABEL_COLUMN = "régime_alimentaire";
@@ -89,12 +92,19 @@ function compareCellValues(firstValue: string, secondValue: string) {
   });
 }
 
-export default function FeatureSelectionBlackBox({ onShowInstructions }: FeatureSelectionBlackBoxProps) {
+export default function FeatureSelectionBlackBox({
+  onShowInstructions,
+  shouldShowTableHints = true,
+}: FeatureSelectionBlackBoxProps) {
   const router = useRouter();
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<TableRow[]>([]);
   const [changedCells, setChangedCells] = useState<Set<string>>(new Set());
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
+  const [hasValidatedFeatures, setHasValidatedFeatures] = useState(false);
+  const [featureSelectionReason, setFeatureSelectionReason] = useState("");
+  const [featureImportanceOrder, setFeatureImportanceOrder] = useState("");
+  const [showTableHints, setShowTableHints] = useState(true);
   const [sortConfig, setSortConfig] = useState<SortConfig>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -168,6 +178,10 @@ export default function FeatureSelectionBlackBox({ onShowInstructions }: Feature
   }, [rows, sortConfig]);
 
   const toggleFeature = (feature: string) => {
+    if (hasValidatedFeatures) {
+      return;
+    }
+
     setSelectedFeatures((currentFeatures) => {
       if (currentFeatures.includes(feature)) {
         return currentFeatures.filter((currentFeature) => currentFeature !== feature);
@@ -182,9 +196,22 @@ export default function FeatureSelectionBlackBox({ onShowInstructions }: Feature
   };
 
   const goToNextStep = () => {
-    if (selectedFeatures.length === 4) {
+    if (selectedFeatures.length !== 4) {
+      return;
+    }
+
+    if (!hasValidatedFeatures) {
+      setHasValidatedFeatures(true);
+      return;
+    }
+
+    if (featureSelectionReason.trim() && featureImportanceOrder.trim()) {
       writeSelectedFeatures(selectedFeatures);
-      saveFeatureSelectionEnd({ selectedFeatures });
+      saveFeatureSelectionEnd({
+        selectedFeatures,
+        featureSelectionReason,
+        featureImportanceOrder,
+      });
       router.push("/modelling");
     }
   };
@@ -213,8 +240,8 @@ export default function FeatureSelectionBlackBox({ onShowInstructions }: Feature
         <div className="flex flex-col gap-[8px]">
           <p className="text-[16px] font-medium text-[#52525b]">Étape 2</p>
           <h1 className="text-[40px] font-bold leading-[1.1]">Sélection des caractéristiques</h1>
-          <p className="max-w-[900px] text-[18px] leading-[1.45] text-[#3f3f46]">
-            Choisis 4 caractéristiques parmi les colonnes disponibles.
+          <p className="max-w-[1100px] text-[18px] leading-[1.45] text-[#3f3f46]">
+            Choisis 4 caractéristiques qui te semblent les plus judicieuses pour déterminer si un dinosaure est carnivore ou herbivore.
           </p>
         </div>
 
@@ -223,6 +250,7 @@ export default function FeatureSelectionBlackBox({ onShowInstructions }: Feature
             <Button
               key={feature}
               aria-pressed={selectedFeatures.includes(feature)}
+              isDisabled={hasValidatedFeatures}
               className={`min-h-[38px] rounded-full border px-[14px] py-[8px] text-[14px] font-medium transition ${
                 selectedFeatures.includes(feature)
                   ? "border-[#18181b] bg-[#18181b] text-white"
@@ -238,6 +266,27 @@ export default function FeatureSelectionBlackBox({ onShowInstructions }: Feature
           </span>
         </section>
 
+        {hasValidatedFeatures && (
+          <section className="grid gap-[14px]" aria-label="Questions finales sur les caractéristiques">
+            <label className="flex flex-col gap-[6px] text-[15px] font-semibold text-[#27272a]">
+              Pourquoi as-tu choisi ces caractéristiques ?
+              <textarea
+                className="min-h-[78px] resize-none rounded-[10px] border border-[#c9c9cf] bg-white px-[12px] py-[10px] text-[15px] font-normal leading-[1.4] outline-none transition focus:border-[#006fee]"
+                onChange={(event) => setFeatureSelectionReason(event.target.value)}
+                value={featureSelectionReason}
+              />
+            </label>
+            <label className="flex flex-col gap-[6px] text-[15px] font-semibold text-[#27272a]">
+              Ordonne-les de la plus importante à la moins importante selon toi:
+              <textarea
+                className="min-h-[78px] resize-none rounded-[10px] border border-[#c9c9cf] bg-white px-[12px] py-[10px] text-[15px] font-normal leading-[1.4] outline-none transition focus:border-[#006fee]"
+                onChange={(event) => setFeatureImportanceOrder(event.target.value)}
+                value={featureImportanceOrder}
+              />
+            </label>
+          </section>
+        )}
+
         <div className="flex items-center justify-between gap-[16px]">
           <p className="text-[14px] font-medium text-[#52525b]">
             {sortConfig
@@ -245,19 +294,34 @@ export default function FeatureSelectionBlackBox({ onShowInstructions }: Feature
               : "Tri: dataframe initial"}
           </p>
           <div className="flex items-center gap-[10px]">
+            <div className="relative">
+              <Button
+                className="rounded-full border border-[#c9c9cf] bg-white px-[14px] py-[8px] text-[14px] font-medium text-[#27272a] transition hover:border-[#71717a] disabled:cursor-not-allowed disabled:opacity-45"
+                isDisabled={!sortConfig}
+                onPress={() => setSortConfig(null)}
+              >
+                Réinitialiser le tri
+              </Button>
+              {shouldShowTableHints && showTableHints && (
+                <ResetSortHint onDismiss={() => setShowTableHints(false)} />
+              )}
+            </div>
             <Button
-              className="rounded-full border border-[#c9c9cf] bg-white px-[14px] py-[8px] text-[14px] font-medium text-[#27272a] transition hover:border-[#71717a] disabled:cursor-not-allowed disabled:opacity-45"
-              isDisabled={!sortConfig}
-              onPress={() => setSortConfig(null)}
+              aria-label="Afficher les indications du tableau"
+              className="min-h-[36px] min-w-[36px] rounded-full border border-[#c9c9cf] bg-white px-0 text-[20px] text-[#52525b] transition hover:border-[#71717a] hover:text-[#27272a]"
+              onPress={() => setShowTableHints(true)}
             >
-              Réinitialiser le tri
+              <IoInformationCircleOutline aria-hidden="true" />
             </Button>
             <Button
               className="min-h-[40px] rounded-[22px] bg-[#006fee] px-[18px] text-[15px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-45"
-              isDisabled={selectedFeatures.length !== 4}
+              isDisabled={
+                selectedFeatures.length !== 4 ||
+                (hasValidatedFeatures && (!featureSelectionReason.trim() || !featureImportanceOrder.trim()))
+              }
               onPress={goToNextStep}
             >
-              Suite
+              {hasValidatedFeatures ? "Suite" : "Valider"}
             </Button>
           </div>
         </div>
@@ -279,6 +343,11 @@ export default function FeatureSelectionBlackBox({ onShowInstructions }: Feature
                 return `${isSelectedFeature ? "bg-[#d9ecff] text-[#005bc4]" : "bg-[#f4f4f5]"} ${stickyClass} ${stickyClass ? "z-30" : ""}`;
               }}
               getHeaderButtonClassName={(header) => selectedFeatures.includes(header) ? "text-[#005bc4]" : "text-[#3f3f46]"}
+              renderHeaderAdornment={(header) =>
+                shouldShowTableHints && showTableHints && header === "période" ? (
+                  <PeriodHeaderHint onDismiss={() => setShowTableHints(false)} />
+                ) : null
+              }
               getCellClassName={(row, header, rowIndex, columnIndex, orderedHeaders) => {
                 const isSelectedFeature = selectedFeatures.includes(header);
                 const rowBackgroundClass = rowIndex % 2 === 0 ? "bg-white" : "bg-[#fafafa]";
@@ -288,6 +357,17 @@ export default function FeatureSelectionBlackBox({ onShowInstructions }: Feature
               }}
               renderCell={(row, header) => {
                 const wasOverwritten = changedCells.has(`${row.nom}:${header}`);
+
+                if (wasOverwritten && header === LABEL_COLUMN) {
+                  return (
+                    <span>
+                      <em>{row[header]}</em>{" "}
+                      <span aria-label="Régime mal étiqueté" title="Régime mal étiqueté">
+                        ‼️
+                      </span>
+                    </span>
+                  );
+                }
 
                 return wasOverwritten ? <em>{row[header]}</em> : row[header];
               }}

@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react";
 import BlackBox from "./pageBB";
 import WhiteBox from "./pageWB";
-import { ActivityInstructionsOverlay, DataLabellingInstructionsContent } from "@/app/components";
+import {
+  ActivityInstructionsOverlay,
+  DataLabellingInstructionsContent,
+  type DataLabellingTutorialStep,
+} from "@/app/components";
 import { markCollectionStepStart } from "@/app/lib/experimentCollection";
 import { conditionForStep, useExperimentCondition } from "@/app/lib/experimentCondition";
 
@@ -11,8 +15,35 @@ export default function DataLabellingInstructions() {
   const experimentCondition = useExperimentCondition();
   const condition = conditionForStep(experimentCondition, "data_labelling");
   const [isInstructionsOpen, setIsInstructionsOpen] = useState(true);
-  const openInstructions = () => setIsInstructionsOpen(true);
-  const closeInstructions = () => setIsInstructionsOpen(false);
+  const [tutorialStep, setTutorialStep] = useState<DataLabellingTutorialStep>(null);
+  const [hasStartedTutorial, setHasStartedTutorial] = useState(false);
+  const openInstructions = () => {
+    setTutorialStep(null);
+    setHasStartedTutorial(false);
+    setIsInstructionsOpen(true);
+  };
+  const closeInstructions = () => {
+    setIsInstructionsOpen(false);
+
+    if (!hasStartedTutorial) {
+      setTutorialStep(1);
+      setHasStartedTutorial(true);
+    }
+  };
+  const advanceTutorial = () => {
+    setTutorialStep((currentStep) => {
+      if (currentStep === 1) {
+        return 2;
+      }
+
+      if (currentStep === 2) {
+        return 3;
+      }
+
+      return null;
+    });
+  };
+  const visibleTutorialStep = isInstructionsOpen ? null : tutorialStep;
 
   useEffect(() => {
     markCollectionStepStart("DL");
@@ -21,7 +52,11 @@ export default function DataLabellingInstructions() {
   if (condition === "WB") {
     return (
       <>
-        <WhiteBox onShowInstructions={openInstructions} />
+        <WhiteBox
+          onShowInstructions={openInstructions}
+          tutorialStep={visibleTutorialStep}
+          onTutorialDismiss={advanceTutorial}
+        />
         {isInstructionsOpen && (
           <ActivityInstructionsOverlay title="Consignes de classification" onClose={closeInstructions}>
             <DataLabellingInstructionsContent condition="WB" />
@@ -34,7 +69,11 @@ export default function DataLabellingInstructions() {
   if (condition === "BB") {
     return (
       <>
-        <BlackBox onShowInstructions={openInstructions} />
+        <BlackBox
+          onShowInstructions={openInstructions}
+          tutorialStep={visibleTutorialStep}
+          onTutorialDismiss={advanceTutorial}
+        />
         {isInstructionsOpen && (
           <ActivityInstructionsOverlay title="Consignes de classification" onClose={closeInstructions}>
             <DataLabellingInstructionsContent condition="BB" />

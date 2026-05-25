@@ -68,9 +68,9 @@ const dinoDiets: Record<DinoName, "herbivore" | "carnivore"> = {
 
 const labelStyles = {
   Main: {
-    wrapper: "absolute right-[-1%] top-[1%] flex aspect-square w-[48%] items-center justify-center",
-    ring: "relative flex aspect-square w-[82%] rotate-[15deg] items-center justify-center rounded-full border-[clamp(10px,5.8cqw,37.5px)]",
-    text: "text-[clamp(40px,20cqw,128px)]",
+    wrapper: "absolute right-[-1%] top-[1%] flex aspect-square w-[35%] items-center justify-center",
+    ring: "relative flex aspect-square w-[82%] rotate-[15deg] items-center justify-center rounded-full border-[clamp(7.2917px,4.2292cqw,27.3438px)]",
+    text: "text-[clamp(29.1667px,14.5833cqw,93.3333px)]",
   },
   sm: {
     wrapper: "-translate-x-1/2 -translate-y-1/2 absolute left-1/2 top-1/2 flex aspect-square w-[82%] items-center justify-center",

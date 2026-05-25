@@ -506,7 +506,7 @@ function TestTableOverlay({
             <p className="mt-[6px] text-[14px] font-medium text-[#52525b]">
               {sortConfig
                 ? `Tri: ${sortConfig.column} (${sortConfig.direction === "ascending" ? "croissant" : "décroissant"})`
-                : "Tri: dataframe initial"}
+                : "Tri: tableau initial"}
             </p>
           </div>
           <div className="flex items-center gap-[10px]">

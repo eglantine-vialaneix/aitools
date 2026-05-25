@@ -23,6 +23,7 @@ type DataTableProps<TRow extends Record<string, unknown>> = {
   getHeaderClassName?: (header: string, columnIndex: number, orderedHeaders: string[]) => string;
   getHeaderButtonClassName?: (header: string, columnIndex: number, orderedHeaders: string[]) => string;
   getCellClassName?: (row: TRow, header: string, rowIndex: number, columnIndex: number, orderedHeaders: string[]) => string;
+  renderHeaderAdornment?: (header: string, columnIndex: number, orderedHeaders: string[]) => ReactNode;
   renderCell?: (row: TRow, header: string, rowIndex: number, columnIndex: number) => ReactNode;
 };
 
@@ -163,6 +164,7 @@ export function DataTable<TRow extends Record<string, unknown>>({
   getHeaderClassName,
   getHeaderButtonClassName,
   getCellClassName,
+  renderHeaderAdornment,
   renderCell,
 }: DataTableProps<TRow>) {
   const [orderedHeaders, setOrderedHeaders] = useState<string[]>([]);
@@ -192,7 +194,7 @@ export function DataTable<TRow extends Record<string, unknown>>({
             return (
               <th
                 key={header}
-                className={`whitespace-nowrap border-b border-[#dedee0] px-[12px] py-[10px] font-semibold ${dropRingClass} ${
+                className={`relative whitespace-nowrap border-b border-[#dedee0] px-[12px] py-[10px] font-semibold ${dropRingClass} ${
                   isLockedColumn(header) ? "shadow-[1px_0_0_#cfe5ca]" : ""
                 } ${
                   getHeaderClassName?.(header, columnIndex, visibleHeaders) ?? ""
@@ -260,6 +262,7 @@ export function DataTable<TRow extends Record<string, unknown>>({
                     {isSortedColumn ? (sortConfig.direction === "ascending" ? "asc" : "desc") : "↕"}
                   </span>
                 </button>
+                {renderHeaderAdornment?.(header, columnIndex, visibleHeaders)}
               </th>
             );
           })}

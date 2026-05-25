@@ -21,9 +21,9 @@ export default function FeatureSelectionInstructions() {
   if (condition === "WB") {
     return (
       <>
-        <WhiteBox onShowInstructions={openInstructions} />
+        <WhiteBox onShowInstructions={openInstructions} shouldShowTableHints={!isInstructionsOpen} />
         {isInstructionsOpen && (
-          <ActivityInstructionsOverlay title="Consignes de sélection" onClose={closeInstructions}>
+          <ActivityInstructionsOverlay title="Consignes" onClose={closeInstructions}>
             <FeatureSelectionInstructionsContent condition="WB" />
           </ActivityInstructionsOverlay>
         )}
@@ -34,9 +34,9 @@ export default function FeatureSelectionInstructions() {
   if (condition === "BB") {
     return (
       <>
-        <BlackBox onShowInstructions={openInstructions} />
+        <BlackBox onShowInstructions={openInstructions} shouldShowTableHints={!isInstructionsOpen} />
         {isInstructionsOpen && (
-          <ActivityInstructionsOverlay title="Consignes de sélection" onClose={closeInstructions}>
+          <ActivityInstructionsOverlay title="Consignes" onClose={closeInstructions}>
             <FeatureSelectionInstructionsContent condition="BB" />
           </ActivityInstructionsOverlay>
         )}

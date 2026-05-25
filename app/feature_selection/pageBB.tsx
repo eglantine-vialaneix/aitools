@@ -2,8 +2,11 @@
 
 import { useEffect, useMemo, useState, type Key } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Button, ListBox, Select } from "@heroui/react";
+import { IoInformationCircleOutline } from "react-icons/io5";
 import { ActivityInstructionsButton, DataTable, type SortConfig } from "@/app/components";
+import { PeriodHeaderHint, ResetSortHint } from "@/app/components/FeatureSelectionHints";
 import { readDinoLabels } from "@/app/lib/dinoLabels";
 import { saveFeatureSelectionEnd, saveFeatureTypeAttempt } from "@/app/lib/experimentCollection";
 
@@ -11,6 +14,7 @@ type TableRow = Record<string, string>;
 type FeatureType = "Numérique" | "Booléen" | "Catégorique";
 type FeatureSelectionBlackBoxProps = {
   onShowInstructions?: () => void;
+  shouldShowTableHints?: boolean;
 };
 
 const LABEL_COLUMN = "régime_alimentaire";
@@ -31,9 +35,9 @@ function getStickyColumnClass(header: string, columnIndex: number, orderedHeader
 
 const FEATURE_TYPES: FeatureType[] = ["Numérique", "Booléen", "Catégorique"];
 const FINAL_QUESTION =
-  "Dans quelle période vivait le dinosaure de la famille des Diplodocidae dont le poids n'excèdait pas 20000 kg ? (N'écris pas de phrase, uniquement la valeur de la case du tableau.)";
-const FINAL_QUESTION_ANSWER = "jurassique supérieur";
-const FINAL_QUESTION_HINT = "INDICE: Il s'agit du Diplodocus. Dans quelle période vivait-il ?";
+  "Dans quelle période vivait le dinosaure du sous-ordre Saurischia mesurant plus que 6.5 m et pesant moins que 1000 kg ? N'écris pas de phrase, uniquement ce qu'il y a dans la case du tableau.";
+const FINAL_QUESTION_ANSWER = "jurassique moyen";
+const FINAL_QUESTION_HINT = "INDICE: Il s'agit du Megalosaurus. Dans quelle période vivait-il ?";
 
 const CORRECT_FEATURE_TYPES: Record<string, FeatureType> = {
   période: "Catégorique",
@@ -111,7 +115,10 @@ function normalizeFinalAnswer(answer: string) {
   return answer.trim().replace(/\s+/g, " ").toLocaleLowerCase("fr-FR");
 }
 
-export default function FeatureSelectionBlackBox({ onShowInstructions }: FeatureSelectionBlackBoxProps) {
+export default function FeatureSelectionBlackBox({
+  onShowInstructions,
+  shouldShowTableHints = true,
+}: FeatureSelectionBlackBoxProps) {
   const router = useRouter();
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<TableRow[]>([]);
@@ -123,6 +130,7 @@ export default function FeatureSelectionBlackBox({ onShowInstructions }: Feature
   const [finalAnswer, setFinalAnswer] = useState("");
   const [finalQuestionAttempts, setFinalQuestionAttempts] = useState(0);
   const [finalQuestionError, setFinalQuestionError] = useState<string | null>(null);
+  const [showTableHints, setShowTableHints] = useState(true);
   const [sortConfig, setSortConfig] = useState<SortConfig>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -262,17 +270,27 @@ export default function FeatureSelectionBlackBox({ onShowInstructions }: Feature
       {onShowInstructions && <ActivityInstructionsButton onPress={onShowInstructions} />}
       <div aria-hidden="true" className="absolute inset-0 bg-black/35" />
       <main className="relative flex max-h-[calc(100dvh-120px)] w-full max-w-[1280px] flex-col gap-[24px] overflow-hidden rounded-[24px] border border-[#dedee0] bg-[#f5f5f5] p-[32px] shadow-[-7px_7px_4px_0px_rgba(0,0,0,0.25)]">
-        <div className="flex flex-col gap-[8px]">
-          <p className="text-[16px] font-medium text-[#52525b]">Étape 2</p>
-          <h1 className="text-[40px] font-bold leading-[1.1]">Type des caractéristiques</h1>
-          <p className="max-w-[900px] text-[18px] leading-[1.45] text-[#3f3f46]">
-            Indique le type de chaque caractéristique. Le tableau ci-dessous est une copie de df_train avec tes étiquettes.
-          </p>
+        <div className="relative z-20 flex items-start justify-between gap-[24px]">
+          <div className="flex min-w-0 flex-1 flex-col gap-[8px]">
+            <p className="text-[16px] font-medium text-[#52525b]">Étape 2</p>
+            <h1 className="text-[40px] font-bold leading-[1.1]">Type des caractéristiques</h1>
+            <p className="max-w-[900px] text-[18px] leading-[1.45] text-[#3f3f46]">
+              Indique le type de chaque caractéristique entre Numérique, Booléen et Catégorique.
+            </p>
+          </div>
+          <Image
+            alt="Exemples de types de colonnes: numérique, catégorique et booléen"
+            className="h-auto w-[min(42%,560px)] min-w-[360px] shrink-0 rounded-[12px] border border-[#dedee0] bg-white"
+            height={621}
+            priority
+            src="/Hints/FeatureTypes_Inline.png"
+            width={3720}
+          />
         </div>
 
         <section className="flex h-fit flex-col gap-[10px]" aria-label={hasCompletedTypeQuestions ? "Question finale" : "Types des caractéristiques"}>
           {hasCompletedTypeQuestions ? (
-            <div className="flex max-w-[800px] flex-col gap-[10px]">
+            <div className="flex w-full flex-col gap-[10px]">
               <label htmlFor="final-feature-selection-answer" className="text-[18px] font-semibold leading-[1.35] text-[#27272a]">
                 {FINAL_QUESTION}
               </label>
@@ -300,7 +318,7 @@ export default function FeatureSelectionBlackBox({ onShowInstructions }: Feature
             </div>
           ) : (
             <>
-              <div className="grid h-fit w-full grid-cols-5 gap-[12px]">
+              <div className="grid h-fit w-full grid-cols-6 gap-[12px]">
                 {featureHeaders.map((feature) => {
                   const selectedType = selectedTypes[feature];
                   const isIncorrect = hasCheckedAnswers && selectedType !== CORRECT_FEATURE_TYPES[feature];
@@ -331,7 +349,12 @@ export default function FeatureSelectionBlackBox({ onShowInstructions }: Feature
                         <Select.Popover>
                           <ListBox>
                             {FEATURE_TYPES.map((featureType) => (
-                              <ListBox.Item key={featureType} id={featureType} textValue={featureType}>
+                              <ListBox.Item 
+                              key={featureType} 
+                              id={featureType} 
+                              textValue={featureType}
+                              className="text-[#27272a] dark:text-[#27272a]"
+                              >
                                 {featureType}
                               </ListBox.Item>
                             ))}
@@ -359,14 +382,26 @@ export default function FeatureSelectionBlackBox({ onShowInstructions }: Feature
               : "Tri: dataframe initial"}
           </p>
           <div className="flex items-center gap-[10px]">
-            <button
-              type="button"
-              className="rounded-full border border-[#c9c9cf] bg-white px-[14px] py-[8px] text-[14px] font-medium text-[#27272a] transition hover:border-[#71717a] disabled:cursor-not-allowed disabled:opacity-45"
-              disabled={!sortConfig}
-              onClick={() => setSortConfig(null)}
+            <div className="relative">
+              <button
+                type="button"
+                className="rounded-full border border-[#c9c9cf] bg-white px-[14px] py-[8px] text-[14px] font-medium text-[#27272a] transition hover:border-[#71717a] disabled:cursor-not-allowed disabled:opacity-45"
+                disabled={!sortConfig}
+                onClick={() => setSortConfig(null)}
+              >
+                Réinitialiser le tri
+              </button>
+              {shouldShowTableHints && showTableHints && (
+                <ResetSortHint onDismiss={() => setShowTableHints(false)} />
+              )}
+            </div>
+            <Button
+              aria-label="Afficher les indications du tableau"
+              className="min-h-[36px] min-w-[36px] rounded-full border border-[#c9c9cf] bg-white px-0 text-[20px] text-[#52525b] transition hover:border-[#71717a] hover:text-[#27272a]"
+              onPress={() => setShowTableHints(true)}
             >
-              Réinitialiser le tri
-            </button>
+              <IoInformationCircleOutline aria-hidden="true" />
+            </Button>
             <Button
               className="min-h-[40px] rounded-[22px] bg-[#006fee] px-[18px] text-[15px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-45"
               isDisabled={hasCompletedTypeQuestions ? !finalAnswer.trim() : !hasSelectedAllTypes}
@@ -392,6 +427,11 @@ export default function FeatureSelectionBlackBox({ onShowInstructions }: Feature
 
                 return `bg-[#f4f4f5] ${stickyClass} ${stickyClass ? "z-30" : ""}`;
               }}
+              renderHeaderAdornment={(header) =>
+                shouldShowTableHints && showTableHints && header === "période" ? (
+                  <PeriodHeaderHint onDismiss={() => setShowTableHints(false)} />
+                ) : null
+              }
               getCellClassName={(row, header, rowIndex, columnIndex, orderedHeaders) => {
                 const rowBackgroundClass = rowIndex % 2 === 0 ? "bg-white" : "bg-[#fafafa]";
                 const stickyClass = getStickyColumnClass(header, columnIndex, orderedHeaders);
@@ -400,6 +440,17 @@ export default function FeatureSelectionBlackBox({ onShowInstructions }: Feature
               }}
               renderCell={(row, header) => {
                 const wasOverwritten = changedCells.has(`${row.nom}:${header}`);
+
+                if (wasOverwritten && header === LABEL_COLUMN) {
+                  return (
+                    <span>
+                      <em>{row[header]}</em>{" "}
+                      <span aria-label="Régime mal étiqueté" title="Régime mal étiqueté">
+                        ‼️
+                      </span>
+                    </span>
+                  );
+                }
 
                 return wasOverwritten ? <em>{row[header]}</em> : row[header];
               }}

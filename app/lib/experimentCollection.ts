@@ -20,6 +20,8 @@ export type ExperimentCollection = {
   FSStartTime: string | null;
   SelectedFeatures: string[] | null;
   FeatureTypes: FeatureTypeAttempts | null;
+  FeatureSelectionReason: string;
+  FeatureImportanceOrder: string;
   FSEndTime: string | null;
   ModelStartTime: string | null;
   TrainedTree: TrainedTreeNode | null;
@@ -51,6 +53,8 @@ function emptyCollection(): ExperimentCollection {
     FSStartTime: null,
     SelectedFeatures: null,
     FeatureTypes: null,
+    FeatureSelectionReason: "",
+    FeatureImportanceOrder: "",
     FSEndTime: null,
     ModelStartTime: null,
     TrainedTree: null,
@@ -146,9 +150,13 @@ export function saveDataLabellingEnd(notes: string, labels: DinoLabelMap = readD
 export function saveFeatureSelectionEnd({
   selectedFeatures,
   featureTypes,
+  featureSelectionReason,
+  featureImportanceOrder,
 }: {
   selectedFeatures?: string[];
   featureTypes?: FeatureTypeAttempts;
+  featureSelectionReason?: string;
+  featureImportanceOrder?: string;
 }) {
   const condition = readExperimentCondition();
 
@@ -157,6 +165,8 @@ export function saveFeatureSelectionEnd({
     Condition: currentCollection.Condition ?? condition,
     SelectedFeatures: condition === "C3" ? null : selectedFeatures ?? readSelectedFeatures(),
     FeatureTypes: condition === "C3" ? featureTypes ?? currentCollection.FeatureTypes : null,
+    FeatureSelectionReason: featureSelectionReason ?? currentCollection.FeatureSelectionReason,
+    FeatureImportanceOrder: featureImportanceOrder ?? currentCollection.FeatureImportanceOrder,
     FSEndTime: now(),
   }));
 }
