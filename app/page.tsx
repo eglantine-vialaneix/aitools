@@ -6,6 +6,8 @@ import { HomeIdentificationField } from "./components/HomeIdentificationField";
 import { type ValidIdentificationKeys } from "./components/key";
 import { startExperiment } from "./lib/experimentCollection";
 import { saveExperimentCondition } from "./lib/experimentCondition";
+import Image from "next/image"
+
 
 const PRESENTATION_TEXT = (
   <>
@@ -44,6 +46,14 @@ export default function Home() {
             <p className="max-w-4xl text-left text-lg text-zinc-600 ">
               {PRESENTATION_TEXT}
             </p>
+            <Image
+                    alt="All tasks overview"
+                    className="mt-[4px] h-auto w-full"
+                    height={621}
+                    priority
+                    src="/Hints/FourSteps.png"
+                    width={3720}
+                  />
             <Link
               href="/data_labelling"
               className="rounded-full bg-sky-600 px-8 py-3 text-sm font-semibold text-white transition hover:bg-sky-500 "

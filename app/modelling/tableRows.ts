@@ -10,6 +10,7 @@ export type PredictionTableRow = {
 } & Record<string, TableCellValue>;
 
 const LABEL_COLUMN = "régime_alimentaire";
+const PREDICTION_COLUMN = "régime_alimentaire_prédit";
 const labelledTrainingRowsCache = new Map<
   string,
   {
@@ -130,6 +131,22 @@ export function countDietRows(rows: TrainingTableRow[]) {
     },
     { carnivores: 0, herbivores: 0 },
   );
+}
+
+export function computeTrainingAccuracy(rows: PredictionTableRow[]) {
+  const classifiedRows = rows.filter(
+    (row) => row[LABEL_COLUMN] === "carnivore" || row[LABEL_COLUMN] === "herbivore",
+  );
+
+  if (classifiedRows.length === 0) {
+    return undefined;
+  }
+
+  const correctPredictions = classifiedRows.filter(
+    (row) => row[LABEL_COLUMN] === row[PREDICTION_COLUMN],
+  ).length;
+
+  return correctPredictions / classifiedRows.length;
 }
 
 async function loadLabelledTrainingRowsFromCsv(dataFile: ModelDataFile, userLabels: ReturnType<typeof readDinoLabels>) {

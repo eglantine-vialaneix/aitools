@@ -48,6 +48,7 @@ export type WhiteBoxTreeNode = {
 export type ModelTrainingResult = {
   pred_carnivores: number;
   pred_herbivores: number;
+  trainingAccuracy?: number;
   predictionRows?: PredictionTableRow[];
   whiteBoxTree?: WhiteBoxTreeNode[];
 };
@@ -70,6 +71,8 @@ function isModelTrainingResult(value: unknown): value is ModelTrainingResult {
 
   const candidate = value as Record<string, unknown>;
   const hasValidCounts = typeof candidate.pred_carnivores === "number" && typeof candidate.pred_herbivores === "number";
+  const hasValidTrainingAccuracy =
+    candidate.trainingAccuracy === undefined || typeof candidate.trainingAccuracy === "number";
   const hasValidPredictionRows =
     candidate.predictionRows === undefined ||
     (Array.isArray(candidate.predictionRows) &&
@@ -83,7 +86,7 @@ function isModelTrainingResult(value: unknown): value is ModelTrainingResult {
         (node) => node && typeof node === "object" && !Array.isArray(node),
       ));
 
-  return hasValidCounts && hasValidPredictionRows && hasValidWhiteBoxTree;
+  return hasValidCounts && hasValidTrainingAccuracy && hasValidPredictionRows && hasValidWhiteBoxTree;
 }
 
 function readStoredTrainingResults(): StoredTrainingResults {

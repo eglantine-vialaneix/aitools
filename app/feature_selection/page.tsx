@@ -55,7 +55,16 @@ export default function FeatureSelectionInstructions() {
           onTutorialDismiss={advanceTutorial}
         />
         {isInstructionsOpen && (
-          <ActivityInstructionsOverlay title="Consignes" onClose={closeInstructions}>
+          <ActivityInstructionsOverlay
+            title="Consignes"
+            onClose={closeInstructions}
+            stepImage={{
+              alt: "Étape de sélection des caractéristiques",
+              height: 540,
+              src: "/Hints/StepsFeat.png",
+              width: 6700,
+            }}
+          >
             <FeatureSelectionInstructionsContent condition="WB" />
           </ActivityInstructionsOverlay>
         )}
@@ -72,7 +81,16 @@ export default function FeatureSelectionInstructions() {
           onTutorialDismiss={advanceTutorial}
         />
         {isInstructionsOpen && (
-          <ActivityInstructionsOverlay title="Consignes" onClose={closeInstructions}>
+          <ActivityInstructionsOverlay
+            title="Consignes"
+            onClose={closeInstructions}
+            stepImage={{
+              alt: "Étape de sélection des caractéristiques",
+              height: 540,
+              src: "/Hints/StepsFeat.png",
+              width: 6700,
+            }}
+          >
             <FeatureSelectionInstructionsContent condition="BB" />
           </ActivityInstructionsOverlay>
         )}

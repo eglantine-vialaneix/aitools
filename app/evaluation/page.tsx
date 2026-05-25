@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Button, Input, TextArea } from "@heroui/react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { Button, Surface as HeroSurface, Input, TextArea, Tooltip } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { GoGear } from "react-icons/go";
 import {
@@ -9,7 +9,6 @@ import {
   ActivityInstructionsOverlay,
   DataTable,
   EvaluationInstructionsContent,
-  Separator,
   type SortConfig,
 } from "@/app/components";
 import { readDinoLabels } from "@/app/lib/dinoLabels";
@@ -32,18 +31,24 @@ import {
   type ModelInput,
 } from "@/app/modelling/modelInputs";
 
-type AccuracyField = "correct" | "total" | "accuracy";
-type MatrixField = "carnivoreCorrect" | "carnivoreWrong" | "herbivoreCorrect" | "herbivoreWrong";
+type AccuracyField = "correct" | "wrong" | "total" | "accuracy";
 type AccuracyInputs = Record<AccuracyField, string>;
-type MatrixInputs = Record<MatrixField, string>;
 type TestTableRow = Record<string, string | number | boolean>;
 type TableOverlayState = {
   modelInput: ModelInput;
+  rows?: TestTableRow[];
 } | null;
 type ExpectedModelAnswers = {
   accuracy: Record<AccuracyField, number>;
-  matrix: Record<MatrixField, number>;
 };
+type EvaluationTutorialStep =
+  | "test-data"
+  | "model-card"
+  | "waiting-for-prediction"
+  | "prediction-card"
+  | "scaffold-counts"
+  | "accuracy-formula"
+  | null;
 
 const BACKGROUND_IMAGE = "/background.png";
 const LABEL_COLUMN = "régime_alimentaire";
@@ -63,7 +68,6 @@ const TEST_FEATURE_COLUMNS = [
 const QUESTION_PROMPTS = [
   "Es-tu satisfait(e) de la performance du modèle ? Pourquoi ?",
   "Repense à ce que tu as fait pendant les étapes précédentes. Que corrigerais-tu pour améliorer la performance du modèle ?",
-  "Quelle est la différence entre l'exactitude et la matrice de confusion comme méthode d'évaluation ? Quels avantages et incovénients trouves-tu à chacune ?",
 ];
 const MODEL_TITLE = "Modèle";
 
@@ -91,16 +95,7 @@ function compareCellValues(firstValue: string | number | boolean | undefined, se
 }
 
 function emptyAccuracyInputs() {
-  return { correct: "", total: "", accuracy: "" };
-}
-
-function emptyMatrixInputs() {
-  return {
-    carnivoreCorrect: "",
-    carnivoreWrong: "",
-    herbivoreCorrect: "",
-    herbivoreWrong: "",
-  };
+  return { correct: "", wrong: "", total: "", accuracy: "" };
 }
 
 function emptyReflectionAnswers() {
@@ -120,36 +115,13 @@ function isAccuracyCorrect(value: string, expectedValue: number) {
 }
 
 function computeExpectedAnswers(rows: TestTableRow[]): ExpectedModelAnswers {
-  const matrix = rows.reduce<Record<MatrixField, number>>(
-    (counts, row) => {
-      const actual = row[LABEL_COLUMN];
-      const prediction = row[PREDICTION_COLUMN];
-      const isCorrect = actual === prediction;
-
-      if (actual === "carnivore") {
-        counts[isCorrect ? "carnivoreCorrect" : "carnivoreWrong"] += 1;
-      }
-
-      if (actual === "herbivore") {
-        counts[isCorrect ? "herbivoreCorrect" : "herbivoreWrong"] += 1;
-      }
-
-      return counts;
-    },
-    {
-      carnivoreCorrect: 0,
-      carnivoreWrong: 0,
-      herbivoreCorrect: 0,
-      herbivoreWrong: 0,
-    },
-  );
-  const correct = matrix.carnivoreCorrect + matrix.herbivoreCorrect;
+  const correct = rows.filter((row) => row[LABEL_COLUMN] === row[PREDICTION_COLUMN]).length;
   const total = rows.length;
+  const wrong = Math.max(total - correct, 0);
   const accuracy = total > 0 ? Number(((correct / total) * 100).toFixed(1)) : 0;
 
   return {
-    accuracy: { correct, total, accuracy },
-    matrix,
+    accuracy: { correct, wrong, total, accuracy },
   };
 }
 
@@ -174,229 +146,389 @@ async function fetchPredictionRows(modelInput: ModelInput) {
   return payload.rows ?? [];
 }
 
-function EvaluationModelCard({ onInspectTable }: { onInspectTable: () => void }) {
+function Surface({
+  children,
+  className = "",
+  variant = "secondary",
+}: {
+  children: ReactNode;
+  className?: string;
+  variant?: "secondary" | "tertiary";
+}) {
+  const surfaceColor = variant === "tertiary" ? "bg-[#eaeaea]" : "bg-[#efefef]/80";
+
   return (
-    <article className="relative flex h-full min-h-[112px] w-full min-w-[199px] flex-col items-center justify-center gap-[10px] overflow-hidden rounded-[20px] bg-white px-[18px] py-[18px] shadow-[0_2px_8px_rgba(0,0,0,0.06),0_-6px_12px_rgba(0,0,0,0.03),0_14px_28px_rgba(0,0,0,0.08)] backdrop-blur-[20px]">
-      <h2 className="whitespace-nowrap text-center text-[16px] font-semibold leading-[1.5] text-black">
+    <HeroSurface
+      variant={variant}
+      className={`relative rounded-[24px] ${surfaceColor} shadow-[0_2px_4px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.06),0_0_1px_rgba(0,0,0,0.06)] backdrop-blur-0 ${className}`}
+    >
+      {children}
+    </HeroSurface>
+  );
+}
+
+function TutorialBackdrop({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-label="Passer à l'étape suivante du tutoriel"
+      className="fixed inset-0 z-[70] cursor-default bg-black/30"
+      onClick={onDismiss}
+    />
+  );
+}
+
+function EvaluationTutorialTarget({
+  children,
+  label,
+  onDismiss,
+  placement = "top",
+  className = "",
+}: {
+  children: ReactNode;
+  label: string;
+  onDismiss: () => void;
+  placement?: "top" | "right" | "bottom" | "left";
+  className?: string;
+}) {
+  return (
+    <Tooltip.Root isOpen>
+      <div className={`relative ${className}`}>
+        {children}
+        <Tooltip.Trigger
+          aria-label="Indication pour le tutoriel d'évaluation"
+          className="pointer-events-none absolute inset-0 z-[80]"
+        />
+      </div>
+      <TutorialBackdrop onDismiss={onDismiss} />
+      <Tooltip.Content
+        className="z-[90] w-[360px] max-w-[360px] break-normal rounded-[14px] border border-[#dedee0] bg-white px-[14px] py-[12px] text-[15px] font-semibold leading-[1.35] text-[#24324a] shadow-[0_12px_28px_rgba(0,0,0,0.18)]"
+        placement={placement}
+        showArrow
+        onClick={onDismiss}
+      >
+        <Tooltip.Arrow className="text-white [&_[data-slot=overlay-arrow]]:fill-white [&_[data-slot=overlay-arrow]]:stroke-[#dedee0]" />
+        <p>{label}</p>
+      </Tooltip.Content>
+    </Tooltip.Root>
+  );
+}
+
+function TestDataCard({
+  condition,
+  modelInput,
+  tutorialStep = null,
+  onTutorialDismiss = () => {},
+}: {
+  condition: ModellingCondition;
+  modelInput: ModelInput;
+  tutorialStep?: EvaluationTutorialStep;
+  onTutorialDismiss?: () => void;
+}) {
+  const visibleFeatures = condition === "BB" ? TEST_FEATURE_COLUMNS : modelInput.features;
+
+  const card = (
+    <section className="relative flex w-full flex-col gap-[10px] rounded-[24px] bg-white px-[24px] py-[20px] shadow-[0_2px_4px_rgba(0,0,0,0.06),0_-6px_6px_rgba(0,0,0,0.03),0_14px_14px_rgba(0,0,0,0.08)] backdrop-blur-[20px]">
+      <p className="text-[16px] font-semibold leading-[1.5] text-black">
+        Données de test:
+      </p>
+      {visibleFeatures.length > 0 && (
+        <div className="flex flex-col gap-[10px]">
+          <p className="text-[16px] leading-[1.5] text-black">Caractéristiques:</p>
+          <div className="flex flex-wrap gap-[10px]">
+            {visibleFeatures.map((feature) => (
+              <span
+                key={feature}
+                className="inline-flex min-h-[32px] items-center justify-center rounded-full bg-[#ebebec] px-[8px] text-[13px] font-medium leading-[1.43] text-[#18181b]"
+              >
+                {feature}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+      <p className="text-[16px] leading-[1.5] text-black">
+        Nouveaux dinosaures à classifier.
+      </p>
+    </section>
+  );
+
+  if (tutorialStep === "test-data") {
+    return (
+      <EvaluationTutorialTarget
+        label="Donne de NOUVELLES données à l’algorithme pour voir comment il performe sur des données qu’il n’a jamais vues"
+        onDismiss={onTutorialDismiss}
+        placement="bottom"
+      >
+        {card}
+      </EvaluationTutorialTarget>
+    );
+  }
+
+  return card;
+}
+
+function EvaluationModelCard({
+  hasPredicted,
+  isPredicting,
+  onPredict,
+  tutorialStep = null,
+  onTutorialDismiss = () => {},
+}: {
+  hasPredicted: boolean;
+  isPredicting: boolean;
+  onPredict: () => void;
+  tutorialStep?: EvaluationTutorialStep;
+  onTutorialDismiss?: () => void;
+}) {
+  const gearClassName = `absolute size-[20px] text-[#18181b] ${isPredicting ? "animate-spin" : ""}`;
+
+  const card = (
+    <article className="relative flex h-[200px] w-[275px] flex-col items-center justify-center overflow-hidden rounded-[20px] bg-white px-[20px] shadow-[0_2px_8px_rgba(0,0,0,0.06),0_-6px_12px_rgba(0,0,0,0.03),0_14px_28px_rgba(0,0,0,0.08)] backdrop-blur-[20px]">
+      <GoGear aria-hidden="true" className={`${gearClassName} left-[10px] top-[10px]`} />
+      <GoGear aria-hidden="true" className={`${gearClassName} right-[10px] top-[10px]`} />
+      <GoGear aria-hidden="true" className={`${gearClassName} bottom-[10px] left-[10px]`} />
+      <GoGear aria-hidden="true" className={`${gearClassName} bottom-[10px] right-[10px]`} />
+      <h2 className="mb-[14px] text-center text-[24px] font-bold leading-[1.34] text-black">
         {MODEL_TITLE}
       </h2>
       <Button
-        className="min-h-[32px] rounded-full border border-[#dedee0] bg-white px-[10px] text-[14px] font-medium text-[#18181b]"
-        onPress={onInspectTable}
+        className={`h-auto min-h-[48px] max-w-[220px] whitespace-normal rounded-full px-[16px] text-center text-[14px] font-medium leading-[1.2] ${
+          hasPredicted || isPredicting
+            ? "border border-[#dedee0] bg-white text-[#18181b]"
+            : "bg-[#0485f7] text-white hover:bg-[#006fee]"
+        }`}
+        isDisabled={hasPredicted || isPredicting}
+        onPress={onPredict}
       >
-        Inspecter le tableau
+        {isPredicting
+          ? "Prédiction..."
+          : hasPredicted
+            ? "Prédiction terminée"
+            : "Prédire le régime des nouveaux dinosaures"}
       </Button>
-      <GoGear aria-hidden="true" className="absolute left-[10px] top-[10px] size-[20px] text-[#18181b]" />
-      <GoGear aria-hidden="true" className="absolute right-[15px] top-[10px] size-[20px] text-[#18181b]" />
-      <GoGear aria-hidden="true" className="absolute bottom-[15px] left-[10px] size-[20px] text-[#18181b]" />
-      <GoGear aria-hidden="true" className="absolute bottom-[15px] right-[15px] size-[20px] text-[#18181b]" />
+      {isPredicting && (
+        <p className="mt-[10px] text-center text-[14px] font-medium leading-[1.43] text-[#71717a]">
+          Prédiction en cours...
+        </p>
+      )}
     </article>
   );
+
+  if (tutorialStep === "model-card") {
+    return (
+      <EvaluationTutorialTarget
+        label="Lance la prédiction: le modèle applique ce qu’il a appris sur les nouveaux dinosaures"
+        onDismiss={onTutorialDismiss}
+        placement="bottom"
+      >
+        {card}
+      </EvaluationTutorialTarget>
+    );
+  }
+
+  return card;
 }
 
 function answerKey(section: "accuracy", field: AccuracyField) {
   return `${section}:${field}`;
 }
 
-function matrixKey(field: MatrixField) {
-  return `matrix:${field}`;
-}
-
-function SmallInput({
-  ariaLabel,
-  placeholder,
-  value,
-  onChange,
-  isInvalid = false,
-}: {
-  ariaLabel: string;
-  placeholder: string;
-  value: string;
-  onChange?: (value: string) => void;
-  isInvalid?: boolean;
-}) {
+function HorizontalSeparator({ className = "" }: { className?: string }) {
   return (
-    <Input
-      aria-label={ariaLabel}
-      className={`h-[36px] w-[146px] rounded-[12px] border bg-white px-[10px] text-[14px] outline-none transition focus:border-[#006fee] ${
-        isInvalid ? "border-[#ff383c] bg-[#fff1f1] ring-2 ring-inset ring-[#ff383c]" : "border-[#c9c9cf]"
-      }`}
-      onChange={(event) => onChange?.(event.target.value)}
-      placeholder={placeholder}
-      type="number"
-      value={value}
+    <div
+      aria-hidden="true"
+      className={`h-[5px] w-[72px] bg-[#dedee0] ${className}`}
     />
   );
 }
 
-function MatrixCell({
-  ariaLabel,
-  hasInvalidAbove,
-  hasInvalidBelow,
-  isInvalid,
-  onChange,
-  value,
+function PredictionSummary({
+  onInspectTable,
+  rows,
+  tutorialStep = null,
+  onTutorialDismiss = () => {},
 }: {
-  ariaLabel: string;
-  hasInvalidAbove: boolean;
-  hasInvalidBelow: boolean;
-  isInvalid: boolean;
-  onChange: (value: string) => void;
-  value: string;
+  onInspectTable: () => void;
+  rows: TestTableRow[];
+  tutorialStep?: EvaluationTutorialStep;
+  onTutorialDismiss?: () => void;
 }) {
-  const invalidOutlineClass = isInvalid
-    ? [
-        "relative bg-[#fff1f1]",
-        "after:pointer-events-none after:absolute after:inset-0 after:z-10 after:border-x-2 after:border-[#ff383c] after:content-['']",
-        hasInvalidAbove ? "" : "after:border-t-2",
-        hasInvalidBelow ? "" : "after:border-b-2",
-      ].join(" ")
-    : "";
+  const predCarnivores = rows.filter((row) => row[PREDICTION_COLUMN] === "carnivore").length;
+  const predHerbivores = rows.filter((row) => row[PREDICTION_COLUMN] === "herbivore").length;
 
-  return (
-    <td className={`border border-[#b9b9b9] ${invalidOutlineClass}`}>
-      <MatrixInput
-        ariaLabel={ariaLabel}
-        isInvalid={isInvalid}
-        onChange={onChange}
-        value={value}
-      />
-    </td>
-  );
-}
-
-function AccuracyFormula({
-  correct,
-  total,
-  accuracy,
-  invalidFields,
-  onChange,
-}: {
-  correct: string;
-  total: string;
-  accuracy: string;
-  invalidFields: Set<string>;
-  onChange: (field: AccuracyField, value: string) => void;
-}) {
-  return (
-    <div className="flex items-center justify-start gap-[10px]">
-      <div className="flex flex-col items-start gap-px">
-        <SmallInput
-          ariaLabel={`${MODEL_TITLE} nombre de prédictions correctes`}
-          isInvalid={invalidFields.has(answerKey("accuracy", "correct"))}
-          onChange={(value) => onChange("correct", value)}
-          placeholder="Nombre de corrects..."
-          value={correct}
-        />
-        <Separator label="" className="w-[146px]" />
-        <SmallInput
-          ariaLabel={`${MODEL_TITLE} nombre total de prédictions`}
-          isInvalid={invalidFields.has(answerKey("accuracy", "total"))}
-          onChange={(value) => onChange("total", value)}
-          placeholder="Nombre total..."
-          value={total}
-        />
-      </div>
-      <span className="text-[16px] font-semibold leading-[1.5] text-[#71717a]">=</span>
-      <SmallInput
-        ariaLabel={`${MODEL_TITLE} exactitude calculée`}
-        isInvalid={invalidFields.has(answerKey("accuracy", "accuracy"))}
-        onChange={(value) => onChange("accuracy", value)}
-        placeholder="Exactitude..."
-        value={accuracy}
-      />
-      <span className="text-[16px] font-semibold leading-[1.5] text-[#71717a]">%</span>
+  const card = (
+    <div className="flex w-[220px] items-center">
+      <Surface variant="tertiary" className="flex min-h-[111px] w-[220px] items-center justify-center px-[22px] py-[16px]">
+        <div className="flex w-[177px] flex-col items-center justify-center gap-[8px]">
+          <p className="text-[16px] font-semibold leading-[1.5] text-black">
+            Prédictions:
+          </p>
+          <span className="flex h-[36px] min-h-[36px] w-full items-center justify-center rounded-[24px] bg-[#ff383c] px-[14px] py-[8px] text-[14px] font-medium leading-[20px] text-white">
+            Carnivores: {predCarnivores}
+          </span>
+          <span className="flex h-[36px] min-h-[36px] w-full items-center justify-center rounded-[24px] bg-[#17c964] px-[14px] py-[8px] text-[14px] font-medium leading-[20px] text-white">
+            Herbivores: {predHerbivores}
+          </span>
+          <Button
+            className="min-h-[32px] rounded-full border border-[#dedee0] bg-white px-[10px] text-[14px] font-medium leading-[20px] text-[#18181b]"
+            onPress={onInspectTable}
+          >
+            Inspecter le tableau
+          </Button>
+        </div>
+      </Surface>
     </div>
   );
+
+  if (tutorialStep === "prediction-card") {
+    return (
+      <EvaluationTutorialTarget
+        label="Inspecte le rapport du modèle: a-t-il bien prédit leur régimes ?"
+        onDismiss={onTutorialDismiss}
+        placement="bottom"
+      >
+        {card}
+      </EvaluationTutorialTarget>
+    );
+  }
+
+  return card;
 }
 
-function MatrixInput({
+function CountInput({
   ariaLabel,
-  isInvalid,
+  isInvalid = false,
+  label,
   onChange,
   value,
 }: {
   ariaLabel: string;
-  isInvalid: boolean;
+  isInvalid?: boolean;
+  label: string;
   onChange: (value: string) => void;
   value: string;
 }) {
   return (
-    <input
-      aria-invalid={isInvalid || undefined}
-      aria-label={ariaLabel}
-      className="relative z-20 h-full w-full bg-transparent px-[8px] text-center text-[12px] leading-[1.3] text-black outline-none"
-      inputMode="numeric"
-      onChange={(event) => onChange(event.target.value)}
-      value={value}
-    />
+    <label className="flex min-h-[116px] min-w-0 flex-col justify-between gap-[10px] rounded-[16px] bg-white px-[16px] py-[14px] shadow-[0_2px_4px_rgba(0,0,0,0.06),0_-4px_6px_rgba(0,0,0,0.02),0_10px_14px_rgba(0,0,0,0.06)]">
+      <span className="text-[13px] font leading-[1.35] text-[#18181b]">
+        {label}
+      </span>
+      <Input
+        aria-label={ariaLabel}
+        className={`h-[40px] rounded-[12px] border bg-white px-[10px] text-[15px] outline-none transition focus:border-[#006fee] ${
+          isInvalid ? "border-[#ff383c] bg-[#fff1f1] ring-2 ring-inset ring-[#ff383c]" : "border-[#c9c9cf]"
+        }`}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="Nombre..."
+        type="number"
+        value={value}
+      />
+    </label>
   );
 }
 
-function ConfusionMatrix({
+function AccuracyScaffold({
+  accuracy,
+  correct,
   invalidFields,
-  matrixInput,
   onChange,
+  tutorialStep = null,
+  onTutorialDismiss = () => {},
+  total,
+  wrong,
 }: {
+  accuracy: string;
+  correct: string;
   invalidFields: Set<string>;
-  matrixInput: Record<MatrixField, string>;
-  onChange: (field: MatrixField, value: string) => void;
+  onChange: (field: AccuracyField, value: string) => void;
+  tutorialStep?: EvaluationTutorialStep;
+  onTutorialDismiss?: () => void;
+  total: string;
+  wrong: string;
 }) {
-  const rows: { label: string; correctField: MatrixField; wrongField: MatrixField }[] = [
-    { label: "Carnivore", correctField: "carnivoreCorrect", wrongField: "carnivoreWrong" },
-    { label: "Herbivore", correctField: "herbivoreCorrect", wrongField: "herbivoreWrong" },
-  ];
+  const countInputs = (
+    <>
+      <CountInput
+        ariaLabel="Nombre de prédictions correctes"
+        isInvalid={invalidFields.has(answerKey("accuracy", "correct"))}
+        label="Compte le nombre de prédictions correctes ✅"
+        onChange={(value) => onChange("correct", value)}
+        value={correct}
+      />
+      <CountInput
+        ariaLabel="Nombre de mauvaises prédictions"
+        isInvalid={invalidFields.has(answerKey("accuracy", "wrong"))}
+        label="Compte le nombre de mauvaises prédictions ❌"
+        onChange={(value) => onChange("wrong", value)}
+        value={wrong}
+      />
+      <CountInput
+        ariaLabel="Nombre total de dinosaures 🦕🦖"
+        isInvalid={invalidFields.has(answerKey("accuracy", "total"))}
+        label="Compte le nombre total de dinosaures"
+        onChange={(value) => onChange("total", value)}
+        value={total}
+      />
+    </>
+  );
+  const formula = (
+    <div className="flex min-h-[116px] min-w-0 items-center justify-center rounded-[16px] bg-white px-[18px] py-[14px] shadow-[0_2px_4px_rgba(0,0,0,0.06),0_-4px_6px_rgba(0,0,0,0.02),0_10px_14px_rgba(0,0,0,0.06)]">
+      <div className="flex flex-wrap items-center justify-center gap-[10px] text-[20px] font-semibold leading-[1.3] text-[#18181b]">
+        <span className="font-serif">Précision =</span>
+        <span className="inline-flex flex-col items-center font-serif text-[16px] leading-[1.15]">
+          <span>prédictions correctes</span>
+          <span className="mt-[3px] w-full border-t border-[#18181b] pt-[3px] text-center">
+            total dinosaures
+          </span>
+        </span>
+        <span className="font-serif">× 100 =</span>
+        <Input
+          aria-label="Précision calculée en pourcentage"
+          className={`h-[40px] w-[112px] rounded-[12px] border bg-white px-[10px] text-[15px] outline-none transition focus:border-[#006fee] ${
+            invalidFields.has(answerKey("accuracy", "accuracy"))
+              ? "border-[#ff383c] bg-[#fff1f1] ring-2 ring-inset ring-[#ff383c]"
+              : "border-[#c9c9cf]"
+          }`}
+          onChange={(event) => onChange("accuracy", event.target.value)}
+          placeholder="Précision"
+          type="number"
+          value={accuracy}
+        />
+        <span className="font-serif">%</span>
+      </div>
+    </div>
+  );
 
   return (
-    <table className="w-[245px] table-fixed overflow-hidden rounded-[4px] border border-[#b9b9b9] bg-white text-[12px] text-black">
-      <thead>
-        <tr className="h-[36px] bg-[#f0f0f0]">
-          <th className="w-[90px] border border-[#b9b9b9] px-[8px] text-left font-semibold leading-[1.3]">
-            {MODEL_TITLE.toUpperCase()}
-          </th>
-          <th className="w-[66px] border border-[#b9b9b9] px-[5px] text-center font-semibold leading-[1.3]">
-            Correct
-          </th>
-          <th className="w-[66px] border border-[#b9b9b9] px-[5px] text-center font-semibold leading-[1.3]">
-            Faux
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((row, rowIndex) => {
-          const previousRow = rows[rowIndex - 1];
-          const nextRow = rows[rowIndex + 1];
-          const isCorrectInvalid = invalidFields.has(matrixKey(row.correctField));
-          const isWrongInvalid = invalidFields.has(matrixKey(row.wrongField));
-
-          return (
-          <tr key={row.label} className="h-[36px]">
-            <th
-              className="border border-[#b9b9b9] bg-[#f0f0f0] px-[8px] text-left font-semibold leading-[1.3]"
-            >
-              {row.label}
-            </th>
-            <MatrixCell
-              ariaLabel={`${MODEL_TITLE} ${row.label} correct`}
-              hasInvalidAbove={previousRow ? invalidFields.has(matrixKey(previousRow.correctField)) : false}
-              hasInvalidBelow={nextRow ? invalidFields.has(matrixKey(nextRow.correctField)) : false}
-              isInvalid={isCorrectInvalid}
-              onChange={(value) => onChange(row.correctField, value)}
-              value={matrixInput[row.correctField]}
-            />
-            <MatrixCell
-              ariaLabel={`${MODEL_TITLE} ${row.label} faux`}
-              hasInvalidAbove={previousRow ? invalidFields.has(matrixKey(previousRow.wrongField)) : false}
-              hasInvalidBelow={nextRow ? invalidFields.has(matrixKey(nextRow.wrongField)) : false}
-              isInvalid={isWrongInvalid}
-              onChange={(value) => onChange(row.wrongField, value)}
-              value={matrixInput[row.wrongField]}
-            />
-          </tr>
-          );
-        })}
-      </tbody>
-    </table>
+    <section className="flex flex-col gap-[18px]" aria-label="Calcul de la précision">
+      <div className="grid w-full grid-cols-1 items-stretch gap-[14px] md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)]">
+        {tutorialStep === "scaffold-counts" ? (
+          <EvaluationTutorialTarget
+            className="grid grid-cols-1 gap-[14px] md:col-span-3 md:grid-cols-3"
+            label="Compte les détails des prédictions et reporte les ici. "
+            onDismiss={onTutorialDismiss}
+            placement="top"
+          >
+            {countInputs}
+          </EvaluationTutorialTarget>
+        ) : (
+          countInputs
+        )}
+        {tutorialStep === "accuracy-formula" ? (
+          <EvaluationTutorialTarget
+            className="min-w-0"
+            label="En utilisant tes résultats intermédiaires, calcule la précision du modèle en t’aidant de la formule."
+            onDismiss={onTutorialDismiss}
+            placement="top"
+          >
+            {formula}
+          </EvaluationTutorialTarget>
+        ) : (
+          formula
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -428,10 +560,12 @@ function TestTableOverlay({
   condition,
   modelInput,
   onClose,
+  rows: providedRows,
 }: {
   condition: ModellingCondition;
   modelInput: ModelInput;
   onClose: () => void;
+  rows?: TestTableRow[];
 }) {
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<TestTableRow[]>([]);
@@ -443,7 +577,7 @@ function TestTableOverlay({
 
     async function loadTestTable() {
       try {
-        const nextRows = await fetchPredictionRows(modelInput);
+        const nextRows = providedRows ?? (await fetchPredictionRows(modelInput));
         const nextHeaders = modelTableColumns(condition, modelInput.features);
 
         if (isActive) {
@@ -463,7 +597,7 @@ function TestTableOverlay({
     return () => {
       isActive = false;
     };
-  }, [condition, modelInput]);
+  }, [condition, modelInput, providedRows]);
 
   const sortedRows = useMemo(() => {
     if (!sortConfig) {
@@ -552,7 +686,6 @@ export default function EvaluationPage() {
   const selectedFeatures = useMemo(() => readSelectedFeatures(), []);
   const [tableOverlay, setTableOverlay] = useState<TableOverlayState>(null);
   const [accuracyInputs, setAccuracyInputs] = useState<AccuracyInputs>(() => emptyAccuracyInputs());
-  const [matrixInputs, setMatrixInputs] = useState<MatrixInputs>(() => emptyMatrixInputs());
   const [reflectionAnswers, setReflectionAnswers] = useState<string[]>(() => emptyReflectionAnswers());
   const [accuracyAttempts, setAccuracyAttempts] = useState(0);
   const [invalidFields, setInvalidFields] = useState<Set<string>>(new Set());
@@ -561,6 +694,11 @@ export default function EvaluationPage() {
   const [saveErrorMessage, setSaveErrorMessage] = useState<string | null>(null);
   const [isCheckingAnswers, setIsCheckingAnswers] = useState(false);
   const [isInstructionsOpen, setIsInstructionsOpen] = useState(true);
+  const [predictionRows, setPredictionRows] = useState<TestTableRow[] | null>(null);
+  const [isPredicting, setIsPredicting] = useState(false);
+  const [predictionErrorMessage, setPredictionErrorMessage] = useState<string | null>(null);
+  const [tutorialStep, setTutorialStep] = useState<EvaluationTutorialStep>(null);
+  const [hasStartedTutorial, setHasStartedTutorial] = useState(false);
 
   const modelInput = resolveModelInput({
     condition,
@@ -577,9 +715,59 @@ export default function EvaluationPage() {
 
   useEffect(() => {
     setAllCalculationsAreCorrect(false);
+    setAccuracyInputs(emptyAccuracyInputs());
     setInvalidFields(new Set());
     setVerificationMessage(null);
+    setPredictionRows(null);
+    setPredictionErrorMessage(null);
   }, [modelInputKey]);
+
+  useEffect(() => {
+    if (tutorialStep === "waiting-for-prediction" && predictionRows) {
+      setTutorialStep("prediction-card");
+    }
+  }, [predictionRows, tutorialStep]);
+
+  const openInstructions = () => {
+    setTutorialStep(null);
+    setHasStartedTutorial(false);
+    setIsInstructionsOpen(true);
+  };
+
+  const closeInstructions = () => {
+    setIsInstructionsOpen(false);
+
+    if (!hasStartedTutorial) {
+      setTutorialStep("test-data");
+      setHasStartedTutorial(true);
+    }
+  };
+
+  const advanceTutorial = () => {
+    setTutorialStep((currentStep) => {
+      if (currentStep === "test-data") {
+        return "model-card";
+      }
+
+      if (currentStep === "model-card") {
+        return predictionRows ? "prediction-card" : "waiting-for-prediction";
+      }
+
+      if (currentStep === "prediction-card") {
+        return "scaffold-counts";
+      }
+
+      if (currentStep === "scaffold-counts") {
+        return "accuracy-formula";
+      }
+
+      if (currentStep === "accuracy-formula") {
+        return null;
+      }
+
+      return currentStep;
+    });
+  };
 
   const clearInvalidField = (fieldKey: string) => {
     setInvalidFields((currentInvalidFields) => {
@@ -603,16 +791,6 @@ export default function EvaluationPage() {
       [field]: value,
     }));
   };
-  const updateMatrixInput = (field: MatrixField, value: string) => {
-    setAllCalculationsAreCorrect(false);
-    setVerificationMessage(null);
-    setSaveErrorMessage(null);
-    clearInvalidField(matrixKey(field));
-    setMatrixInputs((currentInputs) => ({
-      ...currentInputs,
-      [field]: value,
-    }));
-  };
   const updateReflectionAnswer = (index: number, value: string) => {
     setSaveErrorMessage(null);
     setReflectionAnswers((currentAnswers) =>
@@ -621,17 +799,43 @@ export default function EvaluationPage() {
   };
   const areReflectionAnswersComplete = reflectionAnswers.every((answer) => answer.trim() !== "");
   const canFinishEvaluation = allCalculationsAreCorrect && areReflectionAnswersComplete;
+  const hasPredicted = predictionRows !== null;
+  const predictModel = async () => {
+    if (hasPredicted || isPredicting) {
+      return;
+    }
+
+    setIsPredicting(true);
+    setPredictionErrorMessage(null);
+    setVerificationMessage(null);
+    setSaveErrorMessage(null);
+
+    try {
+      const rows = await fetchPredictionRows(modelInput);
+      setPredictionRows(rows);
+    } catch (error) {
+      setPredictionRows(null);
+      setPredictionErrorMessage(error instanceof Error ? error.message : "Une erreur est survenue.");
+    } finally {
+      setIsPredicting(false);
+    }
+  };
   const verifyAnswers = async () => {
+    if (!predictionRows) {
+      setVerificationMessage("Lance d'abord la prédiction du modèle.");
+      return;
+    }
+
     setAccuracyAttempts((currentAttempts) => currentAttempts + 1);
     setIsCheckingAnswers(true);
     setVerificationMessage(null);
     setSaveErrorMessage(null);
 
     try {
-      const expected = computeExpectedAnswers(await fetchPredictionRows(modelInput));
+      const expected = computeExpectedAnswers(predictionRows);
       const nextInvalidFields = new Set<string>();
 
-      (["correct", "total"] as const).forEach((field) => {
+      (["correct", "wrong", "total"] as const).forEach((field) => {
         if (!isCountCorrect(accuracyInputs[field], expected.accuracy[field])) {
           nextInvalidFields.add(answerKey("accuracy", field));
         }
@@ -640,12 +844,6 @@ export default function EvaluationPage() {
       if (!isAccuracyCorrect(accuracyInputs.accuracy, expected.accuracy.accuracy)) {
         nextInvalidFields.add(answerKey("accuracy", "accuracy"));
       }
-
-      (Object.keys(expected.matrix) as MatrixField[]).forEach((field) => {
-        if (!isCountCorrect(matrixInputs[field], expected.matrix[field])) {
-          nextInvalidFields.add(matrixKey(field));
-        }
-      });
 
       setInvalidFields(nextInvalidFields);
       setAllCalculationsAreCorrect(nextInvalidFields.size === 0);
@@ -677,7 +875,7 @@ export default function EvaluationPage() {
         condition,
         selectedFeatures,
         accuracyInputs,
-        matrixInputs,
+        matrixInputs: {},
         reflectionAnswers,
       });
       router.push("/evaluation/fin");
@@ -702,92 +900,140 @@ export default function EvaluationPage() {
 
   return (
     <div className="relative flex min-h-dvh w-full items-center justify-center overflow-auto bg-cover bg-center bg-no-repeat p-[40px] text-[#18181b]" style={{ backgroundImage: `url('${BACKGROUND_IMAGE}')` }}>
-      <ActivityInstructionsButton onPress={() => setIsInstructionsOpen(true)} />
+      <ActivityInstructionsButton onPress={openInstructions} />
       <div aria-hidden="true" className="absolute inset-0 bg-black/35" />
-      <main className="relative flex min-h-[calc(100dvh-80px)] w-full max-w-[1360px] overflow-auto rounded-[24px] bg-[#eaeaea]/90 p-[50px_30px_40px] shadow-[0_2px_4px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.06),0_0_1px_rgba(0,0,0,0.06)]">
-        <div className="grid min-h-[520px] min-w-[1048px] flex-1 grid-cols-[minmax(199px,1fr)_minmax(290px,1.25fr)_minmax(245px,1fr)] grid-rows-[auto_minmax(112px,1fr)_minmax(225px,1.4fr)] items-stretch justify-center gap-x-[104px] gap-y-[20px]">
-          <h1 className="col-span-3 whitespace-nowrap text-[30.72px] font-bold leading-[1.34] text-black">
-            Calcule l&apos;exactitude et la matrice de confusion du modèle:
-          </h1>
-
-          <div style={{ gridColumn: 1, gridRow: 2 }}>
-            <EvaluationModelCard
-              onInspectTable={() => setTableOverlay({ modelInput })}
-            />
+      <Surface
+        className="relative flex min-h-[calc(100dvh-80px)] w-full max-w-[1351px] flex-col justify-center gap-[24px] overflow-auto p-[40px]"
+      >
+        <main className="relative flex w-full flex-col justify-center gap-[24px]">
+          <div className="w-full text-black">
+            <h1 className="text-[24px] font-bold leading-[1.34]">
+              Évaluation du modèle
+            </h1>
+            <p className="mt-[9px] w-full text-[16px] leading-[1.5]">
+              Ton modèle arrive-t-il à bien classifier des dinosaures qu&apos;il n&apos;a encore jamais vu ? Calcule sa précision:
+            </p>
           </div>
 
-          <div className="flex items-center" style={{ gridColumn: 2, gridRow: 2 }}>
-            <AccuracyFormula
-              accuracy={accuracyInputs.accuracy}
-              correct={accuracyInputs.correct}
-              invalidFields={invalidFields}
-              onChange={updateAccuracyInput}
-              total={accuracyInputs.total}
-            />
-          </div>
-
-          <div className="flex items-start" style={{ gridColumn: 3, gridRow: 2 }}>
-            <ConfusionMatrix
-              invalidFields={invalidFields}
-              matrixInput={matrixInputs}
-              onChange={updateMatrixInput}
-            />
-          </div>
-
-          {QUESTION_PROMPTS.map((prompt, index) => (
-            <div key={prompt} className="min-h-0" style={{ gridColumn: index + 1, gridRow: 3 }}>
-              <ReflectionPrompt
-                onChange={(value) => updateReflectionAnswer(index, value)}
-                prompt={prompt}
-                value={reflectionAnswers[index] ?? ""}
-              />
+          <section className="flex w-full items-center justify-center overflow-x-auto py-[18px]" aria-label="Modèle à évaluer">
+            <div className="flex min-w-max items-center justify-center">
+              <div className="w-[545px] shrink-0">
+                <TestDataCard
+                  condition={condition}
+                  modelInput={modelInput}
+                  tutorialStep={tutorialStep}
+                  onTutorialDismiss={advanceTutorial}
+                />
+              </div>
+              <HorizontalSeparator />
+              <div className="shrink-0">
+                <EvaluationModelCard
+                  hasPredicted={hasPredicted}
+                  isPredicting={isPredicting}
+                  onPredict={predictModel}
+                  tutorialStep={tutorialStep}
+                  onTutorialDismiss={advanceTutorial}
+                />
+              </div>
+              {predictionRows && (
+                <>
+                  <HorizontalSeparator />
+                  <div className="shrink-0">
+                    <PredictionSummary
+                      rows={predictionRows}
+                      onInspectTable={() => setTableOverlay({ modelInput, rows: predictionRows })}
+                      tutorialStep={tutorialStep}
+                      onTutorialDismiss={advanceTutorial}
+                    />
+                  </div>
+                </>
+              )}
             </div>
-          ))}
+          </section>
 
-          <div className="col-span-3 flex flex-wrap items-center justify-end gap-[14px]">
-            {verificationMessage && (
-              <p
-                className={`text-[14px] font-medium ${
-                  invalidFields.size === 0 ? "text-[#0a7f38]" : "text-[#b42318]"
-                }`}
-              >
-                {verificationMessage}
-              </p>
-            )}
-            {saveErrorMessage && (
-              <p className="text-[14px] font-medium text-[#b42318]">
-                {saveErrorMessage}
-              </p>
-            )}
-            <Button
-              className="min-h-[40px] rounded-[22px] bg-[#006fee] px-[18px] text-[15px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-45"
-              isDisabled={isCheckingAnswers}
-              onPress={verifyAnswers}
-            >
-              Vérifier mes réponses
-            </Button>
-            {canFinishEvaluation && (
-              <Button
-                className="min-h-[40px] rounded-[22px] bg-[#0a7f38] px-[18px] text-[15px] font-medium text-white"
-                onPress={saveAndFinish}
-              >
-                Sauvegarder mes réponses et finir !
-              </Button>
-            )}
-          </div>
-        </div>
-      </main>
+          {predictionErrorMessage && (
+            <p className="rounded-[12px] bg-white px-[18px] py-[12px] text-[14px] font-medium text-[#b42318]">
+              {predictionErrorMessage}
+            </p>
+          )}
+
+          {predictionRows && (
+            <>
+              <AccuracyScaffold
+                accuracy={accuracyInputs.accuracy}
+                correct={accuracyInputs.correct}
+                invalidFields={invalidFields}
+                onChange={updateAccuracyInput}
+                tutorialStep={tutorialStep}
+                onTutorialDismiss={advanceTutorial}
+                total={accuracyInputs.total}
+                wrong={accuracyInputs.wrong}
+              />
+
+              <section className="grid w-full grid-cols-1 gap-[18px] lg:grid-cols-2">
+                {QUESTION_PROMPTS.map((prompt, index) => (
+                  <ReflectionPrompt
+                    key={prompt}
+                    onChange={(value) => updateReflectionAnswer(index, value)}
+                    prompt={prompt}
+                    value={reflectionAnswers[index] ?? ""}
+                  />
+                ))}
+              </section>
+
+              <div className="flex flex-wrap items-center justify-end gap-[14px]">
+                {verificationMessage && (
+                  <p
+                    className={`text-[14px] font-medium ${
+                      invalidFields.size === 0 ? "text-[#0a7f38]" : "text-[#b42318]"
+                    }`}
+                  >
+                    {verificationMessage}
+                  </p>
+                )}
+                {saveErrorMessage && (
+                  <p className="text-[14px] font-medium text-[#b42318]">
+                    {saveErrorMessage}
+                  </p>
+                )}
+                <Button
+                  className="min-h-[40px] rounded-[22px] bg-[#006fee] px-[18px] text-[15px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-45"
+                  isDisabled={isCheckingAnswers}
+                  onPress={verifyAnswers}
+                >
+                  Vérifier mes réponses
+                </Button>
+                {canFinishEvaluation && (
+                  <Button
+                    className="min-h-[40px] rounded-[22px] bg-[#0a7f38] px-[18px] text-[15px] font-medium text-white"
+                    onPress={saveAndFinish}
+                  >
+                    Sauvegarder mes réponses et finir !
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
+        </main>
+      </Surface>
       {tableOverlay && (
         <TestTableOverlay
           condition={condition}
           modelInput={tableOverlay.modelInput}
           onClose={() => setTableOverlay(null)}
+          rows={tableOverlay.rows}
         />
       )}
       {isInstructionsOpen && (
         <ActivityInstructionsOverlay
-          title="Consignes d'évaluation"
-          onClose={() => setIsInstructionsOpen(false)}
+          title="Consignes"
+          onClose={closeInstructions}
+          stepImage={{
+            alt: "Étape d'évaluation du modèle",
+            height: 540,
+            src: "/Hints/StepsEval.png",
+            width: 6740,
+          }}
         >
           <EvaluationInstructionsContent />
         </ActivityInstructionsOverlay>

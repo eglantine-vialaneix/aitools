@@ -21,7 +21,7 @@ import {
 } from "./modelInputs";
 import { TrainingTableOverlay } from "./TrainingTableOverlay";
 import { markModelAsTrained, type ModelTrainingResult } from "./trainingState";
-import { loadLabelledTrainingRows, type PredictionTableRow, type TrainingTableRow } from "./tableRows";
+import { computeTrainingAccuracy, loadLabelledTrainingRows, type PredictionTableRow, type TrainingTableRow } from "./tableRows";
 
 type ModellingWhiteBoxProps = {
   condition?: ModellingCondition;
@@ -1099,8 +1099,10 @@ export default function ModellingWhiteBox({
 
     try {
       trainingResult.predictionRows = await buildWhiteBoxPredictionRows(nodes, modelInput.data);
+      trainingResult.trainingAccuracy = computeTrainingAccuracy(trainingResult.predictionRows);
     } catch {
       trainingResult.predictionRows = undefined;
+      trainingResult.trainingAccuracy = undefined;
     }
 
     trainingResult.whiteBoxTree = nodes;

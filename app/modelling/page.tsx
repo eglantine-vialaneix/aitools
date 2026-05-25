@@ -2,7 +2,7 @@
 
 import { Suspense, type ReactNode, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Button, Surface as HeroSurface, TextArea } from "@heroui/react";
+import { Button, Surface as HeroSurface, TextArea, Tooltip } from "@heroui/react";
 import { GoGear } from "react-icons/go";
 import {
   ActivityInstructionsButton,
@@ -15,7 +15,6 @@ import {
 } from "@/app/lib/experimentCondition";
 import { markCollectionStepStart, saveModelEnd } from "@/app/lib/experimentCollection";
 import { useSelectedFeatures } from "@/app/lib/featureSelectionState";
-import BlackBox from "./pageBB";
 import WhiteBox from "./pageWB";
 import {
   MODEL_CONFIG,
@@ -25,13 +24,15 @@ import {
   useResolvedModelInput,
   type ModelInput,
 } from "./modelInputs";
-import { PredictionTrainingTableOverlay } from "./PredictionTrainingTableOverlay";
+import { fitBlackBoxModel, PredictionTrainingTableOverlay } from "./PredictionTrainingTableOverlay";
 import { TrainingTableOverlay } from "./TrainingTableOverlay";
-import { useModelTrainingResult, type ModelTrainingResult } from "./trainingState";
-import { type PredictionTableRow } from "./tableRows";
+import { markModelAsTrained, useModelTrainingResult, type ModelTrainingResult } from "./trainingState";
+import { computeTrainingAccuracy, type PredictionTableRow } from "./tableRows";
 
 type ModelCardProps = {
   isTrained: boolean;
+  isDisabled?: boolean;
+  isTraining?: boolean;
   onTrain: () => void;
 };
 
@@ -49,6 +50,64 @@ type SurfaceProps = {
   className?: string;
   variant?: "secondary" | "tertiary";
 };
+
+type ModellingTutorialStep =
+  | "training-card"
+  | "model-card"
+  | "waiting-for-predictions"
+  | "prediction-card"
+  | "prediction-details"
+  | null;
+
+const BLACK_BOX_REFLECTION_PROMPT =
+  "Le modèle agit selon ses propres règles et tu ne peux pas voir exactement comment il différencie herbivores et carnivores, mais essayons de deviner ce qu'il a fait ! Inspecte ses prédictions: quelles pourraient être les caractéristiques qu'il a vraiment utilisées selon toi ? Explique ton raisonnement. Si tu trouves ça trop difficile, explique aussi pourquoi.";
+
+function TutorialBackdrop({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-label="Passer à l'étape suivante du tutoriel"
+      className="fixed inset-0 z-[70] cursor-default bg-black/30"
+      onClick={onDismiss}
+    />
+  );
+}
+
+function ModellingTutorialTarget({
+  children,
+  label,
+  onDismiss,
+  placement = "top",
+  className = "",
+}: {
+  children: ReactNode;
+  label: string;
+  onDismiss: () => void;
+  placement?: "top" | "right" | "bottom" | "left";
+  className?: string;
+}) {
+  return (
+    <Tooltip.Root isOpen>
+      <div className={`relative ${className}`}>
+        {children}
+        <Tooltip.Trigger
+          aria-label="Indication pour le tutoriel d'entraînement"
+          className="pointer-events-none absolute inset-0 z-[80]"
+        />
+      </div>
+      <TutorialBackdrop onDismiss={onDismiss} />
+      <Tooltip.Content
+        className="z-[90] w-[360px] max-w-[360px] break-normal rounded-[14px] border border-[#dedee0] bg-white px-[14px] py-[12px] text-[15px] font-semibold leading-[1.35] text-[#24324a] shadow-[0_12px_28px_rgba(0,0,0,0.18)]"
+        placement={placement}
+        showArrow
+        onClick={onDismiss}
+      >
+        <Tooltip.Arrow className="text-white [&_[data-slot=overlay-arrow]]:fill-white [&_[data-slot=overlay-arrow]]:stroke-[#dedee0]" />
+        <p>{label}</p>
+      </Tooltip.Content>
+    </Tooltip.Root>
+  );
+}
 
 function Surface({ children, className = "", variant = "secondary" }: SurfaceProps) {
   const surfaceColor = variant === "tertiary" ? "bg-[#eaeaea]" : "bg-[#efefef]/80";
@@ -68,15 +127,19 @@ function TrainingDataCard({
   displayFeatures,
   modelInput,
   onInspectTable,
+  tutorialStep = null,
+  onTutorialDismiss = () => {},
 }: {
   condition: ModellingCondition;
   displayFeatures?: string[];
   modelInput: ModelInput;
   onInspectTable: () => void;
+  tutorialStep?: ModellingTutorialStep;
+  onTutorialDismiss?: () => void;
 }) {
   const visibleFeatures = displayFeatures ?? (condition === "WB" ? modelInput.features : []);
 
-  return (
+  const card = (
     <section className="relative flex w-full flex-col gap-[10px] rounded-[24px] bg-white px-[24px] py-[20px] shadow-[0_2px_4px_rgba(0,0,0,0.06),0_-6px_6px_rgba(0,0,0,0.03),0_14px_14px_rgba(0,0,0,0.08)] backdrop-blur-[20px]">
       <p className="text-[16px] font-semibold leading-[1.5] text-black">
         Données d’entraînement:
@@ -120,61 +183,134 @@ function TrainingDataCard({
       </div>
     </section>
   );
+
+  if (tutorialStep === "training-card") {
+    return (
+      <ModellingTutorialTarget
+        label="Le modèle regarde les données que tu as préparées. Il regardera le vrai régime alimentaire UNIQUEMENT comme correction, pour savoir s'il a bien classifié les dinosaures."
+        onDismiss={onTutorialDismiss}
+        placement="bottom"
+      >
+        {card}
+      </ModellingTutorialTarget>
+    );
+  }
+
+  return card;
 }
 
-function BlackBoxedModel({ isTrained, onTrain }: ModelCardProps) {
+function BlackBoxedModel({ isTrained, isDisabled = false, isTraining = false, onTrain }: ModelCardProps) {
+  const gearClassName = `absolute size-[20px] text-[#18181b] ${isTraining ? "animate-spin" : ""}`;
+
   return (
     <article className="relative flex h-[200px] w-[275px] flex-col items-center justify-center overflow-hidden rounded-[20px] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06),0_-6px_12px_rgba(0,0,0,0.03),0_14px_28px_rgba(0,0,0,0.08)] backdrop-blur-[20px]">
-      <GoGear aria-hidden="true" className="absolute left-[10px] top-[10px] size-[20px] text-[#18181b]" />
-      <GoGear aria-hidden="true" className="absolute right-[10px] top-[10px] size-[20px] text-[#18181b]" />
-      <GoGear aria-hidden="true" className="absolute bottom-[10px] left-[10px] size-[20px] text-[#18181b]" />
-      <GoGear aria-hidden="true" className="absolute bottom-[10px] right-[10px] size-[20px] text-[#18181b]" />
+      <GoGear aria-hidden="true" className={`${gearClassName} left-[10px] top-[10px]`} />
+      <GoGear aria-hidden="true" className={`${gearClassName} right-[10px] top-[10px]`} />
+      <GoGear aria-hidden="true" className={`${gearClassName} bottom-[10px] left-[10px]`} />
+      <GoGear aria-hidden="true" className={`${gearClassName} bottom-[10px] right-[10px]`} />
       <h2 className="mb-[14px] text-center text-[24px] font-bold leading-[1.34] text-black">
         {MODEL_CONFIG.title}
       </h2>
       <Button
         className={`min-h-[40px] rounded-full px-[16px] text-[14px] font-medium ${
-          isTrained
+          isTrained || isTraining
             ? "border border-[#dedee0] bg-white text-[#18181b]"
             : "bg-[#0485f7] text-white hover:bg-[#006fee]"
         }`}
+        isDisabled={isDisabled}
         onPress={onTrain}
       >
-        {isTrained ? "Entraîné" : "Entraîner"}
+        {isTraining ? "Entraînement..." : isTrained ? "Entraîné" : "Entraîner"}
       </Button>
+      {isTraining && (
+        <p className="mt-[10px] text-center text-[14px] font-medium leading-[1.43] text-[#71717a]">
+          Entraînement en cours...
+        </p>
+      )}
     </article>
   );
+}
+
+function formatTrainingAccuracy(result: ModelTrainingResult) {
+  const accuracy = result.trainingAccuracy ?? (
+    result.predictionRows?.length ? computeTrainingAccuracy(result.predictionRows) : undefined
+  );
+
+  if (accuracy === undefined) {
+    return null;
+  }
+
+  return `${Math.round(accuracy * 100)} %`;
 }
 
 function ModelSummary({
   result,
   onInspectTable,
+  tutorialStep = null,
+  onTutorialDismiss = () => {},
 }: {
   result: ModelTrainingResult;
   onInspectTable?: () => void;
+  tutorialStep?: ModellingTutorialStep;
+  onTutorialDismiss?: () => void;
 }) {
-  return (
+  const trainingAccuracy = formatTrainingAccuracy(result);
+  const inspectButton = onInspectTable ? (
+    <Button
+      className="min-h-[32px] rounded-full border border-[#dedee0] bg-white px-[10px] text-[14px] font-medium leading-[20px] text-[#18181b]"
+      onPress={onInspectTable}
+    >
+      Inspecter le tableau
+    </Button>
+  ) : null;
+
+  const card = (
     <div className="flex w-[220px] items-center">
       <Surface variant="tertiary" className="flex min-h-[111px] w-[220px] items-center justify-center px-[22px] py-[16px]">
         <div className="flex w-[177px] flex-col items-center justify-center gap-[8px]">
+          <p className="text-[16px] font-semibold leading-[1.5] text-black">
+            Prédictions:
+          </p>
           <span className="flex h-[36px] min-h-[36px] w-full items-center justify-center rounded-[24px] bg-[#ff383c] px-[14px] py-[8px] text-[14px] font-medium leading-[20px] text-white">
             Carnivores: {result.pred_carnivores}
           </span>
           <span className="flex h-[36px] min-h-[36px] w-full items-center justify-center rounded-[24px] bg-[#17c964] px-[14px] py-[8px] text-[14px] font-medium leading-[20px] text-white">
             Herbivores: {result.pred_herbivores}
           </span>
-          {onInspectTable && (
-            <Button
-              className="min-h-[32px] rounded-full border border-[#dedee0] bg-white px-[10px] text-[14px] font-medium leading-[20px] text-[#18181b]"
-              onPress={onInspectTable}
+          {trainingAccuracy && (
+            <span className="flex min-h-[36px] w-full items-center justify-center rounded-[24px] bg-[#18181b] px-[14px] py-[8px] text-center text-[14px] font-medium leading-[20px] text-white">
+              Précision: {trainingAccuracy}
+            </span>
+          )}
+          {tutorialStep === "prediction-details" && inspectButton ? (
+            <ModellingTutorialTarget
+              label="Tu peux voir plus en détails ses prédictions ici."
+              onDismiss={onTutorialDismiss}
+              placement="bottom"
             >
-              Inspecter le tableau
-            </Button>
+              {inspectButton}
+            </ModellingTutorialTarget>
+          ) : (
+            inspectButton
           )}
         </div>
       </Surface>
     </div>
   );
+
+  if (tutorialStep === "prediction-card") {
+    return (
+      <ModellingTutorialTarget
+        label="L'algorithme te fait un rapport de son entrainement: il te dit combien de carnivores et d'herbivores il a identifiés et à quel point il était précis dans ses prédictions."
+        onDismiss={onTutorialDismiss}
+        placement="bottom"
+      >
+        {card}
+      </ModellingTutorialTarget>
+    );
+  }
+
+  return card;
 }
 
 function HorizontalSeparator({ className = "" }: { className?: string }) {
@@ -192,7 +328,7 @@ function ModellingPageContent() {
   const experimentCondition = useExperimentCondition();
   const resolvedCondition = conditionForStep(experimentCondition, "modelling");
   const condition: ModellingCondition = resolvedCondition ?? "WB";
-  const isTraining = searchParams.get("training") === "1";
+  const isWhiteBoxTrainingRoute = condition === "WB" && searchParams.get("training") === "1";
 
   const trainingResult = useModelTrainingResult(condition);
   const isTrained = Boolean(trainingResult);
@@ -200,7 +336,10 @@ function ModellingPageContent() {
   const [tableOverlay, setTableOverlay] = useState<TableOverlayState>(null);
   const [isInstructionsOpen, setIsInstructionsOpen] = useState(true);
   const [blackBoxReflection, setBlackBoxReflection] = useState("");
-  const [blackBoxTechnique, setBlackBoxTechnique] = useState("");
+  const [isBlackBoxTraining, setIsBlackBoxTraining] = useState(false);
+  const [blackBoxTrainingError, setBlackBoxTrainingError] = useState<string | null>(null);
+  const [tutorialStep, setTutorialStep] = useState<ModellingTutorialStep>(null);
+  const [hasStartedTutorial, setHasStartedTutorial] = useState(false);
 
   useEffect(() => {
     markCollectionStepStart("Model");
@@ -217,26 +356,19 @@ function ModellingPageContent() {
         ? selectedFeatures
         : [];
 
-  if (isTraining) {
+  useEffect(() => {
+    if (tutorialStep === "waiting-for-predictions" && isTrained) {
+      setTutorialStep("prediction-card");
+    }
+  }, [isTrained, tutorialStep]);
+
+  if (isWhiteBoxTrainingRoute) {
     const isViewingTrainedTree = condition === "WB" && Boolean(trainingResult?.whiteBoxTree?.length);
     const showIntro = condition === "WB" && !isViewingTrainedTree && searchParams.get("intro") === "1";
     const openInstructions = () => setIsInstructionsOpen(true);
     const closeInstructions = () => setIsInstructionsOpen(false);
 
-    return condition === "BB" ? (
-      <>
-        <BlackBox
-          condition={condition}
-          displayFeatures={trainingDataFeatures}
-          onShowInstructions={openInstructions}
-        />
-        {isInstructionsOpen && (
-          <ActivityInstructionsOverlay title="Consignes" onClose={closeInstructions}>
-            <ModellingInstructionsContent condition="BB" />
-          </ActivityInstructionsOverlay>
-        )}
-      </>
-    ) : (
+    return (
       <>
         <WhiteBox
           condition={condition}
@@ -246,7 +378,16 @@ function ModellingPageContent() {
           onShowInstructions={openInstructions}
         />
         {!isViewingTrainedTree && isInstructionsOpen && (
-          <ActivityInstructionsOverlay title="Consignes" onClose={closeInstructions}>
+          <ActivityInstructionsOverlay
+            title="Consignes"
+            onClose={closeInstructions}
+            stepImage={{
+              alt: "Étape d'entraînement du modèle",
+              height: 540,
+              src: "/Hints/StepsTrain.png",
+              width: 6700,
+            }}
+          >
             <ModellingInstructionsContent condition="WB" />
           </ActivityInstructionsOverlay>
         )}
@@ -254,24 +395,71 @@ function ModellingPageContent() {
     );
   }
 
-  const openInstructions = () => setIsInstructionsOpen(true);
-  const closeInstructions = () => setIsInstructionsOpen(false);
-  const trainModel = () => {
-    router.push(`/modelling?training=1${condition === "WB" && !isTrained ? "&intro=1" : ""}`);
+  const openInstructions = () => {
+    setTutorialStep(null);
+    setHasStartedTutorial(false);
+    setIsInstructionsOpen(true);
   };
-  const isBlackBoxReflectionComplete =
-    blackBoxReflection.trim().length > 0 &&
-    blackBoxTechnique.trim().length > 0;
+  const closeInstructions = () => {
+    setIsInstructionsOpen(false);
+
+    if (!hasStartedTutorial) {
+      setTutorialStep("training-card");
+      setHasStartedTutorial(true);
+    }
+  };
+  const hasPredictionDetails = Boolean(trainingResult?.predictionRows?.length || condition === "BB");
+  const advanceTutorial = () => {
+    setTutorialStep((currentStep) => {
+      if (currentStep === "training-card") {
+        return "model-card";
+      }
+
+      if (currentStep === "model-card") {
+        return isTrained ? "prediction-card" : "waiting-for-predictions";
+      }
+
+      if (currentStep === "prediction-card") {
+        return hasPredictionDetails ? "prediction-details" : null;
+      }
+
+      if (currentStep === "prediction-details") {
+        return null;
+      }
+
+      return currentStep;
+    });
+  };
+
+  const trainModel = async () => {
+    if (condition === "WB") {
+      router.push(`/modelling?training=1${!isTrained ? "&intro=1" : ""}`);
+      return;
+    }
+
+    if (isTrained || isBlackBoxTraining) {
+      return;
+    }
+
+    setIsBlackBoxTraining(true);
+    setBlackBoxTrainingError(null);
+
+    try {
+      const result = await fitBlackBoxModel(modelInput);
+
+      markModelAsTrained(result, condition);
+    } catch (error) {
+      setBlackBoxTrainingError(error instanceof Error ? error.message : "Une erreur est survenue.");
+    } finally {
+      setIsBlackBoxTraining(false);
+    }
+  };
+  const isBlackBoxReflectionComplete = blackBoxReflection.trim().length > 0;
   const canGoToEvaluation = isTrained && (condition !== "BB" || isBlackBoxReflectionComplete);
   const goToEvaluation = () => {
     saveModelEnd(
       condition === "BB"
-        ? [
-            "Comment penses-tu que le modèle fait la distinction entre carnivore et herbivore ?",
-            blackBoxReflection,
-            "Explique le raisonnement que tu as suivi pour déterminer cela:",
-            blackBoxTechnique,
-          ].join("\n")
+        ? [BLACK_BOX_REFLECTION_PROMPT, blackBoxReflection].join("\n")
         : null,
     );
     router.push("/evaluation");
@@ -316,14 +504,33 @@ function ModellingPageContent() {
                   displayFeatures={trainingDataFeatures}
                   modelInput={modelInput}
                   onInspectTable={() => setTableOverlay({ kind: "training", dataFile: modelInput.data })}
+                  tutorialStep={tutorialStep}
+                  onTutorialDismiss={advanceTutorial}
                 />
               </div>
               <HorizontalSeparator />
               <div className="shrink-0">
-                <BlackBoxedModel
-                  isTrained={isTrained}
-                  onTrain={trainModel}
-                />
+                {tutorialStep === "model-card" ? (
+                  <ModellingTutorialTarget
+                    label="Il doit ensuite apprendre à différencer les dinosaures. Pour cela lance l'entraînement du modèle !"
+                    onDismiss={advanceTutorial}
+                    placement="bottom"
+                  >
+                    <BlackBoxedModel
+                      isDisabled={condition === "BB" && (isTrained || isBlackBoxTraining)}
+                      isTrained={isTrained}
+                      isTraining={isBlackBoxTraining}
+                      onTrain={trainModel}
+                    />
+                  </ModellingTutorialTarget>
+                ) : (
+                  <BlackBoxedModel
+                    isDisabled={condition === "BB" && (isTrained || isBlackBoxTraining)}
+                    isTrained={isTrained}
+                    isTraining={isBlackBoxTraining}
+                    onTrain={trainModel}
+                  />
+                )}
               </div>
               {isTrained && trainingResult && (
                 <>
@@ -338,6 +545,8 @@ function ModellingPageContent() {
                           ? () => setTableOverlay({ kind: "predictions", modelInput })
                           : undefined
                       }
+                      tutorialStep={tutorialStep}
+                      onTutorialDismiss={advanceTutorial}
                     />
                   </div>
                 </>
@@ -345,28 +554,23 @@ function ModellingPageContent() {
             </div>
           </section>
 
+          {condition === "BB" && blackBoxTrainingError && (
+            <p className="rounded-[12px] bg-white px-[18px] py-[12px] text-[14px] font-medium text-[#b42318]">
+              {blackBoxTrainingError}
+            </p>
+          )}
+
           {condition === "BB" && isTrained && (
             <section className="flex w-full flex-col gap-[12px]">
               <h2 className="text-[16px] font-medium leading-[1.43] text-[#18181b]">
-                Comment penses-tu que le modèle fait la distinction entre carnivore et herbivore ?
+                {BLACK_BOX_REFLECTION_PROMPT}
               </h2>
-              <label className="flex min-h-[128px] min-w-0 flex-col gap-[6px]">
+              <label className="flex min-h-[160px] min-w-0 flex-col gap-[6px]">
                 <TextArea
-                  className="h-full w-full flex-1 [&>div]:h-full [&>div]:w-full [&_textarea]:min-h-[96px] [&_textarea]:resize-none [&_textarea]:text-[14px]"
+                  className="h-full w-full flex-1 [&>div]:h-full [&>div]:w-full [&_textarea]:min-h-[128px] [&_textarea]:resize-none [&_textarea]:text-[14px]"
                   onChange={(event) => setBlackBoxReflection(event.target.value)}
                   placeholder="Ta réponse ici..."
                   value={blackBoxReflection}
-                />
-              </label>
-              <label className="flex min-h-[116px] w-full flex-col gap-[6px]">
-                <span className="text-[16px] font-medium leading-[1.43] text-[#18181b]">
-                  Explique le raisonnement que tu as suivi pour déterminer cela:
-                </span>
-                <TextArea
-                  className="h-full w-full flex-1 [&>div]:h-full [&>div]:w-full [&_textarea]:min-h-[84px] [&_textarea]:resize-none [&_textarea]:text-[14px]"
-                  onChange={(event) => setBlackBoxTechnique(event.target.value)}
-                  placeholder="Ta réponse ici..."
-                  value={blackBoxTechnique}
                 />
               </label>
             </section>
@@ -398,7 +602,16 @@ function ModellingPageContent() {
         )
       )}
       {isInstructionsOpen && (
-        <ActivityInstructionsOverlay title="Consignes" onClose={closeInstructions}>
+        <ActivityInstructionsOverlay
+          title="Consignes"
+          onClose={closeInstructions}
+          stepImage={{
+            alt: "Étape d'entraînement du modèle",
+            height: 540,
+            src: "/Hints/StepsTrain.png",
+            width: 6700,
+          }}
+        >
           <ModellingInstructionsContent condition={condition} />
         </ActivityInstructionsOverlay>
       )}

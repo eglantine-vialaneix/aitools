@@ -6,10 +6,11 @@ import { DataTable, type SortConfig } from "@/app/components";
 import { readDinoLabels } from "@/app/lib/dinoLabels";
 import { type ModelInput } from "./modelInputs";
 import { type ModelTrainingResult } from "./trainingState";
-import { compareCellValues, loadLabelledTrainingRows, type PredictionTableRow } from "./tableRows";
+import { compareCellValues, computeTrainingAccuracy, loadLabelledTrainingRows, type PredictionTableRow } from "./tableRows";
 
 const LABEL_COLUMN = "régime_alimentaire";
 const PREDICTION_COLUMN = "régime_alimentaire_prédit";
+const EMPTY_CHANGED_CELLS = new Set<string>();
 const predictionRowsCache = new Map<string, PredictionTableRow[]>();
 const inFlightPredictionRequests = new Map<string, Promise<PredictionTableRow[]>>();
 
@@ -81,6 +82,7 @@ export async function fitBlackBoxModel(modelInput: ModelInput) {
 
   return {
     ...countPredictions(predictionRows),
+    trainingAccuracy: computeTrainingAccuracy(predictionRows),
     predictionRows,
   };
 }
@@ -99,6 +101,7 @@ export function PredictionTrainingTableOverlay({
   const [sortConfig, setSortConfig] = useState<SortConfig>(null);
   const [fetchErrorMessage, setFetchErrorMessage] = useState<string | null>(null);
   const [changedCells, setChangedCells] = useState<Set<string>>(new Set());
+  const visibleChangedCells = modelInput ? changedCells : EMPTY_CHANGED_CELLS;
   const requestKey = modelInput ? JSON.stringify({ features: modelInput.features, dataFile: modelInput.data }) : null;
   const rows = useMemo(
     () => providedRows ?? (fetchedRowsKey === requestKey ? fetchedRows : []),
@@ -156,7 +159,6 @@ export function PredictionTrainingTableOverlay({
 
   useEffect(() => {
     if (!modelInput) {
-      setChangedCells(new Set());
       return;
     }
 
@@ -258,7 +260,7 @@ export function PredictionTrainingTableOverlay({
               onSort={updateSort}
               getRowKey={(row) => String(row.nom)}
               renderCell={(row, header, _rowIndex, _columnIndex, defaultContent) => {
-                const wasOverwritten = changedCells.has(`${row.nom}:${header}`);
+                const wasOverwritten = visibleChangedCells.has(`${row.nom}:${header}`);
 
                 if (wasOverwritten && header === LABEL_COLUMN) {
                   return (

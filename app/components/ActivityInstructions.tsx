@@ -2,12 +2,18 @@
 
 import { Button } from "@heroui/react";
 import { type ReactNode } from "react";
-import Image from "next/image"
+import Image from "next/image";
 
 type ActivityInstructionsOverlayProps = {
   title: string;
   children: ReactNode;
   onClose: () => void;
+  stepImage?: {
+    alt: string;
+    height: number;
+    src: string;
+    width: number;
+  };
 };
 
 type ActivityInstructionsButtonProps = {
@@ -18,6 +24,7 @@ export function ActivityInstructionsOverlay({
   title,
   children,
   onClose,
+  stepImage,
 }: ActivityInstructionsOverlayProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-[24px] py-[24px] backdrop-blur-[2px]">
@@ -27,11 +34,23 @@ export function ActivityInstructionsOverlay({
         aria-labelledby="activity-instructions-title"
         className="flex max-h-full w-full max-w-[800px] flex-col gap-[18px] overflow-auto rounded-[24px] border border-[#dedee0] bg-white p-[28px] text-[#18181b] shadow-[0_2px_8px_rgba(0,0,0,0.06),0_-6px_12px_rgba(0,0,0,0.03),0_14px_28px_rgba(0,0,0,0.08)]"
       >
-        <div>
-          <p className="text-[14px] font-medium text-[#52525b]">Avant de commencer</p>
-          <h2 id="activity-instructions-title" className="mt-[6px] text-[28px] font-extrabold leading-[1.12]">
-            {title}
-          </h2>
+        <div className="flex flex-col gap-[14px] sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-[14px] font-medium text-[#52525b]">Avant de commencer</p>
+            <h2 id="activity-instructions-title" className="mt-[6px] text-[28px] font-extrabold leading-[1.12]">
+              {title}
+            </h2>
+          </div>
+          {stepImage && (
+            <Image
+              alt={stepImage.alt}
+              className="h-auto w-full max-w-[550px] shrink-0 sm:mt-[4px]"
+              height={stepImage.height}
+              priority
+              src={stepImage.src}
+              width={stepImage.width}
+            />
+          )}
         </div>
         <div className="flex flex-col gap-[12px] text-[16px] leading-[1.5] text-[#3f3f46]">
           {children}
@@ -73,7 +92,7 @@ export function DataLabellingInstructionsContent({ condition }: { condition: Act
         </p>
         <Image
         alt="Exemples de types de colonnes: numérique, catégorique et booléen"
-        className="mt-[4px] h-auto w-full rounded-[12px] border border-[#dedee0]"
+        className="mt-[4px] h-auto w-full"
         height={621}
         priority
         src="/Hints/TaskClassify.png"
@@ -92,7 +111,7 @@ export function DataLabellingInstructionsContent({ condition }: { condition: Act
         </p>
         <Image
         alt="Exemples de types de colonnes: numérique, catégorique et booléen"
-        className="mt-[4px] h-auto w-full rounded-[12px] border border-[#dedee0]"
+        className="mt-[4px] h-auto w-full"
         height={621}
         priority
         src="/Hints/TaskClassify.png"
@@ -140,7 +159,7 @@ export function FeatureSelectionInstructionsContent({ condition }: { condition: 
       </p>
       <Image
         alt="Exemples de types de colonnes: numérique, catégorique et booléen"
-        className="mt-[4px] h-auto w-full rounded-[12px] border border-[#dedee0]"
+        className="mt-[4px] h-auto w-full "
         height={621}
         priority
         src="/Hints/FeatureTypes_Inline.png"
@@ -159,7 +178,7 @@ export function ModellingInstructionsContent({}: { condition: ActivityCondition 
         </p>
         <Image
         alt="Entraînement du modèle"
-        className="mt-[4px] h-auto w-full rounded-[12px] border border-[#dedee0]"
+        className="mt-[4px] h-auto w-full "
         height={621}
         priority
         src="/Hints/TaskTraining.png"
@@ -174,15 +193,17 @@ export function EvaluationInstructionsContent() {
     <>
       <p>
         Dernière étape ! Tu as pu entraîner un modèle à reconnaître le régime alimentaire d&apos;un
-        dinosaure. Voyons maintenant comment il performe sur des dinosaures qu&apos;il n&apos;a encore
-        jamais rencontrés.
+        dinosaure. Voyons maintenant comment il performe sur des dinosaures qu&apos;il <strong>n&apos;a encore
+        jamais rencontrés.</strong> Sera-t-il aussi performant ?
       </p>
-      <p>
-        Pour cela, tu vas calculer l&apos;exactitude, qui indique quelle proportion des dinosaures a
-        été correctement classifiée, puis compléter la matrice de confusion, qui regarde séparément
-        comment chaque catégorie est prédite. Inspecte les tableaux de test pour retrouver les
-        bonnes valeurs.
-      </p>
+      <Image
+        alt="Évaluation du modèle"
+        className="mt-[4px] h-auto w-full"
+        height={621}
+        priority
+        src="/Hints/TaskEvaluation.png"
+        width={3720}
+      />
     </>
   );
 }

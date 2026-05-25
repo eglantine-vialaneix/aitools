@@ -58,7 +58,16 @@ export default function DataLabellingInstructions() {
           onTutorialDismiss={advanceTutorial}
         />
         {isInstructionsOpen && (
-          <ActivityInstructionsOverlay title="Consignes de classification" onClose={closeInstructions}>
+          <ActivityInstructionsOverlay
+            title="Consignes"
+            onClose={closeInstructions}
+            stepImage={{
+              alt: "Étape d'étiquetage des données",
+              height: 540,
+              src: "/Hints/StepsEtiqu.png",
+              width: 6740,
+            }}
+          >
             <DataLabellingInstructionsContent condition="WB" />
           </ActivityInstructionsOverlay>
         )}
@@ -75,7 +84,16 @@ export default function DataLabellingInstructions() {
           onTutorialDismiss={advanceTutorial}
         />
         {isInstructionsOpen && (
-          <ActivityInstructionsOverlay title="Consignes de classification" onClose={closeInstructions}>
+          <ActivityInstructionsOverlay
+            title="Consignes"
+            onClose={closeInstructions}
+            stepImage={{
+              alt: "Étape d'étiquetage des données",
+              height: 540,
+              src: "/Hints/StepsEtiqu.png",
+              width: 6740,
+            }}
+          >
             <DataLabellingInstructionsContent condition="BB" />
           </ActivityInstructionsOverlay>
         )}
