@@ -30,6 +30,7 @@ import {
   resolveModelInput,
   type ModelInput,
 } from "@/app/modelling/modelInputs";
+import { readModelTrainingResult } from "@/app/modelling/trainingState";
 
 type AccuracyField = "correct" | "wrong" | "total" | "accuracy";
 type AccuracyInputs = Record<AccuracyField, string>;
@@ -123,6 +124,10 @@ function computeExpectedAnswers(rows: TestTableRow[]): ExpectedModelAnswers {
   return {
     accuracy: { correct, wrong, total, accuracy },
   };
+}
+
+function accuracyFractionToPercent(accuracy: number | undefined) {
+  return accuracy === undefined ? null : Number((accuracy * 100).toFixed(1));
 }
 
 async function fetchPredictionRows(modelInput: ModelInput) {
@@ -860,14 +865,21 @@ export default function EvaluationPage() {
     }
   };
   const saveAndFinish = async () => {
+    if (!predictionRows) {
+      setSaveErrorMessage("Lance d'abord la prédiction du modèle.");
+      return;
+    }
+
     try {
-      const evalAnswers = QUESTION_PROMPTS.map((prompt, index) => {
-        return `${prompt}\n${reflectionAnswers[index] ?? ""}`;
-      }).join("\n\n");
+      const expected = computeExpectedAnswers(predictionRows);
+      const trainingResult = readModelTrainingResult(condition);
 
       saveEvaluationEnd({
         accuracyAttempts,
-        evalAnswers,
+        modelTrainingAccuracyPercent: accuracyFractionToPercent(trainingResult?.trainingAccuracy),
+        modelTestingAccuracyPercent: expected.accuracy.accuracy,
+        perfSatisfactionAnswer: reflectionAnswers[0] ?? "",
+        improvementsAnswer: reflectionAnswers[1] ?? "",
       });
       await submitExperimentCollection();
       saveEvaluationResponses({

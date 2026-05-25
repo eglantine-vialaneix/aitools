@@ -26,10 +26,13 @@ export type ExperimentCollection = {
   ModelStartTime: string | null;
   TrainedTree: TrainedTreeNode | null;
   BBModellingAnswers: string | null;
+  ModelTrainingAccuracyPercent: number | null;
   ModelEndTime: string | null;
   EvalStartTime: string | null;
   AccuracyAttempts: number;
-  EvalAnswers: string;
+  ModelTestingAccuracyPercent: number | null;
+  PerfSatisfactionAnswer: string;
+  ImprovementsAnswer: string;
   EvalEndTime: string | null;
 };
 
@@ -59,10 +62,13 @@ function emptyCollection(): ExperimentCollection {
     ModelStartTime: null,
     TrainedTree: null,
     BBModellingAnswers: null,
+    ModelTrainingAccuracyPercent: null,
     ModelEndTime: null,
     EvalStartTime: null,
     AccuracyAttempts: 0,
-    EvalAnswers: "",
+    ModelTestingAccuracyPercent: null,
+    PerfSatisfactionAnswer: "",
+    ImprovementsAnswer: "",
     EvalEndTime: null,
   };
 }
@@ -76,9 +82,26 @@ function normalizeCollection(value: unknown): ExperimentCollection {
     return emptyCollection();
   }
 
-  return {
+  const candidate = value as Partial<ExperimentCollection> & { EvalAnswers?: unknown };
+  const collection = {
     ...emptyCollection(),
-    ...(value as Partial<ExperimentCollection>),
+    ...candidate,
+  };
+  const legacyEvalAnswers = candidate.EvalAnswers;
+
+  if (
+    typeof legacyEvalAnswers === "string" &&
+    collection.PerfSatisfactionAnswer === "" &&
+    collection.ImprovementsAnswer === ""
+  ) {
+    const answerSections = legacyEvalAnswers.split(/\n\n+/);
+
+    collection.PerfSatisfactionAnswer = answerSections[0]?.split("\n").slice(1).join("\n") ?? "";
+    collection.ImprovementsAnswer = answerSections[1]?.split("\n").slice(1).join("\n") ?? "";
+  }
+
+  return {
+    ...collection,
   };
 }
 
@@ -190,28 +213,39 @@ export function saveTrainedTree(trainedTree: TrainedTreeNode | null) {
   }));
 }
 
-export function saveModelEnd(blackBoxAnswers: string | null) {
+export function saveModelEnd(blackBoxAnswers: string | null, modelTrainingAccuracyPercent: number | null = null) {
   const condition = readExperimentCondition();
 
   updateExperimentCollection((currentCollection) => ({
     ...currentCollection,
     TrainedTree: condition === "C1" ? currentCollection.TrainedTree : null,
     BBModellingAnswers: condition === "C1" ? null : blackBoxAnswers,
+    ModelTrainingAccuracyPercent: modelTrainingAccuracyPercent,
     ModelEndTime: now(),
   }));
 }
 
 export function saveEvaluationEnd({
   accuracyAttempts,
-  evalAnswers,
+  modelTrainingAccuracyPercent,
+  modelTestingAccuracyPercent,
+  perfSatisfactionAnswer,
+  improvementsAnswer,
 }: {
   accuracyAttempts: number;
-  evalAnswers: string;
+  modelTrainingAccuracyPercent?: number | null;
+  modelTestingAccuracyPercent: number | null;
+  perfSatisfactionAnswer: string;
+  improvementsAnswer: string;
 }) {
   updateExperimentCollection((currentCollection) => ({
     ...currentCollection,
     AccuracyAttempts: accuracyAttempts,
-    EvalAnswers: evalAnswers,
+    ModelTrainingAccuracyPercent:
+      currentCollection.ModelTrainingAccuracyPercent ?? modelTrainingAccuracyPercent ?? null,
+    ModelTestingAccuracyPercent: modelTestingAccuracyPercent,
+    PerfSatisfactionAnswer: perfSatisfactionAnswer,
+    ImprovementsAnswer: improvementsAnswer,
     EvalEndTime: now(),
   }));
 }

@@ -232,15 +232,26 @@ function BlackBoxedModel({ isTrained, isDisabled = false, isTraining = false, on
 }
 
 function formatTrainingAccuracy(result: ModelTrainingResult) {
-  const accuracy = result.trainingAccuracy ?? (
-    result.predictionRows?.length ? computeTrainingAccuracy(result.predictionRows) : undefined
+  const accuracyPercent = modelTrainingAccuracyPercent(result);
+
+  if (accuracyPercent === null) {
+    return null;
+  }
+
+  return `${Math.round(accuracyPercent)} %`;
+}
+
+function modelTrainingAccuracyPercent(result: ModelTrainingResult | null) {
+  const predictionRows = result?.predictionRows;
+  const accuracy = result?.trainingAccuracy ?? (
+    predictionRows?.length ? computeTrainingAccuracy(predictionRows) : undefined
   );
 
   if (accuracy === undefined) {
     return null;
   }
 
-  return `${Math.round(accuracy * 100)} %`;
+  return Number((accuracy * 100).toFixed(1));
 }
 
 function ModelSummary({
@@ -461,6 +472,7 @@ function ModellingPageContent() {
       condition === "BB"
         ? [BLACK_BOX_REFLECTION_PROMPT, blackBoxReflection].join("\n")
         : null,
+      modelTrainingAccuracyPercent(trainingResult),
     );
     router.push("/evaluation");
   };
