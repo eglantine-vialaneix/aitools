@@ -14,9 +14,30 @@ Set up the Python backend virtual environment:
 npm run setup:backend
 ```
 
-This creates `app/backend/.venv` and installs the backend packages from `app/backend/requirements.txt`.
+> 💡 This creates app/backend/.venv and installs the backend packages from app/backend/requirements.txt.
 
-Then run the development server:
+Compile for deployment:
+
+```bash
+npm run build
+```
+
+## Deployment
+
+>[!WARNING]
+>Make sure you followed all steps from ```Getting Started```before getting to deployment!
+
+1) Launch the backend in one terminal:
+
+```bash
+npm run dev:backend:network
+```
+
+2) Run the development server from another terminal.
+
+You can either run it:
+
+- **locally only**
 
 ```bash
 npm run dev
@@ -24,10 +45,19 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+- **OR as a server**
 
+```bash
+npm run start:network
+```
 
+For other machines to connect, open ```http://000.000.000.000:3000``` (where you replace 000.000.000.000 with your IP address) in their browser, preferably a Chromium one.
 
+To get your IP address and share it with other machines to connect to your network, run (in yet another terminal):
 
+```bash
+ipconfig getifaddr en0
+```
 
 <!-- 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
