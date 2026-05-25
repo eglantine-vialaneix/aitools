@@ -4,16 +4,25 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@heroui/react";
 import { DataTable, type SortConfig } from "@/app/components";
 import { type ModelDataFile } from "./modelConfig";
+import { type WhiteBoxSplitFilter } from "./trainingState";
 import { compareCellValues, loadLabelledTrainingRows, type TrainingTableRow } from "./tableRows";
+import { rowMatchesWhiteBoxFilter } from "./whiteBoxTree";
 
 const LABEL_COLUMN = "régime_alimentaire";
+const EMPTY_FILTERS: WhiteBoxSplitFilter[] = [];
 
 export function TrainingTableOverlay({
   dataFile,
+  filters = EMPTY_FILTERS,
   onClose,
+  subtitle,
+  title = "Données d'entraînement",
 }: {
   dataFile: ModelDataFile;
+  filters?: WhiteBoxSplitFilter[];
   onClose: () => void;
+  subtitle?: string;
+  title?: string;
 }) {
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<TrainingTableRow[]>([]);
@@ -29,10 +38,13 @@ export function TrainingTableOverlay({
     async function loadTrainingTable() {
       try {
         const loadedTable = await loadLabelledTrainingRows(dataFile);
+        const filteredRows = filters.length
+          ? loadedTable.rows.filter((row) => filters.every((filter) => rowMatchesWhiteBoxFilter(row, filter)))
+          : loadedTable.rows;
 
         if (isActive) {
           setHeaders(loadedTable.headers);
-          setRows(loadedTable.rows);
+          setRows(filteredRows);
           setChangedCells(loadedTable.changedCells);
           setErrorMessage(null);
           setLoadedDataFile(dataFile);
@@ -49,7 +61,7 @@ export function TrainingTableOverlay({
     return () => {
       isActive = false;
     };
-  }, [dataFile]);
+  }, [dataFile, filters]);
 
   const sortedRows = useMemo(() => {
     if (!sortConfig) {
@@ -87,8 +99,13 @@ export function TrainingTableOverlay({
         <div className="flex items-start justify-between gap-[18px]">
           <div>
             <h2 id="training-table-title" className="text-[28px] font-bold leading-[1.16]">
-              Données d&apos;entraînement
+              {title}
             </h2>
+            {subtitle && (
+              <p className="mt-[6px] max-w-[760px] text-[14px] font-medium text-[#52525b]">
+                {subtitle}
+              </p>
+            )}
             <p className="mt-[6px] text-[14px] font-medium text-[#52525b]">
               {sortConfig
                 ? `Tri: ${sortConfig.column} (${sortConfig.direction === "ascending" ? "croissant" : "décroissant"})`

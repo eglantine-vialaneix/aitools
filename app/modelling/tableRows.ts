@@ -4,6 +4,7 @@ import { readDinoLabels } from "@/app/lib/dinoLabels";
 import { type ModelDataFile } from "./modelConfig";
 
 export type TableCellValue = string | number | boolean | undefined;
+export type LabelledDataFile = ModelDataFile | "df_test.csv";
 export type TrainingTableRow = Record<string, string>;
 export type PredictionTableRow = {
   régime_alimentaire_prédit?: string;
@@ -91,6 +92,10 @@ export function compareCellValues(firstValue: TableCellValue, secondValue: Table
 }
 
 export async function loadLabelledTrainingRows(dataFile: ModelDataFile) {
+  return loadLabelledTableRows(dataFile);
+}
+
+export async function loadLabelledTableRows(dataFile: LabelledDataFile) {
   const userLabels = readDinoLabels();
   const cacheKey = JSON.stringify({ dataFile, userLabels });
   const cachedTable = labelledTrainingRowsCache.get(cacheKey);
@@ -105,7 +110,7 @@ export async function loadLabelledTrainingRows(dataFile: ModelDataFile) {
     return inFlightTable;
   }
 
-  const tableRequest = loadLabelledTrainingRowsFromCsv(dataFile, userLabels).finally(() => {
+  const tableRequest = loadLabelledRowsFromCsv(dataFile, userLabels).finally(() => {
     inFlightLabelledTrainingRows.delete(cacheKey);
   });
 
@@ -149,7 +154,7 @@ export function computeTrainingAccuracy(rows: PredictionTableRow[]) {
   return correctPredictions / classifiedRows.length;
 }
 
-async function loadLabelledTrainingRowsFromCsv(dataFile: ModelDataFile, userLabels: ReturnType<typeof readDinoLabels>) {
+async function loadLabelledRowsFromCsv(dataFile: LabelledDataFile, userLabels: ReturnType<typeof readDinoLabels>) {
   const response = await fetch(`/data/${dataFile}`);
 
   if (!response.ok) {

@@ -31,10 +31,11 @@ import {
   type ModelInput,
 } from "@/app/modelling/modelInputs";
 import { readModelTrainingResult } from "@/app/modelling/trainingState";
+import { buildWhiteBoxPredictionRows } from "@/app/modelling/whiteBoxTree";
 
 type AccuracyField = "correct" | "wrong" | "total" | "accuracy";
 type AccuracyInputs = Record<AccuracyField, string>;
-type TestTableRow = Record<string, string | number | boolean>;
+type TestTableRow = Record<string, string | number | boolean | undefined>;
 type TableOverlayState = {
   modelInput: ModelInput;
   rows?: TestTableRow[];
@@ -54,17 +55,6 @@ type EvaluationTutorialStep =
 const BACKGROUND_IMAGE = "/background.png";
 const LABEL_COLUMN = "régime_alimentaire";
 const PREDICTION_COLUMN = "régime_alimentaire_prédit";
-const TEST_FEATURE_COLUMNS = [
-  "période",
-  "habitat",
-  "type",
-  "bipède",
-  "longueur (m)",
-  "poids (kg)",
-  "espèce",
-  "sous-ordre_taxonomique",
-  "famille_taxonomique",
-];
 
 const QUESTION_PROMPTS = [
   "Es-tu satisfait(e) de la performance du modèle ? Pourquoi ?",
@@ -72,10 +62,8 @@ const QUESTION_PROMPTS = [
 ];
 const MODEL_TITLE = "Modèle";
 
-function modelTableColumns(condition: ModellingCondition, features: string[]) {
-  const visibleFeatures = condition === "BB" ? TEST_FEATURE_COLUMNS : features;
-
-  return ["nom", LABEL_COLUMN, PREDICTION_COLUMN, ...visibleFeatures];
+function modelTableColumns(features: string[]) {
+  return ["nom", LABEL_COLUMN, PREDICTION_COLUMN, ...features];
 }
 
 function compareCellValues(firstValue: string | number | boolean | undefined, secondValue: string | number | boolean | undefined) {
@@ -130,7 +118,7 @@ function accuracyFractionToPercent(accuracy: number | undefined) {
   return accuracy === undefined ? null : Number((accuracy * 100).toFixed(1));
 }
 
-async function fetchPredictionRows(modelInput: ModelInput) {
+async function fetchBlackBoxPredictionRows(modelInput: ModelInput) {
   const response = await fetch("/api/evaluation/predictions", {
     method: "POST",
     headers: {
@@ -220,28 +208,24 @@ function EvaluationTutorialTarget({
 }
 
 function TestDataCard({
-  condition,
-  modelInput,
+  displayFeatures,
   tutorialStep = null,
   onTutorialDismiss = () => {},
 }: {
-  condition: ModellingCondition;
-  modelInput: ModelInput;
+  displayFeatures: string[];
   tutorialStep?: EvaluationTutorialStep;
   onTutorialDismiss?: () => void;
 }) {
-  const visibleFeatures = condition === "BB" ? TEST_FEATURE_COLUMNS : modelInput.features;
-
   const card = (
     <section className="relative flex w-full flex-col gap-[10px] rounded-[24px] bg-white px-[24px] py-[20px] shadow-[0_2px_4px_rgba(0,0,0,0.06),0_-6px_6px_rgba(0,0,0,0.03),0_14px_14px_rgba(0,0,0,0.08)] backdrop-blur-[20px]">
       <p className="text-[16px] font-semibold leading-[1.5] text-black">
         Données de test:
       </p>
-      {visibleFeatures.length > 0 && (
+      {displayFeatures.length > 0 && (
         <div className="flex flex-col gap-[10px]">
           <p className="text-[16px] leading-[1.5] text-black">Caractéristiques:</p>
           <div className="flex flex-wrap gap-[10px]">
-            {visibleFeatures.map((feature) => (
+            {displayFeatures.map((feature) => (
               <span
                 key={feature}
                 className="inline-flex min-h-[32px] items-center justify-center rounded-full bg-[#ebebec] px-[8px] text-[13px] font-medium leading-[1.43] text-[#18181b]"
@@ -562,12 +546,12 @@ function ReflectionPrompt({
 }
 
 function TestTableOverlay({
-  condition,
+  displayFeatures,
   modelInput,
   onClose,
   rows: providedRows,
 }: {
-  condition: ModellingCondition;
+  displayFeatures: string[];
   modelInput: ModelInput;
   onClose: () => void;
   rows?: TestTableRow[];
@@ -582,8 +566,8 @@ function TestTableOverlay({
 
     async function loadTestTable() {
       try {
-        const nextRows = providedRows ?? (await fetchPredictionRows(modelInput));
-        const nextHeaders = modelTableColumns(condition, modelInput.features);
+        const nextRows = providedRows ?? (await fetchBlackBoxPredictionRows(modelInput));
+        const nextHeaders = modelTableColumns(displayFeatures);
 
         if (isActive) {
           setHeaders(nextHeaders);
@@ -602,7 +586,7 @@ function TestTableOverlay({
     return () => {
       isActive = false;
     };
-  }, [condition, modelInput, providedRows]);
+  }, [displayFeatures, modelInput, providedRows]);
 
   const sortedRows = useMemo(() => {
     if (!sortConfig) {
@@ -709,9 +693,23 @@ export default function EvaluationPage() {
     condition,
     selectedFeatures,
   });
+  const trainingResult = useMemo(() => readModelTrainingResult(condition), [condition]);
+  const evaluationDataFeatures = useMemo(() => {
+    if (condition === "WB") {
+      return modelInput.features;
+    }
+
+    if (experimentCondition === "C2") {
+      return selectedFeatures;
+    }
+
+    return [];
+  }, [condition, experimentCondition, modelInput.features, selectedFeatures]);
   const modelInputKey = JSON.stringify({
+    condition,
     features: modelInput.features,
     data: modelInput.data,
+    whiteBoxTree: condition === "WB" ? trainingResult?.whiteBoxTree : undefined,
   });
 
   useEffect(() => {
@@ -816,7 +814,17 @@ export default function EvaluationPage() {
     setSaveErrorMessage(null);
 
     try {
-      const rows = await fetchPredictionRows(modelInput);
+      const rows =
+        condition === "WB"
+          ? trainingResult?.whiteBoxTree?.length
+            ? await buildWhiteBoxPredictionRows(trainingResult.whiteBoxTree, "df_test.csv")
+            : null
+          : await fetchBlackBoxPredictionRows(modelInput);
+
+      if (!rows) {
+        throw new Error("Aucun arbre entraîné n'est disponible pour ce modèle.");
+      }
+
       setPredictionRows(rows);
     } catch (error) {
       setPredictionRows(null);
@@ -931,8 +939,7 @@ export default function EvaluationPage() {
             <div className="flex min-w-max items-center justify-center">
               <div className="w-[545px] shrink-0">
                 <TestDataCard
-                  condition={condition}
-                  modelInput={modelInput}
+                  displayFeatures={evaluationDataFeatures}
                   tutorialStep={tutorialStep}
                   onTutorialDismiss={advanceTutorial}
                 />
@@ -1030,7 +1037,7 @@ export default function EvaluationPage() {
       </Surface>
       {tableOverlay && (
         <TestTableOverlay
-          condition={condition}
+          displayFeatures={evaluationDataFeatures}
           modelInput={tableOverlay.modelInput}
           onClose={() => setTableOverlay(null)}
           rows={tableOverlay.rows}

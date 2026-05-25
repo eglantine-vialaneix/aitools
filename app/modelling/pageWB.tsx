@@ -21,7 +21,8 @@ import {
 } from "./modelInputs";
 import { TrainingTableOverlay } from "./TrainingTableOverlay";
 import { markModelAsTrained, type ModelTrainingResult } from "./trainingState";
-import { computeTrainingAccuracy, loadLabelledTrainingRows, type PredictionTableRow, type TrainingTableRow } from "./tableRows";
+import { computeTrainingAccuracy } from "./tableRows";
+import { buildWhiteBoxPredictionRows } from "./whiteBoxTree";
 
 type ModellingWhiteBoxProps = {
   condition?: ModellingCondition;
@@ -93,6 +94,12 @@ type ConnectorLine = {
   path: string;
 };
 
+type TrainingTableOverlayState = {
+  filters?: SplitFilter[];
+  title?: string;
+  subtitle?: string;
+} | null;
+
 type TreeNodeProps = {
   node: TreeNodeData;
   nodeIndex: number;
@@ -101,6 +108,7 @@ type TreeNodeProps = {
   onSelectFeature: (nodeId: string, split: GiniResult) => void;
   onConfirm: (nodeId: string) => void;
   onDefineLeaf: (nodeId: string) => void;
+  onInspectLeafTable: (nodeId: string) => void;
   tutorialStep?: ModellingTutorialStep;
   onTutorialDismiss?: () => void;
 };
@@ -307,7 +315,7 @@ function TrainingDataCard({
   return card;
 }
 
-function LeafNode({ node }: { node: TreeNodeData }) {
+function LeafNode({ node, onInspectTable }: { node: TreeNodeData; onInspectTable: () => void }) {
   const prediction = node.counts?.majority ?? "herbivore";
   const carnivores = node.counts?.carnivores ?? 0;
   const herbivores = node.counts?.herbivores ?? 0;
@@ -338,6 +346,12 @@ function LeafNode({ node }: { node: TreeNodeData }) {
       >
         {prediction === "carnivore" ? "Carnivore" : "Herbivore"}
       </span>
+      <Button
+        className="min-h-[32px] rounded-full border border-[#dedee0] bg-white px-[10px] text-[14px] font-medium text-[#18181b]"
+        onPress={onInspectTable}
+      >
+        Voir le sous-tableau
+      </Button>
     </article>
   );
 }
@@ -350,6 +364,7 @@ function TreeNode({
   onSelectFeature,
   onConfirm,
   onDefineLeaf,
+  onInspectLeafTable,
   tutorialStep = null,
   onTutorialDismiss = () => {},
 }: TreeNodeProps) {
@@ -362,7 +377,7 @@ function TreeNode({
   );
 
   if (node.isLeaf) {
-    return <LeafNode node={node} />;
+    return <LeafNode node={node} onInspectTable={() => onInspectLeafTable(node.id)} />;
   }
 
   const shouldShowRootNodeHint = node.id === "root" && tutorialStep === "root-node";
@@ -539,6 +554,7 @@ function TreeCanvas({
   onSelectFeature,
   onConfirm,
   onDefineLeaf,
+  onInspectLeafTable,
   tutorialStep = null,
   onTutorialDismiss = () => {},
 }: {
@@ -549,6 +565,7 @@ function TreeCanvas({
   onSelectFeature: (nodeId: string, split: GiniResult) => void;
   onConfirm: (nodeId: string) => void;
   onDefineLeaf: (nodeId: string) => void;
+  onInspectLeafTable: (nodeId: string) => void;
   tutorialStep?: ModellingTutorialStep;
   onTutorialDismiss?: () => void;
 }) {
@@ -655,6 +672,7 @@ function TreeCanvas({
           onSelectFeature={onSelectFeature}
           onConfirm={onConfirm}
           onDefineLeaf={onDefineLeaf}
+          onInspectLeafTable={onInspectLeafTable}
           tutorialStep={tutorialStep}
           onTutorialDismiss={onTutorialDismiss}
         />
@@ -749,36 +767,6 @@ function countTreePredictions(nodes: TreeNodeData[]): ModelTrainingResult {
   );
 }
 
-function rowMatchesSplit(row: TrainingTableRow, split: GiniResult) {
-  const rowValue = row[split.feature];
-
-  if (split.operator === "gte") {
-    return Number(rowValue) >= Number(split.value);
-  }
-
-  return String(rowValue) === String(split.value);
-}
-
-function predictRowWithTree(row: TrainingTableRow, nodes: TreeNodeData[]) {
-  const nodesById = new Map(nodes.map((node) => [node.id, node]));
-  let currentNode = nodesById.get("root") ?? nodes[0];
-
-  while (currentNode?.selectedSplit && currentNode.leftId && currentNode.rightId) {
-    const nextNodeId = rowMatchesSplit(row, currentNode.selectedSplit)
-      ? currentNode.rightId
-      : currentNode.leftId;
-    const nextNode = nodesById.get(nextNodeId);
-
-    if (!nextNode) {
-      break;
-    }
-
-    currentNode = nextNode;
-  }
-
-  return currentNode?.counts?.majority ?? "herbivore";
-}
-
 function collectionTreeFromNodes(nodes: TreeNodeData[]): TrainedTreeNode | null {
   const nodesById = new Map(nodes.map((node) => [node.id, node]));
   const rootNode = nodesById.get("root") ?? nodes[0];
@@ -804,15 +792,6 @@ function collectionTreeFromNodes(nodes: TreeNodeData[]): TrainedTreeNode | null 
   };
 
   return visitNode(rootNode);
-}
-
-async function buildWhiteBoxPredictionRows(nodes: TreeNodeData[], dataFile: ModelInput["data"]) {
-  const trainingTable = await loadLabelledTrainingRows(dataFile);
-
-  return trainingTable.rows.map<PredictionTableRow>((row) => ({
-    ...row,
-    régime_alimentaire_prédit: predictRowWithTree(row, nodes),
-  }));
 }
 
 function childNode({
@@ -916,7 +895,7 @@ export default function ModellingWhiteBox({
   );
   const [openNodeId, setOpenNodeId] = useState<string | null>(null);
   const [giniByNode, setGiniByNode] = useState<Record<string, GiniState>>({});
-  const [isTableOpen, setIsTableOpen] = useState(false);
+  const [tableOverlay, setTableOverlay] = useState<TrainingTableOverlayState>(null);
   const [tutorialStep, setTutorialStep] = useState<ModellingTutorialStep>(null);
   const [shouldStartTutorialAfterIntro, setShouldStartTutorialAfterIntro] = useState(showIntro && !isReadOnly);
   const isTreeComplete = useMemo(() => {
@@ -1090,6 +1069,20 @@ export default function ModellingWhiteBox({
     setOpenNodeId(null);
   };
 
+  const inspectLeafTable = (nodeId: string) => {
+    const node = nodes.find((candidate) => candidate.id === nodeId);
+
+    if (!node) {
+      return;
+    }
+
+    setTableOverlay({
+      filters: node.filters,
+      title: "Sous-tableau de la feuille",
+      subtitle: node.pathLabels.length ? node.pathLabels.join(" / ") : "Toutes les données d'entraînement",
+    });
+  };
+
   const finishTraining = async () => {
     if (!isTreeComplete) {
       return;
@@ -1125,7 +1118,7 @@ export default function ModellingWhiteBox({
               features={modelInput.features}
               carnivores={modelInput.init_carnivores}
               herbivores={modelInput.init_herbivores}
-              onInspectTable={() => setIsTableOpen(true)}
+              onInspectTable={() => setTableOverlay({})}
               tutorialStep={tutorialStep}
               onTutorialDismiss={advanceTutorial}
             />
@@ -1138,6 +1131,7 @@ export default function ModellingWhiteBox({
               onSelectFeature={selectFeature}
               onConfirm={confirmNode}
               onDefineLeaf={defineLeaf}
+              onInspectLeafTable={inspectLeafTable}
               tutorialStep={tutorialStep}
               onTutorialDismiss={advanceTutorial}
             />
@@ -1169,10 +1163,13 @@ export default function ModellingWhiteBox({
           <GiniInstructionsContent />
         </ActivityInstructionsOverlay>
       )}
-      {isTableOpen && (
+      {tableOverlay && (
         <TrainingTableOverlay
           dataFile={modelInput.data}
-          onClose={() => setIsTableOpen(false)}
+          filters={tableOverlay.filters}
+          subtitle={tableOverlay.subtitle}
+          title={tableOverlay.title}
+          onClose={() => setTableOverlay(null)}
         />
       )}
     </div>
