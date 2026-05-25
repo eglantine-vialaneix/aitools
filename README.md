@@ -27,13 +27,13 @@ npm run build
 >[!WARNING]
 >Make sure you followed all steps from ```Getting Started```before getting to deployment!
 
-1) Launch the backend in one terminal:
+### 1) Launch the backend in one terminal
 
 ```bash
 npm run dev:backend:network
 ```
 
-2) Run the development server from another terminal.
+### 2) Run the development server from another terminal
 
 You can either run it:
 
