@@ -12,6 +12,7 @@ import { markModelAsTrained, type ModelTrainingResult } from "./trainingState";
 
 type ModellingBlackBoxProps = {
   condition?: ModellingCondition;
+  displayFeatures?: string[];
   onShowInstructions?: () => void;
 };
 
@@ -20,10 +21,12 @@ const SURFACE_SHADOW =
 
 function TrainingDataCard({
   carnivores,
+  features,
   herbivores,
   onInspectTable,
 }: {
   carnivores: number;
+  features?: string[];
   herbivores: number;
   onInspectTable: () => void;
 }) {
@@ -40,6 +43,22 @@ function TrainingDataCard({
           Inspecter le tableau
         </Button>
       </div>
+
+      {features && features.length > 0 && (
+        <div className="flex items-center gap-[10px]">
+          <p className="text-[16px] leading-[1.5] text-black">Caractéristiques:</p>
+          <div className="flex flex-wrap items-center gap-[10px]">
+            {features.map((feature) => (
+              <span
+                key={feature}
+                className="inline-flex min-h-[32px] items-center justify-center rounded-full bg-[#ebebec] px-[10px] text-[14px] font-medium leading-[1.43] text-[#18181b]"
+              >
+                {feature}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex items-center gap-[68px]">
         <p className="text-[16px] leading-[1.5] text-black">Données:</p>
@@ -105,6 +124,7 @@ function ModelSummary({
 
 export default function ModellingBlackBox({
   condition = "BB",
+  displayFeatures = [],
   onShowInstructions,
 }: ModellingBlackBoxProps) {
   const router = useRouter();
@@ -161,6 +181,7 @@ export default function ModellingBlackBox({
       <main className="relative flex min-h-[calc(100dvh-100px)] w-full min-w-[980px] flex-col items-center">
         <TrainingDataCard
           carnivores={modelInput.init_carnivores}
+          features={displayFeatures}
           herbivores={modelInput.init_herbivores}
           onInspectTable={() => setIsTableOpen(true)}
         />
@@ -181,12 +202,14 @@ export default function ModellingBlackBox({
         )}
 
         <div className="fixed bottom-[20px] right-[20px] flex items-center gap-[10px]">
-          <Button
-            className="min-h-[40px] rounded-full border border-white/50 bg-white/85 px-[16px] text-[14px] font-medium text-[#18181b] shadow-[0_2px_8px_rgba(0,0,0,0.06)] backdrop-blur-[20px] transition hover:bg-white"
-            onPress={() => router.push("/modelling")}
-          >
-            Retour
-          </Button>
+          {!trainingResult && (
+            <Button
+              className="min-h-[40px] rounded-full border border-white/50 bg-white/85 px-[16px] text-[14px] font-medium text-[#18181b] shadow-[0_2px_8px_rgba(0,0,0,0.06)] backdrop-blur-[20px] transition hover:bg-white"
+              onPress={() => router.push("/modelling")}
+            >
+              Retour
+            </Button>
+          )}
           {trainingResult && (
             <Button
               className="min-h-[40px] rounded-full bg-[#0485f7] px-[16px] text-[14px] font-medium text-white shadow-[0_2px_8px_rgba(0,0,0,0.06)]"

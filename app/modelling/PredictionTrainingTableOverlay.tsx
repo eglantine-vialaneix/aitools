@@ -6,8 +6,9 @@ import { DataTable, type SortConfig } from "@/app/components";
 import { readDinoLabels } from "@/app/lib/dinoLabels";
 import { type ModelInput } from "./modelInputs";
 import { type ModelTrainingResult } from "./trainingState";
-import { compareCellValues, type PredictionTableRow } from "./tableRows";
+import { compareCellValues, loadLabelledTrainingRows, type PredictionTableRow } from "./tableRows";
 
+const LABEL_COLUMN = "régime_alimentaire";
 const PREDICTION_COLUMN = "régime_alimentaire_prédit";
 const predictionRowsCache = new Map<string, PredictionTableRow[]>();
 const inFlightPredictionRequests = new Map<string, Promise<PredictionTableRow[]>>();
@@ -97,6 +98,7 @@ export function PredictionTrainingTableOverlay({
   const [fetchedRowsKey, setFetchedRowsKey] = useState<string | null>(null);
   const [sortConfig, setSortConfig] = useState<SortConfig>(null);
   const [fetchErrorMessage, setFetchErrorMessage] = useState<string | null>(null);
+  const [changedCells, setChangedCells] = useState<Set<string>>(new Set());
   const requestKey = modelInput ? JSON.stringify({ features: modelInput.features, dataFile: modelInput.data }) : null;
   const rows = useMemo(
     () => providedRows ?? (fetchedRowsKey === requestKey ? fetchedRows : []),
@@ -151,6 +153,36 @@ export function PredictionTrainingTableOverlay({
       isActive = false;
     };
   }, [modelInput, providedRows]);
+
+  useEffect(() => {
+    if (!modelInput) {
+      setChangedCells(new Set());
+      return;
+    }
+
+    let isActive = true;
+    const input = modelInput;
+
+    async function loadChangedCells() {
+      try {
+        const loadedTable = await loadLabelledTrainingRows(input.data);
+
+        if (isActive) {
+          setChangedCells(loadedTable.changedCells);
+        }
+      } catch {
+        if (isActive) {
+          setChangedCells(new Set());
+        }
+      }
+    }
+
+    loadChangedCells();
+
+    return () => {
+      isActive = false;
+    };
+  }, [modelInput]);
 
   const sortedRows = useMemo(() => {
     if (!sortConfig) {
@@ -225,6 +257,22 @@ export function PredictionTrainingTableOverlay({
               sortConfig={sortConfig}
               onSort={updateSort}
               getRowKey={(row) => String(row.nom)}
+              renderCell={(row, header, _rowIndex, _columnIndex, defaultContent) => {
+                const wasOverwritten = changedCells.has(`${row.nom}:${header}`);
+
+                if (wasOverwritten && header === LABEL_COLUMN) {
+                  return (
+                    <span>
+                      <em>{defaultContent}</em>{" "}
+                      <span aria-label="Régime mal étiqueté" title="Régime mal étiqueté">
+                        ‼️
+                      </span>
+                    </span>
+                  );
+                }
+
+                return wasOverwritten ? <em>{defaultContent}</em> : defaultContent;
+              }}
             />
           )}
         </div>

@@ -25,7 +25,7 @@ export function ActivityInstructionsOverlay({
         role="dialog"
         aria-modal="true"
         aria-labelledby="activity-instructions-title"
-        className="flex max-h-full w-full max-w-[640px] flex-col gap-[18px] overflow-auto rounded-[24px] border border-[#dedee0] bg-white p-[28px] text-[#18181b] shadow-[0_2px_8px_rgba(0,0,0,0.06),0_-6px_12px_rgba(0,0,0,0.03),0_14px_28px_rgba(0,0,0,0.08)]"
+        className="flex max-h-full w-full max-w-[800px] flex-col gap-[18px] overflow-auto rounded-[24px] border border-[#dedee0] bg-white p-[28px] text-[#18181b] shadow-[0_2px_8px_rgba(0,0,0,0.06),0_-6px_12px_rgba(0,0,0,0.03),0_14px_28px_rgba(0,0,0,0.08)]"
       >
         <div>
           <p className="text-[14px] font-medium text-[#52525b]">Avant de commencer</p>
@@ -87,7 +87,7 @@ export function DataLabellingInstructionsContent({ condition }: { condition: Act
     <>
       <p>
           Voici les fiches d&apos;information de 10 dinosaures. Lis-les
-          attentivement et prends des notes sur les indices qui pourraient aider l'algorithme 
+          attentivement et prends des notes sur les indices qui pourraient aider l&apos;algorithme 
           à identifier leur régime alimentaire.
         </p>
         <Image
@@ -150,36 +150,23 @@ export function FeatureSelectionInstructionsContent({ condition }: { condition: 
   );
 }
 
-export function ModellingInstructionsContent({ condition }: { condition: ActivityCondition }) {
-  if (condition === "WB") {
-    return (
+export function ModellingInstructionsContent({}: { condition: ActivityCondition }) {
+  return (
       <>
         <p>
-          Maintenant que tu as fini de préparer tes données, tu vas pouvoir les donner à un modèle
-          d&apos;apprentissage automatique pour l&apos;entraîner.
+          Maintenant que tu as fini de préparer tes données, tu vas pouvoir les donner à un algorithme 
+          pour qu&apos;il <strong>apprenne à reconnaître</strong> un herbivore ou un carnivore.
         </p>
-        <p>
-          Inspecte d&apos;abord les données qui lui sont transmises, puis lance l&apos;entraînement.
-          Observe ensuite comment le modèle utilise les caractéristiques choisies
-          pour différencier les dinosaures carnivores des dinosaures herbivores.
-        </p>
+        <Image
+        alt="Entraînement du modèle"
+        className="mt-[4px] h-auto w-full rounded-[12px] border border-[#dedee0]"
+        height={621}
+        priority
+        src="/Hints/TaskTraining.png"
+        width={3720}
+      />
       </>
     );
-  }
-
-  return (
-    <>
-      <p>
-        Maintenant que tu as fini de préparer tes données, tu vas pouvoir les donner à un modèle
-        d&apos;apprentissage automatique pour l&apos;entraîner.
-      </p>
-      <p>
-        Inspecte les données qui lui sont transmises, lance l&apos;entraînement, puis observe le
-        résultat obtenu. Ton objectif est de comprendre, à partir de ce que tu peux voir, comment
-        le modèle parvient à différencier les carnivores des herbivores.
-      </p>
-    </>
-  );
 }
 
 export function EvaluationInstructionsContent() {
@@ -204,21 +191,20 @@ export function GiniInstructionsContent() {
   return (
     <>
       <p>
-        Tu vas entraîner un arbre de décision. Ce type de modèle choisit des questions successives
-        pour séparer les dinosaures en groupes de plus en plus purs: idéalement, un groupe contient
-        seulement des carnivores ou seulement des herbivores.
+        L&apos;algorithme que tu vas entraîner est un <strong>arbre de décision</strong>. 
+
+        Ce type de modèle choisit des questions successives pour séparer les dinosaures en groupes de plus en plus purs: 
+        idéalement, un groupe contient <strong>seulement des carnivores</strong> ou <strong>seulement des herbivores</strong>.
+        Pour comparer les séparations possibles, on calcule <strong>l&apos;impureté de Gini</strong>.
       </p>
-      <p>
-        Pour comparer les séparations possibles, on calcule l&apos;impureté de Gini. Pour un groupe,
-        la formule est: 1 - proportion(carnivores)^2 - proportion(herbivores)^2. Plus le résultat
-        est proche de 0, plus le groupe est pur.
-      </p>
-      <p>
-        Exemple: dans un groupe de 5 dinosaures avec 4 carnivores et 1 herbivore, l&apos;impureté vaut
-        1 - (4/5)^2 - (1/5)^2 = 0,32. Un groupe avec 5 carnivores et 0 herbivore vaut 0: il est
-        parfaitement pur. À chaque étape, choisis la séparation qui rend les groupes obtenus les
-        plus purs possible.
-      </p>
+      <Image
+        alt="Gini computation example"
+        className="mt-[4px] h-auto w-full"
+        height={621}
+        priority
+        src="/Hints/GiniInline.png"
+        width={3720}
+      />
     </>
   );
 }

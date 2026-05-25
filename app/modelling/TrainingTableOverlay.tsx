@@ -6,6 +6,8 @@ import { DataTable, type SortConfig } from "@/app/components";
 import { type ModelDataFile } from "./modelConfig";
 import { compareCellValues, loadLabelledTrainingRows, type TrainingTableRow } from "./tableRows";
 
+const LABEL_COLUMN = "régime_alimentaire";
+
 export function TrainingTableOverlay({
   dataFile,
   onClose,
@@ -122,10 +124,21 @@ export function TrainingTableOverlay({
               sortConfig={sortConfig}
               onSort={updateSort}
               getRowKey={(row) => row.nom}
-              renderCell={(row, header) => {
+              renderCell={(row, header, _rowIndex, _columnIndex, defaultContent) => {
                 const wasOverwritten = changedCells.has(`${row.nom}:${header}`);
 
-                return wasOverwritten ? <em>{row[header]}</em> : row[header];
+                if (wasOverwritten && header === LABEL_COLUMN) {
+                  return (
+                    <span>
+                      <em>{defaultContent}</em>{" "}
+                      <span aria-label="Régime mal étiqueté" title="Régime mal étiqueté">
+                        ‼️
+                      </span>
+                    </span>
+                  );
+                }
+
+                return wasOverwritten ? <em>{defaultContent}</em> : defaultContent;
               }}
             />
           )}

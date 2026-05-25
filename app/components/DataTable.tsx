@@ -24,15 +24,34 @@ type DataTableProps<TRow extends Record<string, unknown>> = {
   getHeaderButtonClassName?: (header: string, columnIndex: number, orderedHeaders: string[]) => string;
   getCellClassName?: (row: TRow, header: string, rowIndex: number, columnIndex: number, orderedHeaders: string[]) => string;
   renderHeaderAdornment?: (header: string, columnIndex: number, orderedHeaders: string[]) => ReactNode;
-  renderCell?: (row: TRow, header: string, rowIndex: number, columnIndex: number) => ReactNode;
+  renderCell?: (
+    row: TRow,
+    header: string,
+    rowIndex: number,
+    columnIndex: number,
+    defaultContent: ReactNode,
+  ) => ReactNode;
 };
 
 const LABEL_COLUMN = "régime_alimentaire";
 const NAME_COLUMN = "nom";
 const PREDICTION_COLUMN = "régime_alimentaire_prédit";
+const DIET_COLUMNS = [LABEL_COLUMN, PREDICTION_COLUMN];
 const LOCKED_LEADING_COLUMNS = [NAME_COLUMN, LABEL_COLUMN];
 const NAME_COLUMN_WIDTH = 150;
 const LABEL_COLUMN_WIDTH = 190;
+
+export function formatTableCellValue(value: unknown) {
+  if (value === true || value === "True" || value === "true") {
+    return "Vrai";
+  }
+
+  if (value === false || value === "False" || value === "false") {
+    return "Faux";
+  }
+
+  return String(value ?? "");
+}
 
 function lockedLeadingColumns(headers: string[]) {
   return LOCKED_LEADING_COLUMNS.filter((header) => headers.includes(header));
@@ -148,11 +167,34 @@ function columnBackgroundStyle(header: string, isHeader: boolean, orderedHeaders
 
   if (header === PREDICTION_COLUMN) {
     return {
-      backgroundColor: isHeader ? "#dff3d8" : "#ecf8e7",
+      backgroundColor: isHeader ? "#d8eaf3" : "#e7f6f8",
     };
   }
 
   return undefined;
+}
+
+function dietValueClassName(header: string, value: unknown) {
+  if (!DIET_COLUMNS.includes(header)) {
+    return "";
+  }
+
+  if (value === "carnivore") {
+    return "font-bold text-[#d92d20]";
+  }
+
+  if (value === "herbivore") {
+    return "font-bold text-[#0a7f38]";
+  }
+
+  return "";
+}
+
+function renderDefaultCellContent(header: string, value: unknown) {
+  const formattedValue = formatTableCellValue(value);
+  const className = dietValueClassName(header, formattedValue);
+
+  return className ? <span className={className}>{formattedValue}</span> : formattedValue;
 }
 
 export function DataTable<TRow extends Record<string, unknown>>({
@@ -271,19 +313,23 @@ export function DataTable<TRow extends Record<string, unknown>>({
       <tbody>
         {rows.map((row, rowIndex) => (
           <tr key={getRowKey(row, rowIndex)} className="odd:bg-white even:bg-[#fafafa]">
-            {visibleHeaders.map((header, columnIndex) => (
-              <td
-                key={header}
-                className={`whitespace-nowrap border-b border-[#ededf0] px-[12px] py-[9px] text-[#27272a] ${
-                  isLockedColumn(header) ? "shadow-[1px_0_0_#d8ecd2]" : ""
-                } ${
-                  getCellClassName?.(row, header, rowIndex, columnIndex, visibleHeaders) ?? ""
-                }`}
-                style={columnBackgroundStyle(header, false, visibleHeaders)}
-              >
-                {renderCell ? renderCell(row, header, rowIndex, columnIndex) : String(row[header] ?? "")}
-              </td>
-            ))}
+            {visibleHeaders.map((header, columnIndex) => {
+              const defaultContent = renderDefaultCellContent(header, row[header]);
+
+              return (
+                <td
+                  key={header}
+                  className={`whitespace-nowrap border-b border-[#ededf0] px-[12px] py-[9px] text-[#27272a] ${
+                    isLockedColumn(header) ? "shadow-[1px_0_0_#d8ecd2]" : ""
+                  } ${
+                    getCellClassName?.(row, header, rowIndex, columnIndex, visibleHeaders) ?? ""
+                  }`}
+                  style={columnBackgroundStyle(header, false, visibleHeaders)}
+                >
+                  {renderCell ? renderCell(row, header, rowIndex, columnIndex, defaultContent) : defaultContent}
+                </td>
+              );
+            })}
           </tr>
         ))}
       </tbody>

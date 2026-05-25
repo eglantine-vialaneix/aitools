@@ -3,9 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@heroui/react";
-import { IoInformationCircleOutline } from "react-icons/io5";
 import { ActivityInstructionsButton, DataTable, type SortConfig } from "@/app/components";
-import { PeriodHeaderHint, ResetSortHint } from "@/app/components/FeatureSelectionHints";
+import {
+  FeatureSelectionTutorialTarget,
+  PeriodHeaderHint,
+  ResetSortHint,
+  type FeatureSelectionTutorialStep,
+} from "@/app/components/FeatureSelectionHints";
 import { readDinoLabels } from "@/app/lib/dinoLabels";
 import { saveFeatureSelectionEnd } from "@/app/lib/experimentCollection";
 import { writeSelectedFeatures } from "@/app/lib/featureSelectionState";
@@ -13,7 +17,8 @@ import { writeSelectedFeatures } from "@/app/lib/featureSelectionState";
 type TableRow = Record<string, string>;
 type FeatureSelectionBlackBoxProps = {
   onShowInstructions?: () => void;
-  shouldShowTableHints?: boolean;
+  tutorialStep?: FeatureSelectionTutorialStep;
+  onTutorialDismiss?: () => void;
 };
 
 const LABEL_COLUMN = "régime_alimentaire";
@@ -94,7 +99,8 @@ function compareCellValues(firstValue: string, secondValue: string) {
 
 export default function FeatureSelectionBlackBox({
   onShowInstructions,
-  shouldShowTableHints = true,
+  tutorialStep = null,
+  onTutorialDismiss = () => {},
 }: FeatureSelectionBlackBoxProps) {
   const router = useRouter();
   const [headers, setHeaders] = useState<string[]>([]);
@@ -104,7 +110,6 @@ export default function FeatureSelectionBlackBox({
   const [hasValidatedFeatures, setHasValidatedFeatures] = useState(false);
   const [featureSelectionReason, setFeatureSelectionReason] = useState("");
   const [featureImportanceOrder, setFeatureImportanceOrder] = useState("");
-  const [showTableHints, setShowTableHints] = useState(true);
   const [sortConfig, setSortConfig] = useState<SortConfig>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -245,26 +250,55 @@ export default function FeatureSelectionBlackBox({
           </p>
         </div>
 
-        <section className="flex flex-wrap gap-[10px]" aria-label="Caractéristiques disponibles">
-          {featureHeaders.map((feature) => (
-            <Button
-              key={feature}
-              aria-pressed={selectedFeatures.includes(feature)}
-              isDisabled={hasValidatedFeatures}
-              className={`min-h-[38px] rounded-full border px-[14px] py-[8px] text-[14px] font-medium transition ${
-                selectedFeatures.includes(feature)
-                  ? "border-[#18181b] bg-[#18181b] text-white"
-                  : "border-[#c9c9cf] bg-white text-[#27272a] hover:border-[#71717a]"
-              }`}
-              onPress={() => toggleFeature(feature)}
-            >
-              {feature}
-            </Button>
-          ))}
-          <span className="flex items-center px-[4px] text-[14px] font-medium text-[#52525b]">
-            {selectedFeatures.length}/4
-          </span>
-        </section>
+        {tutorialStep === 3 ? (
+          <FeatureSelectionTutorialTarget
+            label="Choisis les 4 caractéristiques qui te semblent les plus déterminantes"
+            onDismiss={onTutorialDismiss}
+            placement="bottom"
+          >
+            <section className="flex flex-wrap gap-[10px]" aria-label="Caractéristiques disponibles">
+              {featureHeaders.map((feature) => (
+                <Button
+                  key={feature}
+                  aria-pressed={selectedFeatures.includes(feature)}
+                  isDisabled={hasValidatedFeatures}
+                  className={`min-h-[38px] rounded-full border px-[14px] py-[8px] text-[14px] font-medium transition ${
+                    selectedFeatures.includes(feature)
+                      ? "border-[#18181b] bg-[#18181b] text-white"
+                      : "border-[#c9c9cf] bg-white text-[#27272a] hover:border-[#71717a]"
+                  }`}
+                  onPress={() => toggleFeature(feature)}
+                >
+                  {feature}
+                </Button>
+              ))}
+              <span className="flex items-center px-[4px] text-[14px] font-medium text-[#52525b]">
+                {selectedFeatures.length}/4
+              </span>
+            </section>
+          </FeatureSelectionTutorialTarget>
+        ) : (
+          <section className="flex flex-wrap gap-[10px]" aria-label="Caractéristiques disponibles">
+            {featureHeaders.map((feature) => (
+              <Button
+                key={feature}
+                aria-pressed={selectedFeatures.includes(feature)}
+                isDisabled={hasValidatedFeatures}
+                className={`min-h-[38px] rounded-full border px-[14px] py-[8px] text-[14px] font-medium transition ${
+                  selectedFeatures.includes(feature)
+                    ? "border-[#18181b] bg-[#18181b] text-white"
+                    : "border-[#c9c9cf] bg-white text-[#27272a] hover:border-[#71717a]"
+                }`}
+                onPress={() => toggleFeature(feature)}
+              >
+                {feature}
+              </Button>
+            ))}
+            <span className="flex items-center px-[4px] text-[14px] font-medium text-[#52525b]">
+              {selectedFeatures.length}/4
+            </span>
+          </section>
+        )}
 
         {hasValidatedFeatures && (
           <section className="grid gap-[14px]" aria-label="Questions finales sur les caractéristiques">
@@ -302,17 +336,10 @@ export default function FeatureSelectionBlackBox({
               >
                 Réinitialiser le tri
               </Button>
-              {shouldShowTableHints && showTableHints && (
-                <ResetSortHint onDismiss={() => setShowTableHints(false)} />
+              {tutorialStep === 2 && (
+                <ResetSortHint onDismiss={onTutorialDismiss} />
               )}
             </div>
-            <Button
-              aria-label="Afficher les indications du tableau"
-              className="min-h-[36px] min-w-[36px] rounded-full border border-[#c9c9cf] bg-white px-0 text-[20px] text-[#52525b] transition hover:border-[#71717a] hover:text-[#27272a]"
-              onPress={() => setShowTableHints(true)}
-            >
-              <IoInformationCircleOutline aria-hidden="true" />
-            </Button>
             <Button
               className="min-h-[40px] rounded-[22px] bg-[#006fee] px-[18px] text-[15px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-45"
               isDisabled={
@@ -344,8 +371,8 @@ export default function FeatureSelectionBlackBox({
               }}
               getHeaderButtonClassName={(header) => selectedFeatures.includes(header) ? "text-[#005bc4]" : "text-[#3f3f46]"}
               renderHeaderAdornment={(header) =>
-                shouldShowTableHints && showTableHints && header === "période" ? (
-                  <PeriodHeaderHint onDismiss={() => setShowTableHints(false)} />
+                tutorialStep === 1 && header === "période" ? (
+                  <PeriodHeaderHint onDismiss={onTutorialDismiss} />
                 ) : null
               }
               getCellClassName={(row, header, rowIndex, columnIndex, orderedHeaders) => {
@@ -355,13 +382,13 @@ export default function FeatureSelectionBlackBox({
 
                 return `${isSelectedFeature ? "bg-[#edf6ff]" : rowBackgroundClass} ${stickyClass} ${stickyClass ? "z-20" : ""}`;
               }}
-              renderCell={(row, header) => {
+              renderCell={(row, header, _rowIndex, _columnIndex, defaultContent) => {
                 const wasOverwritten = changedCells.has(`${row.nom}:${header}`);
 
                 if (wasOverwritten && header === LABEL_COLUMN) {
                   return (
                     <span>
-                      <em>{row[header]}</em>{" "}
+                      <em>{defaultContent}</em>{" "}
                       <span aria-label="Régime mal étiqueté" title="Régime mal étiqueté">
                         ‼️
                       </span>
@@ -369,7 +396,7 @@ export default function FeatureSelectionBlackBox({
                   );
                 }
 
-                return wasOverwritten ? <em>{row[header]}</em> : row[header];
+                return wasOverwritten ? <em>{defaultContent}</em> : defaultContent;
               }}
             />
           )}

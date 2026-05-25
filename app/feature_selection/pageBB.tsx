@@ -4,9 +4,12 @@ import { useEffect, useMemo, useState, type Key } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button, ListBox, Select } from "@heroui/react";
-import { IoInformationCircleOutline } from "react-icons/io5";
 import { ActivityInstructionsButton, DataTable, type SortConfig } from "@/app/components";
-import { PeriodHeaderHint, ResetSortHint } from "@/app/components/FeatureSelectionHints";
+import {
+  PeriodHeaderHint,
+  ResetSortHint,
+  type FeatureSelectionTutorialStep,
+} from "@/app/components/FeatureSelectionHints";
 import { readDinoLabels } from "@/app/lib/dinoLabels";
 import { saveFeatureSelectionEnd, saveFeatureTypeAttempt } from "@/app/lib/experimentCollection";
 
@@ -14,7 +17,8 @@ type TableRow = Record<string, string>;
 type FeatureType = "Numérique" | "Booléen" | "Catégorique";
 type FeatureSelectionBlackBoxProps = {
   onShowInstructions?: () => void;
-  shouldShowTableHints?: boolean;
+  tutorialStep?: FeatureSelectionTutorialStep;
+  onTutorialDismiss?: () => void;
 };
 
 const LABEL_COLUMN = "régime_alimentaire";
@@ -117,7 +121,8 @@ function normalizeFinalAnswer(answer: string) {
 
 export default function FeatureSelectionBlackBox({
   onShowInstructions,
-  shouldShowTableHints = true,
+  tutorialStep = null,
+  onTutorialDismiss = () => {},
 }: FeatureSelectionBlackBoxProps) {
   const router = useRouter();
   const [headers, setHeaders] = useState<string[]>([]);
@@ -130,7 +135,6 @@ export default function FeatureSelectionBlackBox({
   const [finalAnswer, setFinalAnswer] = useState("");
   const [finalQuestionAttempts, setFinalQuestionAttempts] = useState(0);
   const [finalQuestionError, setFinalQuestionError] = useState<string | null>(null);
-  const [showTableHints, setShowTableHints] = useState(true);
   const [sortConfig, setSortConfig] = useState<SortConfig>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -391,17 +395,10 @@ export default function FeatureSelectionBlackBox({
               >
                 Réinitialiser le tri
               </button>
-              {shouldShowTableHints && showTableHints && (
-                <ResetSortHint onDismiss={() => setShowTableHints(false)} />
+              {tutorialStep === 2 && (
+                <ResetSortHint onDismiss={onTutorialDismiss} />
               )}
             </div>
-            <Button
-              aria-label="Afficher les indications du tableau"
-              className="min-h-[36px] min-w-[36px] rounded-full border border-[#c9c9cf] bg-white px-0 text-[20px] text-[#52525b] transition hover:border-[#71717a] hover:text-[#27272a]"
-              onPress={() => setShowTableHints(true)}
-            >
-              <IoInformationCircleOutline aria-hidden="true" />
-            </Button>
             <Button
               className="min-h-[40px] rounded-[22px] bg-[#006fee] px-[18px] text-[15px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-45"
               isDisabled={hasCompletedTypeQuestions ? !finalAnswer.trim() : !hasSelectedAllTypes}
@@ -428,8 +425,8 @@ export default function FeatureSelectionBlackBox({
                 return `bg-[#f4f4f5] ${stickyClass} ${stickyClass ? "z-30" : ""}`;
               }}
               renderHeaderAdornment={(header) =>
-                shouldShowTableHints && showTableHints && header === "période" ? (
-                  <PeriodHeaderHint onDismiss={() => setShowTableHints(false)} />
+                tutorialStep === 1 && header === "période" ? (
+                  <PeriodHeaderHint onDismiss={onTutorialDismiss} />
                 ) : null
               }
               getCellClassName={(row, header, rowIndex, columnIndex, orderedHeaders) => {
@@ -438,13 +435,13 @@ export default function FeatureSelectionBlackBox({
 
                 return `${rowBackgroundClass} ${stickyClass} ${stickyClass ? "z-20" : ""}`;
               }}
-              renderCell={(row, header) => {
+              renderCell={(row, header, _rowIndex, _columnIndex, defaultContent) => {
                 const wasOverwritten = changedCells.has(`${row.nom}:${header}`);
 
                 if (wasOverwritten && header === LABEL_COLUMN) {
                   return (
                     <span>
-                      <em>{row[header]}</em>{" "}
+                      <em>{defaultContent}</em>{" "}
                       <span aria-label="Régime mal étiqueté" title="Régime mal étiqueté">
                         ‼️
                       </span>
@@ -452,7 +449,7 @@ export default function FeatureSelectionBlackBox({
                   );
                 }
 
-                return wasOverwritten ? <em>{row[header]}</em> : row[header];
+                return wasOverwritten ? <em>{defaultContent}</em> : defaultContent;
               }}
             />
           )}

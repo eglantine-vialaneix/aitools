@@ -1,11 +1,16 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button } from "@heroui/react";
+import { Button, Tooltip } from "@heroui/react";
 import { GoGear } from "react-icons/go";
-import { ActivityInstructionsButton, GiniInstructionsContent, Separator } from "@/app/components";
+import {
+  ActivityInstructionsButton,
+  ActivityInstructionsOverlay,
+  GiniInstructionsContent,
+  Separator,
+} from "@/app/components";
 import { readDinoLabels } from "@/app/lib/dinoLabels";
 import { saveTrainedTree, type TrainedTreeNode } from "@/app/lib/experimentCollection";
 import { useSelectedFeatures } from "@/app/lib/featureSelectionState";
@@ -73,6 +78,16 @@ type GiniState = {
   results: GiniResult[];
 };
 
+type ModellingTutorialStep =
+  | "input-data"
+  | "inspect-table"
+  | "root-node"
+  | "waiting-for-gini"
+  | "gini-results"
+  | "waiting-for-children"
+  | "repeat"
+  | null;
+
 type ConnectorLine = {
   id: string;
   path: string;
@@ -86,6 +101,8 @@ type TreeNodeProps = {
   onSelectFeature: (nodeId: string, split: GiniResult) => void;
   onConfirm: (nodeId: string) => void;
   onDefineLeaf: (nodeId: string) => void;
+  tutorialStep?: ModellingTutorialStep;
+  onTutorialDismiss?: () => void;
 };
 
 const SURFACE_SHADOW =
@@ -93,13 +110,76 @@ const SURFACE_SHADOW =
 const giniRequestCache = new Map<string, GiniResult[]>();
 const inFlightGiniRequests = new Map<string, Promise<GiniResult[]>>();
 
+function TutorialBackdrop({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-label="Passer à l'étape suivante du tutoriel"
+      className="fixed inset-0 z-[70] cursor-default bg-black/30"
+      onClick={onDismiss}
+    />
+  );
+}
+
+function ModellingTutorialTarget({
+  children,
+  label,
+  onDismiss,
+  placement = "top",
+  className = "",
+}: {
+  children: ReactNode;
+  label: string;
+  onDismiss: () => void;
+  placement?: "top" | "right" | "bottom" | "left";
+  className?: string;
+}) {
+  return (
+    <Tooltip.Root isOpen>
+      <div className={`relative ${className}`}>
+        {children}
+        <Tooltip.Trigger
+          aria-label="Indication pour le tutoriel d'entraînement"
+          className="pointer-events-none absolute inset-0 z-[80]"
+        />
+      </div>
+      <TutorialBackdrop onDismiss={onDismiss} />
+      <Tooltip.Content
+        className="z-[90] w-[330px] max-w-[330px] break-normal rounded-[14px] border border-[#dedee0] bg-white px-[14px] py-[12px] text-[15px] font-semibold leading-[1.35] text-[#24324a] shadow-[0_12px_28px_rgba(0,0,0,0.18)]"
+        placement={placement}
+        showArrow
+        onClick={onDismiss}
+      >
+        <Tooltip.Arrow className="text-white [&_[data-slot=overlay-arrow]]:fill-white [&_[data-slot=overlay-arrow]]:stroke-[#dedee0]" />
+        <p>{label}</p>
+      </Tooltip.Content>
+    </Tooltip.Root>
+  );
+}
+
 function formatGini(value: number | undefined) {
   return value === undefined ? "…" : value.toFixed(2);
 }
 
+function isBooleanDisplayValue(value: string | number | boolean) {
+  return value === true || value === false || value === "True" || value === "False" || value === "true" || value === "false";
+}
+
+function formatBooleanDisplayValue(value: string | number | boolean) {
+  return value === true || value === "True" || value === "true" ? "vrai" : "faux";
+}
+
+function invertBooleanDisplayValue(value: string | number | boolean) {
+  return value === true || value === "True" || value === "true" ? false : true;
+}
+
+function formatSplitValue(value: string | number | boolean) {
+  return isBooleanDisplayValue(value) ? formatBooleanDisplayValue(value) : String(value);
+}
+
 function formatCondition(split: GiniResult) {
   if (split.operator === "eq") {
-    return `${split.feature} = ${split.value}`;
+    return `${split.feature} = ${formatSplitValue(split.value)}`;
   }
 
   if (split.operator === "gte") {
@@ -115,6 +195,10 @@ function formatBranchCondition(split: GiniResult, branch: "oui" | "non") {
   }
 
   if (split.operator === "eq") {
+    if (isBooleanDisplayValue(split.value)) {
+      return `${split.feature} = ${formatSplitValue(invertBooleanDisplayValue(split.value))}`;
+    }
+
     return `${split.feature} ≠ ${split.value}`;
   }
 
@@ -142,24 +226,42 @@ function TrainingDataCard({
   carnivores,
   herbivores,
   onInspectTable,
+  tutorialStep = null,
+  onTutorialDismiss = () => {},
 }: {
   features: string[];
   carnivores: number;
   herbivores: number;
   onInspectTable: () => void;
+  tutorialStep?: ModellingTutorialStep;
+  onTutorialDismiss?: () => void;
 }) {
-  return (
+  const inspectButton = (
+    <Button
+      className="min-h-[32px] rounded-full border border-[#dedee0] bg-white px-[10px] text-[14px] font-medium text-[#18181b]"
+      onPress={onInspectTable}
+    >
+      Inspecter le tableau
+    </Button>
+  );
+
+  const card = (
     <section className="relative z-10 flex w-full max-w-[545px] flex-col gap-[10px] rounded-[24px] bg-white px-[24px] py-[20px] shadow-[0_2px_8px_rgba(0,0,0,0.06),0_-6px_12px_rgba(0,0,0,0.03),0_14px_28px_rgba(0,0,0,0.08)] backdrop-blur-[20px]">
       <div className="flex items-center justify-between gap-[18px]">
         <p className="text-[16px] font-semibold leading-[1.5] text-black">
           Données d’entraînement:
         </p>
-        <Button
-          className="min-h-[32px] rounded-full border border-[#dedee0] bg-white px-[10px] text-[14px] font-medium text-[#18181b]"
-          onPress={onInspectTable}
-        >
-          Inspecter le tableau
-        </Button>
+        {tutorialStep === "inspect-table" ? (
+          <ModellingTutorialTarget
+            label="Tu peux revoir ton tableau ici"
+            onDismiss={onTutorialDismiss}
+            placement="bottom"
+          >
+            {inspectButton}
+          </ModellingTutorialTarget>
+        ) : (
+          inspectButton
+        )}
       </div>
 
       <div className="flex items-center gap-[10px]">
@@ -189,6 +291,20 @@ function TrainingDataCard({
       </div>
     </section>
   );
+
+  if (tutorialStep === "input-data") {
+    return (
+      <ModellingTutorialTarget
+        label="1) L'arbre regarde les données initiales"
+        onDismiss={onTutorialDismiss}
+        placement="bottom"
+      >
+        {card}
+      </ModellingTutorialTarget>
+    );
+  }
+
+  return card;
 }
 
 function LeafNode({ node }: { node: TreeNodeData }) {
@@ -234,6 +350,8 @@ function TreeNode({
   onSelectFeature,
   onConfirm,
   onDefineLeaf,
+  tutorialStep = null,
+  onTutorialDismiss = () => {},
 }: TreeNodeProps) {
   const isChooserOpen = Boolean(giniState);
   const isSplitConfirmed = Boolean(node.leftId && node.rightId);
@@ -247,7 +365,10 @@ function TreeNode({
     return <LeafNode node={node} />;
   }
 
-  return (
+  const shouldShowRootNodeHint = node.id === "root" && tutorialStep === "root-node";
+  const shouldShowGiniResultsHint = node.id === "root" && tutorialStep === "gini-results";
+
+  const nodeCard = (
     <article
       data-tree-node-card={node.id}
       className={`relative flex w-[393px] flex-col gap-[20px] rounded-[24px] bg-white p-[24px] ${SURFACE_SHADOW} backdrop-blur-[20px]`}
@@ -298,7 +419,7 @@ function TreeNode({
                   className="min-h-[36px] w-full rounded-full bg-[#ebebec] px-[14px] text-[14px] font-medium text-[#0485f7]"
                   onPress={() => onDefineLeaf(node.id)}
                 >
-                  Définir comme Feuille
+                  Définir comme feuille: arrêter l&apos;algorithme ici.
                 </Button>
               )}
             </>
@@ -306,7 +427,44 @@ function TreeNode({
 
           {isChooserOpen && (
             <>
-              <div className="relative flex w-full flex-col gap-[2px] rounded-[24px] bg-white p-[4px] shadow-[0_2px_4px_rgba(0,0,0,0.06),0_-6px_6px_rgba(0,0,0,0.03),0_14px_14px_rgba(0,0,0,0.08)]">
+              {shouldShowGiniResultsHint ? (
+                <ModellingTutorialTarget
+                  label="3) Il choisit ensuite la caractéristique avec l'impureté la plus basse"
+                  onDismiss={onTutorialDismiss}
+                  placement="right"
+                >
+                  <div className="relative flex w-full flex-col gap-[2px] rounded-[24px] bg-white p-[4px] shadow-[0_2px_4px_rgba(0,0,0,0.06),0_-6px_6px_rgba(0,0,0,0.03),0_14px_14px_rgba(0,0,0,0.08)]">
+                    {node.availableFeatures.map((feature) => {
+                      const split = splitByFeature.get(feature);
+                      const isSelected = selectedFeature === feature;
+                      const canSplit = canSelectSplit(split, node.availableFeatures.length);
+
+                      return (
+                        <button
+                          key={feature}
+                          type="button"
+                          className={`flex min-h-[36px] w-full items-center gap-[12px] rounded-[20px] px-[12px] py-[6px] text-left transition ${
+                            isSelected ? "bg-[#ebebec]" : "hover:bg-[#f5f5f5]"
+                          }`}
+                          disabled={!canSplit}
+                          title={split?.reason}
+                          onClick={() => canSplit && split && onSelectFeature(node.id, split)}
+                        >
+                          <span
+                            className={`size-[16px] shrink-0 rounded-[4px] border ${
+                              isSelected ? "border-[#0485f7] bg-[#0485f7]" : "border-[#71717a]"
+                            }`}
+                          />
+                          <span className="min-w-0 flex-1 text-[14px] font-medium leading-[1.43] text-[#18181b]">
+                            {feature}: impureté de Gini = {formatGini(split?.gini)}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </ModellingTutorialTarget>
+              ) : (
+                <div className="relative flex w-full flex-col gap-[2px] rounded-[24px] bg-white p-[4px] shadow-[0_2px_4px_rgba(0,0,0,0.06),0_-6px_6px_rgba(0,0,0,0.03),0_14px_14px_rgba(0,0,0,0.08)]">
                 {node.availableFeatures.map((feature) => {
                   const split = splitByFeature.get(feature);
                   const isSelected = selectedFeature === feature;
@@ -334,7 +492,8 @@ function TreeNode({
                     </button>
                   );
                 })}
-              </div>
+                </div>
+              )}
 
               {giniState?.isLoading && (
                 <p className="text-[13px] leading-[1.35] text-[#71717a]">Calcul en cours…</p>
@@ -356,6 +515,20 @@ function TreeNode({
       )}
     </article>
   );
+
+  if (shouldShowRootNodeHint) {
+    return (
+      <ModellingTutorialTarget
+        label="2) L'algorithme doit choisir quelle question poser pour séparer les dinosaures"
+        onDismiss={onTutorialDismiss}
+        placement="right"
+      >
+        {nodeCard}
+      </ModellingTutorialTarget>
+    );
+  }
+
+  return nodeCard;
 }
 
 function TreeCanvas({
@@ -366,6 +539,8 @@ function TreeCanvas({
   onSelectFeature,
   onConfirm,
   onDefineLeaf,
+  tutorialStep = null,
+  onTutorialDismiss = () => {},
 }: {
   nodes: TreeNodeData[];
   openNodeId: string | null;
@@ -374,6 +549,8 @@ function TreeCanvas({
   onSelectFeature: (nodeId: string, split: GiniResult) => void;
   onConfirm: (nodeId: string) => void;
   onDefineLeaf: (nodeId: string) => void;
+  tutorialStep?: ModellingTutorialStep;
+  onTutorialDismiss?: () => void;
 }) {
   const canvasRef = useRef<HTMLElement | null>(null);
   const [connectorLines, setConnectorLines] = useState<ConnectorLine[]>([]);
@@ -478,6 +655,8 @@ function TreeCanvas({
           onSelectFeature={onSelectFeature}
           onConfirm={onConfirm}
           onDefineLeaf={onDefineLeaf}
+          tutorialStep={tutorialStep}
+          onTutorialDismiss={onTutorialDismiss}
         />
 
         {hasChildren && leftNode && rightNode && (
@@ -515,9 +694,20 @@ function TreeCanvas({
           />
         ))}
       </svg>
-      <div className="relative z-10 flex w-max min-w-full flex-col items-center">
-        {rootNode && <TreeBranch node={rootNode} />}
-      </div>
+      {tutorialStep === "repeat" ? (
+        <ModellingTutorialTarget
+          className="relative z-10 flex w-max min-w-full flex-col items-center"
+          label="Et il recommence jusqu'à ce que tous les dinosaures soient classés."
+          onDismiss={onTutorialDismiss}
+          placement="bottom"
+        >
+          {rootNode && <TreeBranch node={rootNode} />}
+        </ModellingTutorialTarget>
+      ) : (
+        <div className="relative z-10 flex w-max min-w-full flex-col items-center">
+          {rootNode && <TreeBranch node={rootNode} />}
+        </div>
+      )}
     </section>
   );
 }
@@ -727,6 +917,8 @@ export default function ModellingWhiteBox({
   const [openNodeId, setOpenNodeId] = useState<string | null>(null);
   const [giniByNode, setGiniByNode] = useState<Record<string, GiniState>>({});
   const [isTableOpen, setIsTableOpen] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState<ModellingTutorialStep>(null);
+  const [shouldStartTutorialAfterIntro, setShouldStartTutorialAfterIntro] = useState(showIntro && !isReadOnly);
   const isTreeComplete = useMemo(() => {
     const terminalNodes = nodes.filter((node) => !node.leftId && !node.rightId);
 
@@ -738,6 +930,46 @@ export default function ModellingWhiteBox({
     setOpenNodeId(null);
     setGiniByNode({});
   }, [initialNodes, modelInput.features]);
+
+  const openGiniInstructions = () => {
+    setShouldStartTutorialAfterIntro(false);
+    setIsIntroOpen(true);
+  };
+
+  const closeGiniInstructions = () => {
+    setIsIntroOpen(false);
+
+    if (shouldStartTutorialAfterIntro) {
+      setTutorialStep("input-data");
+      setShouldStartTutorialAfterIntro(false);
+    }
+  };
+
+  const advanceTutorial = () => {
+    setTutorialStep((currentStep) => {
+      if (currentStep === "input-data") {
+        return "inspect-table";
+      }
+
+      if (currentStep === "inspect-table") {
+        return "root-node";
+      }
+
+      if (currentStep === "root-node") {
+        return "waiting-for-gini";
+      }
+
+      if (currentStep === "gini-results") {
+        return "waiting-for-children";
+      }
+
+      if (currentStep === "repeat") {
+        return null;
+      }
+
+      return currentStep;
+    });
+  };
 
   const updateNode = (nodeId: string, updater: (node: TreeNodeData) => TreeNodeData) => {
     setNodes((currentNodes) =>
@@ -753,6 +985,9 @@ export default function ModellingWhiteBox({
     }
 
     if (giniByNode[nodeId]?.results.length) {
+      setTutorialStep((currentStep) =>
+        currentStep === "waiting-for-gini" && nodeId === "root" ? "gini-results" : currentStep,
+      );
       return;
     }
 
@@ -773,6 +1008,9 @@ export default function ModellingWhiteBox({
         ...current,
         [nodeId]: { isLoading: false, errorMessage: null, results },
       }));
+      setTutorialStep((currentStep) =>
+        currentStep === "waiting-for-gini" && nodeId === "root" ? "gini-results" : currentStep,
+      );
     } catch (error) {
       setGiniByNode((current) => ({
         ...current,
@@ -831,6 +1069,9 @@ export default function ModellingWhiteBox({
       ];
     });
     setOpenNodeId(null);
+    setTutorialStep((currentStep) =>
+      currentStep === "waiting-for-children" && nodeId === "root" ? "repeat" : currentStep,
+    );
   };
 
   const defineLeaf = (nodeId: string) => {
@@ -873,7 +1114,7 @@ export default function ModellingWhiteBox({
       className="relative h-dvh w-full overflow-hidden bg-cover bg-center bg-no-repeat px-[24px] py-[50px] text-[#18181b]"
       style={{ backgroundImage: "url('/background.png')" }}
     >
-      {!isReadOnly && !isIntroOpen && <ActivityInstructionsButton onPress={() => setIsIntroOpen(true)} />}
+      {!isReadOnly && !isIntroOpen && <ActivityInstructionsButton onPress={openGiniInstructions} />}
       <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 bg-black/35" />
       <main className="relative z-10 mx-auto flex h-[calc(100dvh-130px)] w-full min-w-0 flex-col items-center">
         <div className="min-h-0 w-full min-w-0 flex-1 overflow-auto overscroll-contain">
@@ -883,6 +1124,8 @@ export default function ModellingWhiteBox({
               carnivores={modelInput.init_carnivores}
               herbivores={modelInput.init_herbivores}
               onInspectTable={() => setIsTableOpen(true)}
+              tutorialStep={tutorialStep}
+              onTutorialDismiss={advanceTutorial}
             />
             <Separator orientation="vertical" className="h-[12px] w-[5px] shrink-0" />
             <TreeCanvas
@@ -893,17 +1136,21 @@ export default function ModellingWhiteBox({
               onSelectFeature={selectFeature}
               onConfirm={confirmNode}
               onDefineLeaf={defineLeaf}
+              tutorialStep={tutorialStep}
+              onTutorialDismiss={advanceTutorial}
             />
           </div>
         </div>
 
         <div className="fixed bottom-[20px] right-[20px] z-20 flex items-center gap-[10px]">
-          <Link
-            href="/modelling"
-            className="inline-flex min-h-[40px] items-center justify-center rounded-full border border-white/50 bg-white/85 px-[16px] text-[14px] font-medium text-[#18181b] shadow-[0_2px_8px_rgba(0,0,0,0.06)] backdrop-blur-[20px] transition hover:bg-white"
-          >
-            Retour
-          </Link>
+          {(isReadOnly || !isTreeComplete) && (
+            <Link
+              href="/modelling"
+              className="inline-flex min-h-[40px] items-center justify-center rounded-full border border-white/50 bg-white/85 px-[16px] text-[14px] font-medium text-[#18181b] shadow-[0_2px_8px_rgba(0,0,0,0.06)] backdrop-blur-[20px] transition hover:bg-white"
+            >
+              Retour
+            </Link>
+          )}
           {!isReadOnly && isTreeComplete && (
             <Button
               className="min-h-[40px] rounded-full bg-[#0485f7] px-[16px] text-[14px] font-medium text-white shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
@@ -916,32 +1163,9 @@ export default function ModellingWhiteBox({
       </main>
 
       {isIntroOpen && (
-        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/45 px-[24px] backdrop-blur-[2px]">
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="gini-intro-title"
-            className="flex w-full max-w-[560px] flex-col gap-[18px] rounded-[24px] bg-white p-[28px] text-[#18181b] shadow-[0_2px_8px_rgba(0,0,0,0.06),0_-6px_12px_rgba(0,0,0,0.03),0_14px_28px_rgba(0,0,0,0.08)]"
-          >
-            <div>
-              <p className="text-[14px] font-medium text-[#52525b]">Avant de commencer</p>
-              <h2 id="gini-intro-title" className="mt-[6px] text-[28px] font-extrabold leading-[1.12]">
-                Impureté de Gini
-              </h2>
-            </div>
-            <div className="flex flex-col gap-[12px] text-[16px] leading-[1.5] text-[#3f3f46]">
-              <GiniInstructionsContent />
-            </div>
-            <div className="flex justify-end">
-              <Button
-                className="min-h-[40px] rounded-full bg-[#0485f7] px-[18px] text-[15px] font-medium text-white"
-                onPress={() => setIsIntroOpen(false)}
-              >
-                C&apos;est parti !
-              </Button>
-            </div>
-          </section>
-        </div>
+        <ActivityInstructionsOverlay title="Impureté de Gini" onClose={closeGiniInstructions}>
+          <GiniInstructionsContent />
+        </ActivityInstructionsOverlay>
       )}
       {isTableOpen && (
         <TrainingTableOverlay

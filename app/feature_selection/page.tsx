@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ActivityInstructionsOverlay, FeatureSelectionInstructionsContent } from "@/app/components";
+import { type FeatureSelectionTutorialStep } from "@/app/components/FeatureSelectionHints";
 import { markCollectionStepStart } from "@/app/lib/experimentCollection";
 import { conditionForStep, useExperimentCondition } from "@/app/lib/experimentCondition";
 import BlackBox from "./pageBB";
@@ -11,8 +12,35 @@ export default function FeatureSelectionInstructions() {
   const experimentCondition = useExperimentCondition();
   const condition = conditionForStep(experimentCondition, "feature_selection");
   const [isInstructionsOpen, setIsInstructionsOpen] = useState(true);
-  const openInstructions = () => setIsInstructionsOpen(true);
-  const closeInstructions = () => setIsInstructionsOpen(false);
+  const [tutorialStep, setTutorialStep] = useState<FeatureSelectionTutorialStep>(null);
+  const [hasStartedTutorial, setHasStartedTutorial] = useState(false);
+  const openInstructions = () => {
+    setTutorialStep(null);
+    setHasStartedTutorial(false);
+    setIsInstructionsOpen(true);
+  };
+  const closeInstructions = () => {
+    setIsInstructionsOpen(false);
+
+    if (!hasStartedTutorial) {
+      setTutorialStep(1);
+      setHasStartedTutorial(true);
+    }
+  };
+  const advanceTutorial = () => {
+    setTutorialStep((currentStep) => {
+      if (currentStep === 1) {
+        return 2;
+      }
+
+      if (currentStep === 2 && condition === "WB") {
+        return 3;
+      }
+
+      return null;
+    });
+  };
+  const visibleTutorialStep = isInstructionsOpen ? null : tutorialStep;
 
   useEffect(() => {
     markCollectionStepStart("FS");
@@ -21,7 +49,11 @@ export default function FeatureSelectionInstructions() {
   if (condition === "WB") {
     return (
       <>
-        <WhiteBox onShowInstructions={openInstructions} shouldShowTableHints={!isInstructionsOpen} />
+        <WhiteBox
+          onShowInstructions={openInstructions}
+          tutorialStep={visibleTutorialStep}
+          onTutorialDismiss={advanceTutorial}
+        />
         {isInstructionsOpen && (
           <ActivityInstructionsOverlay title="Consignes" onClose={closeInstructions}>
             <FeatureSelectionInstructionsContent condition="WB" />
@@ -34,7 +66,11 @@ export default function FeatureSelectionInstructions() {
   if (condition === "BB") {
     return (
       <>
-        <BlackBox onShowInstructions={openInstructions} shouldShowTableHints={!isInstructionsOpen} />
+        <BlackBox
+          onShowInstructions={openInstructions}
+          tutorialStep={visibleTutorialStep}
+          onTutorialDismiss={advanceTutorial}
+        />
         {isInstructionsOpen && (
           <ActivityInstructionsOverlay title="Consignes" onClose={closeInstructions}>
             <FeatureSelectionInstructionsContent condition="BB" />

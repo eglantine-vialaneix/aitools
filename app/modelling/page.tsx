@@ -65,24 +65,28 @@ function Surface({ children, className = "", variant = "secondary" }: SurfacePro
 
 function TrainingDataCard({
   condition,
+  displayFeatures,
   modelInput,
   onInspectTable,
 }: {
   condition: ModellingCondition;
+  displayFeatures?: string[];
   modelInput: ModelInput;
   onInspectTable: () => void;
 }) {
+  const visibleFeatures = displayFeatures ?? (condition === "WB" ? modelInput.features : []);
+
   return (
     <section className="relative flex w-full flex-col gap-[10px] rounded-[24px] bg-white px-[24px] py-[20px] shadow-[0_2px_4px_rgba(0,0,0,0.06),0_-6px_6px_rgba(0,0,0,0.03),0_14px_14px_rgba(0,0,0,0.08)] backdrop-blur-[20px]">
       <p className="text-[16px] font-semibold leading-[1.5] text-black">
         Données d’entraînement:
       </p>
 
-      {condition === "WB" && (
+      {visibleFeatures.length > 0 && (
         <div className="flex flex-col gap-[10px]">
           <p className="text-[16px] leading-[1.5] text-black">Caractéristiques:</p>
           <div className="flex flex-wrap gap-[10px]">
-            {modelInput.features.map((feature) => (
+            {visibleFeatures.map((feature) => (
               <span
                 key={feature}
                 className="inline-flex min-h-[32px] items-center justify-center rounded-full bg-[#ebebec] px-[8px] text-[13px] font-medium leading-[1.43] text-[#18181b]"
@@ -206,6 +210,12 @@ function ModellingPageContent() {
     condition,
     selectedFeatures,
   });
+  const trainingDataFeatures =
+    condition === "WB"
+      ? modelInput.features
+      : experimentCondition === "C2"
+        ? selectedFeatures
+        : [];
 
   if (isTraining) {
     const isViewingTrainedTree = condition === "WB" && Boolean(trainingResult?.whiteBoxTree?.length);
@@ -215,9 +225,13 @@ function ModellingPageContent() {
 
     return condition === "BB" ? (
       <>
-        <BlackBox condition={condition} onShowInstructions={openInstructions} />
+        <BlackBox
+          condition={condition}
+          displayFeatures={trainingDataFeatures}
+          onShowInstructions={openInstructions}
+        />
         {isInstructionsOpen && (
-          <ActivityInstructionsOverlay title="Consignes d'entraînement" onClose={closeInstructions}>
+          <ActivityInstructionsOverlay title="Consignes" onClose={closeInstructions}>
             <ModellingInstructionsContent condition="BB" />
           </ActivityInstructionsOverlay>
         )}
@@ -232,7 +246,7 @@ function ModellingPageContent() {
           onShowInstructions={openInstructions}
         />
         {!isViewingTrainedTree && isInstructionsOpen && (
-          <ActivityInstructionsOverlay title="Consignes d'entraînement" onClose={closeInstructions}>
+          <ActivityInstructionsOverlay title="Consignes" onClose={closeInstructions}>
             <ModellingInstructionsContent condition="WB" />
           </ActivityInstructionsOverlay>
         )}
@@ -289,10 +303,8 @@ function ModellingPageContent() {
               Entraîne ce modèle:
             </h1>
             <p className="mt-[9px] w-full text-[16px] leading-[1.5]">
-              Pour entraîner un modèle, tu dois lui présenter les données que tu viens de préparer
-              pour qu’il puisse découvrir quels caractéristiques déterminent si un dinosaure est
-              carnivore ou herbivore. Pour cela, clique sur “Entraîner” et observe comment il
-              classifie les données d’entraînement.
+              L&apos;algorithme regarde les données, et apprend à déterminer si un dinosaure est
+              carnivore ou herbivore. Comment fait-il cela ? Clique sur &quot;Entraîner&quot; !
             </p>
           </div>
 
@@ -301,6 +313,7 @@ function ModellingPageContent() {
               <div className="w-[545px] shrink-0">
                 <TrainingDataCard
                   condition={condition}
+                  displayFeatures={trainingDataFeatures}
                   modelInput={modelInput}
                   onInspectTable={() => setTableOverlay({ kind: "training", dataFile: modelInput.data })}
                 />
@@ -320,7 +333,7 @@ function ModellingPageContent() {
                       result={trainingResult}
                       onInspectTable={
                         trainingResult.predictionRows?.length
-                          ? () => setTableOverlay({ kind: "predictions", rows: trainingResult.predictionRows })
+                          ? () => setTableOverlay({ kind: "predictions", modelInput, rows: trainingResult.predictionRows })
                           : condition === "BB"
                           ? () => setTableOverlay({ kind: "predictions", modelInput })
                           : undefined
@@ -385,7 +398,7 @@ function ModellingPageContent() {
         )
       )}
       {isInstructionsOpen && (
-        <ActivityInstructionsOverlay title="Consignes d'entraînement" onClose={closeInstructions}>
+        <ActivityInstructionsOverlay title="Consignes" onClose={closeInstructions}>
           <ModellingInstructionsContent condition={condition} />
         </ActivityInstructionsOverlay>
       )}
