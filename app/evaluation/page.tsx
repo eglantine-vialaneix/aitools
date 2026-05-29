@@ -58,7 +58,7 @@ const PREDICTION_COLUMN = "régime_alimentaire_prédit";
 
 const QUESTION_PROMPTS = [
   "Es-tu satisfait(e) de la performance du modèle ? Pourquoi ?",
-  "Repense à ce que tu as fait pendant les étapes précédentes. Que corrigerais-tu pour améliorer la performance du modèle ?",
+  "Repense à ce qu'il s'est passé pendant les étapes précédentes. Que changerais-tu pour améliorer la performance du modèle ?",
 ];
 const MODEL_TITLE = "Modèle";
 
