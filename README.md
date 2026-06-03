@@ -4,7 +4,7 @@ AI-Tools is a digital platform designed to introduce machine learning concepts t
 
 The learning sequence is organized into four activities: **data labelling**, **feature selection**, **model training**, and **evaluation**. Through these activities, students progressively discover how training data is created, how relevant features are selected, how a model learns from data, and how its performance can be assessed.
 
-AI-Tools also investigates the impact of making parts of the machine learning pipeline visible to learners. For this reason, the application contains two versions of the first three activities: a **black-box** version and a **white-box** version. The black-box version hides most of the internal mechanisms of the pipeline, while the white-box version makes selected steps more explicit and manipulable by students. Mor einformation can be found in my final report `AI Tools.pdf`.
+AI-Tools also investigates the impact of making parts of the machine learning pipeline visible to learners. For this reason, the application contains two versions of the first three activities: a **black-box** version and a **white-box** version. The black-box version hides most of the internal mechanisms of the pipeline, while the white-box version makes selected steps more explicit and manipulable by students. Mor einformation can be found in my final report `AI Tools compressed.pdf`.
 
 The suffixes ``BB`` and ``WB`` refer respectively to the **black-box** and **white-box** versions of an activity. This distinction was used during development to compare how much of the machine learning pipeline should be made visible to support students' understanding.
 
@@ -56,7 +56,7 @@ The current repository is organized as follows:
 ├── scripts/                     # Utility scripts (for backend setup mainly)
 ├── package.json                 # Project dependencies and npm scripts
 ├── README.md                    # Repository documentation
-└── AI Tools.pdf                 # Project final report
+└── AI Tools compressed.pdf      # Project final report
 ```
 
 ## Getting Started
