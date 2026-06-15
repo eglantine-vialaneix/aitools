@@ -134,7 +134,7 @@ This project was made during the scope of my Semester Project in Pr. Francesco M
 
 I, Eglantine Vialaneix, make the content of this repository available to the digital public under the [Creative Common BY-NC-SA-4.0 license](https://creativecommons.org/licenses/by-nc-sa/4.0/).
 
-![CC BY-NC-SA-4.0](//public/Creative%20Commons%20NC%20SA.svg)
+![CC BY-NC-SA-4.0](/public/Creative%20Commons%20NC%20SA.svg)
 
 <!-- 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
